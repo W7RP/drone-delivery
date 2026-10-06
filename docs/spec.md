@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.2.3. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.2.4. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -790,13 +790,20 @@ Default MIN_THRESHOLD:
 Called when holding returns DIVERT, and for every drone whose `dest_pad` becomes
 OUT_OF_SERVICE or CONTROLLER_FAULT in FM's view (reroute inbound).
 
-Default NEAREST_FEASIBLE: `alt(failed_pad)` restricted to pads where `divert_ok` holds; None
-if no such pad. On Some(q): `MISSION_ASSIGN` DIVERT to q and `ALERT` DIVERTED (WARNING). A
+Default NEAREST_FEASIBLE: among ONLINE pads other than `failed_pad` where `divert_ok` holds,
+the one with the fewest other drones holding over it or diverting to it, then the shortest
+route, then the lower pad_id; None if there is no such pad. Without the congestion term two
+busy neighbouring pads can bounce a drone between them until it reaches its reserve. On Some(q): `MISSION_ASSIGN` DIVERT to q and `ALERT` DIVERTED (WARNING). A
 carried pod is released at q as a normal visit and the order closes as DIVERTED (A19). On
 None: `ALERT` NO_ALTERNATE (CRITICAL) and `HOLD_CONTINUE` with `handshake.hold_retry_s`; the
 drone keeps trying until a pad recovers or `D_ENERGY_RESERVE` grounds it (D14).
 
-Pending orders whose `dest_pad` is not ONLINE in FM's view are not assigned until it is.
+Orders whose `dest_pad` is OUT_OF_SERVICE in FM's view are still assigned, and the drone
+that latches the pod flies a DIVERT mission straight to the nearest ONLINE pad other than the
+origin (the order closes DIVERTED, with a DIVERTED alert); without this an order to a pad that
+is out of service for the rest of the run would block its origin's OUT forever. Orders whose
+`dest_pad` is only suspected faulted (CONTROLLER_FAULT in FM's view) wait, since that is
+usually brief (A44).
 
 ## 7 Metrics
 
@@ -1265,3 +1272,4 @@ that:
 | 1.2.1 | A41 to A43; network seed rule in 8.6 and 5.4. | Decisions made while implementing the phase-2 core. |
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
+| 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |

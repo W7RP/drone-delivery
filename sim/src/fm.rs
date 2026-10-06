@@ -341,6 +341,19 @@ impl FleetView<'_> {
                 )
     }
 
+    /// Where an order to `dest` should be flown from `origin` (6.1 amendment): the destination
+    /// when it is ONLINE; the nearest ONLINE alternate (not the origin) when it is
+    /// OUT_OF_SERVICE; None while it is only suspected faulted (wait, usually brief).
+    pub fn delivery_target(&self, origin: PadId, dest: PadId) -> Option<PadId> {
+        match self.fm.pads[usize::from(dest)].mode {
+            PadMode::Online => Some(dest),
+            PadMode::ControllerFault => None,
+            PadMode::OutOfService => self
+                .energy
+                .nearest_other(self.net, dest, |q| q != origin && self.online(q)),
+        }
+    }
+
     /// Spec 6.4: claims of the other drones are fewer than the pad's slots.
     pub fn unclaimed_for(&self, p: PadId, d: DroneId) -> bool {
         let own = u16::from(self.fm.claim_of(usize::from(d)) == p);
@@ -365,9 +378,10 @@ impl AssignmentPolicy for MinEta {
     fn assign(&self, v: &FleetView<'_>, o: OrderId) -> Option<DroneId> {
         let ord = &v.fm.orders[o as usize];
         let (p, q, m) = (ord.origin_pad, ord.dest_pad, f64::from(ord.payload_kg));
-        if !v.online(p) || !v.online(q) {
+        if !v.online(p) {
             return None;
         }
+        let q = v.delivery_target(p, q)?;
         let cap = v.energy.capacity_j;
         let hover0 = v.energy.model.hover_power_w(0.0);
         let mut best: Option<(TimeMs, DroneId)> = None;
@@ -429,7 +443,16 @@ impl DispatchPolicy for Immediate {
         let fd = v.drone(d);
         if fd.pod != NO_POD {
             let order = v.fm.pod_order(fd.pod);
-            let dest = v.fm.orders[order as usize].dest_pad;
+            let ordered = v.fm.orders[order as usize].dest_pad;
+            let dest = v.delivery_target(fd.pad, ordered).unwrap_or(ordered);
+            if dest != ordered {
+                return Some(Mission {
+                    kind: MissionKind::Divert,
+                    dest,
+                    order,
+                    pickup_order: NO_ORDER,
+                });
+            }
             let pickup = if fd.pickup_order != NO_ORDER
                 && v.fm.orders[fd.pickup_order as usize].origin_pad == dest
             {
@@ -650,12 +673,35 @@ impl PodRebalancingPolicy for MinThreshold {
 pub struct NearestFeasible;
 
 impl DiversionPolicy for NearestFeasible {
+    /// Feasible ONLINE alternates ranked by congestion, then route length, then pad ID: the
+    /// fewest other drones holding over the pad or diverting to it. Without the congestion
+    /// term two busy neighbours bounce a drone between them until its reserve (6.6 amendment).
     fn alternate(&self, v: &FleetView<'_>, d: DroneId, failed: PadId) -> Option<PadId> {
         let soc = v.drone(d).soc;
         let m = v.payload(d);
-        v.energy.nearest_other(v.net, failed, |q| {
-            v.online(q) && v.energy.divert_ok(v.net, soc, failed, q, m)
-        })
+        let congestion = |q: PadId| {
+            v.fm.drones
+                .iter()
+                .enumerate()
+                .filter(|&(i, x)| {
+                    i != usize::from(d)
+                        && ((x.mode == DroneMode::Holding && x.pad == q)
+                            || (x.mission == MissionKind::Divert && x.dest == q))
+                })
+                .count()
+        };
+        let mut best: Option<(usize, f64, PadId)> = None;
+        for q in 0..v.net.n_pads {
+            let q = PadId::try_from(q).expect("pad count fits u16");
+            if q == failed || !v.online(q) || !v.energy.divert_ok(v.net, soc, failed, q, m) {
+                continue;
+            }
+            let key = (congestion(q), v.net.route_len(failed, q), q);
+            if best.is_none_or(|b| key.0 < b.0 || (key.0 == b.0 && key.1 < b.1)) {
+                best = Some(key);
+            }
+        }
+        best.map(|(_, _, q)| q)
     }
 }
 
@@ -1128,10 +1174,22 @@ impl World {
             let ok = {
                 let v = self.view();
                 let payload = v.payload(d);
-                m.kind != MissionKind::Deliver
+                !matches!(m.kind, MissionKind::Deliver | MissionKind::Divert)
                     || v.dispatch_ok(v.drone(d).soc, pad, m.dest, payload)
             };
             if ok {
+                if m.kind == MissionKind::Divert {
+                    // Planned diversion: the order's destination is out of service.
+                    let dest = self.fm.orders[m.order as usize].dest_pad;
+                    self.alert(
+                        AlertCode::Diverted,
+                        AlertSeverity::Warning,
+                        (EntityKind::FleetManager, 0),
+                        dest,
+                        d,
+                        m.order,
+                    );
+                }
                 self.fm_send_mission(d, m);
                 return;
             }
