@@ -1,0 +1,1086 @@
+//! Scenario config loader (spec section 8). Reads `scenario.toml`, checks every key, unit and
+//! range against `schemas/config.schema.json`, expands the synthetic generator (8.6), applies
+//! the cross-field rules R1 to R11 and R13, and converts to SI seconds and integer ms.
+//!
+//! R12 and R16 need routes, so they are checked in `crate::scenario` after the network is built.
+
+use std::fmt;
+
+use toml::{Table, Value};
+
+use crate::ids::{
+    AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName, DiversionPolicyName,
+    DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MatrixSource,
+    NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset, ReturnPolicy,
+    ServiceMode, TimeMs, ms_from_s,
+};
+use crate::network;
+
+pub const SCHEMA_VERSION: &str = "1.2.0";
+const HOURS_PER_DAY: usize = 24;
+const SECONDS_PER_DAY: f64 = 86_400.0;
+const SECONDS_PER_HOUR: f64 = 3600.0;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigError(pub String);
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ConfigError {}
+
+type Result<T> = std::result::Result<T, ConfigError>;
+
+fn err<T>(msg: impl Into<String>) -> Result<T> {
+    Err(ConfigError(msg.into()))
+}
+
+#[derive(Debug, Clone)]
+pub struct PadCfg {
+    pub name: String,
+    pub lat_deg: f64,
+    pub lon_deg: f64,
+    pub is_hub: bool,
+    pub service_mode: ServiceMode,
+    pub return_policy: ReturnPolicy,
+    pub initial_empty_pods: u32,
+    pub parking_capacity: u16,
+}
+
+impl PadCfg {
+    /// `slots(p)` of spec 6.4: parking capacity, or the OUT spot when it is 0.
+    pub fn slots(&self) -> u16 {
+        self.parking_capacity.max(1)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SyntheticNetworkCfg {
+    pub topology: NetworkTopology,
+    pub n_pads: u16,
+    pub radius_m: f64,
+    pub mesh_neighbors: u16,
+    pub service_mode: ServiceMode,
+    pub return_policy: ReturnPolicy,
+    pub initial_empty_pods: u32,
+    pub parking_capacity: u16,
+    pub hub_parking_capacity: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Flow {
+    pub origin: PadId,
+    pub dest: PadId,
+    pub rate_per_s: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FaultCfg {
+    pub kind: FaultKind,
+    pub pad: PadId,
+    pub start_ms: TimeMs,
+    pub duration_ms: TimeMs,
+}
+
+#[derive(Debug, Clone)]
+pub struct DroneCfg {
+    pub fleet_size: u16,
+    pub initial_pads: Vec<PadId>,
+    pub empty_mass_kg: f64,
+    pub latch_mass_kg: f64,
+    pub mtow_kg: f64,
+    pub battery_capacity_j: f64,
+    pub initial_soc: f64,
+    pub reserve_soc: f64,
+    pub charge_target_soc: f64,
+    pub cruise_speed_mps: f64,
+    pub cruise_power_ref_w: f64,
+    pub hover_power_ref_w: f64,
+    pub power_ref_mass_kg: f64,
+    pub takeoff_s: f64,
+    pub approach_s: f64,
+    pub go_around_s: f64,
+    pub hop_s: f64,
+    pub p_release_fault: f64,
+    pub p_latch_fault: f64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ChargingCfg {
+    pub mode: ChargingMode,
+    pub power_w: f64,
+    pub efficiency: f64,
+    pub charge_while_parked: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PadOpsCfg {
+    pub pod_place_ms: TimeMs,
+    pub pod_remove_ms: TimeMs,
+    pub release_ms: TimeMs,
+    pub release_verify_ms: TimeMs,
+    pub latch_ms: TimeMs,
+    pub latch_verify_ms: TimeMs,
+    pub manual_release_ms: TimeMs,
+    pub manual_latch_ms: TimeMs,
+    pub p_marker_detect: f64,
+    pub max_go_arounds: u8,
+    pub release_max_retries: u8,
+    pub latch_max_retries: u8,
+    pub out_empty_policy: OutEmptyPolicy,
+    pub out_empty_wait_ms: TimeMs,
+    pub pc_fault_rate_per_s: f64,
+    pub pc_fault_duration_ms: TimeMs,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct HandshakeCfg {
+    pub local_latency_ms: TimeMs,
+    pub fm_latency_ms: TimeMs,
+    pub p_msg_loss: f64,
+    pub response_timeout_ms: TimeMs,
+    pub max_retries: u8,
+    pub hold_retry_ms: TimeMs,
+    pub pc_silence_alert_ms: TimeMs,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PolicyCfg {
+    pub in_occupied_action: InOccupiedAction,
+    pub max_hold_s: f64,
+    pub marker_hold_s: f64,
+    pub marker_max_hold_cycles: u8,
+    pub pod_min_per_pad: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TruckCfg {
+    pub matrix_source: MatrixSource,
+    pub detour_factor: f64,
+    pub free_flow_speed_mps: f64,
+    pub dispatch_delay_s: f64,
+    pub load_s: f64,
+    pub unload_s: f64,
+    pub tod_speed_factors: [f64; HOURS_PER_DAY],
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CostsCfg {
+    pub truck_per_m: f64,
+    pub truck_per_s: f64,
+    pub drone_per_s: f64,
+    pub energy_per_j: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub name: String,
+    pub preset: Preset,
+    pub source_hash: u64,
+    pub seed: u64,
+    pub duration_ms: TimeMs,
+    pub warmup_ms: TimeMs,
+    pub start_time_of_day_s: f64,
+    pub replications: u32,
+    pub origin_lat_deg: f64,
+    pub origin_lon_deg: f64,
+    pub pads: Vec<PadCfg>,
+    pub lanes: Vec<(PadId, PadId)>,
+    pub drone: DroneCfg,
+    pub pod_gross_mass_kg: f64,
+    pub pod_empty_mass_kg: f64,
+    pub charging: ChargingCfg,
+    pub pad_ops: PadOpsCfg,
+    pub handshake: HandshakeCfg,
+    pub policy: PolicyCfg,
+    pub deadline_offset_ms: TimeMs,
+    pub flows: Vec<Flow>,
+    pub truck: TruckCfg,
+    pub hist_bin_ms: TimeMs,
+    pub hist_max_ms: TimeMs,
+    pub costs: CostsCfg,
+    pub faults: Vec<FaultCfg>,
+}
+
+impl Config {
+    pub fn has_charger(&self, pad: PadId) -> bool {
+        match self.charging.mode {
+            ChargingMode::OutContacts => true,
+            ChargingMode::HubOnly => self.pads[usize::from(pad)].is_hub,
+        }
+    }
+
+    pub fn total_pods(&self) -> u32 {
+        self.pads.iter().map(|p| p.initial_empty_pods).sum()
+    }
+}
+
+/// FNV-1a 64 of the raw config bytes (spec 9.0 `source_hash`).
+pub fn fnv1a64(bytes: &[u8]) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for &b in bytes {
+        hash ^= u64::from(b);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
+#[derive(Clone, Copy)]
+enum Range {
+    NonNeg,
+    Pos,
+    Prob,
+    /// (0, 10], the schema's `q_factor`.
+    Factor,
+    Lat,
+    Lon,
+}
+
+impl Range {
+    fn check(self, v: f64) -> bool {
+        match self {
+            Range::NonNeg => v >= 0.0,
+            Range::Pos => v > 0.0,
+            Range::Prob => (0.0..=1.0).contains(&v),
+            Range::Factor => v > 0.0 && v <= 10.0,
+            Range::Lat => (-90.0..=90.0).contains(&v),
+            Range::Lon => (-180.0..=180.0).contains(&v),
+        }
+    }
+
+    fn describe(self) -> &'static str {
+        match self {
+            Range::NonNeg => ">= 0",
+            Range::Pos => "> 0",
+            Range::Prob => "in [0, 1]",
+            Range::Factor => "in (0, 10]",
+            Range::Lat => "in [-90, 90]",
+            Range::Lon => "in [-180, 180]",
+        }
+    }
+}
+
+/// One TOML table with its dotted path, for precise error messages.
+struct Section<'a> {
+    table: &'a Table,
+    path: String,
+}
+
+impl<'a> Section<'a> {
+    fn new(table: &'a Table, path: impl Into<String>) -> Self {
+        Self {
+            table,
+            path: path.into(),
+        }
+    }
+
+    fn key_path(&self, key: &str) -> String {
+        if self.path.is_empty() {
+            key.to_owned()
+        } else {
+            format!("{}.{key}", self.path)
+        }
+    }
+
+    fn allow(&self, keys: &[&str]) -> Result<()> {
+        for k in self.table.keys() {
+            if !keys.contains(&k.as_str()) {
+                return err(format!("{}: unknown key", self.key_path(k)));
+            }
+        }
+        Ok(())
+    }
+
+    fn get(&self, key: &str) -> Result<&'a Value> {
+        self.table
+            .get(key)
+            .ok_or_else(|| ConfigError(format!("{}: missing", self.key_path(key))))
+    }
+
+    fn has(&self, key: &str) -> bool {
+        self.table.contains_key(key)
+    }
+
+    fn section(&self, key: &str) -> Result<Section<'a>> {
+        match self.get(key)? {
+            Value::Table(t) => Ok(Section::new(t, self.key_path(key))),
+            _ => err(format!("{}: expected a table", self.key_path(key))),
+        }
+    }
+
+    fn tables(&self, key: &str) -> Result<Vec<Section<'a>>> {
+        let Value::Array(items) = self.get(key)? else {
+            return err(format!(
+                "{}: expected an array of tables",
+                self.key_path(key)
+            ));
+        };
+        items
+            .iter()
+            .enumerate()
+            .map(|(i, v)| match v {
+                Value::Table(t) => Ok(Section::new(t, format!("{}[{i}]", self.key_path(key)))),
+                _ => err(format!("{}[{i}]: expected a table", self.key_path(key))),
+            })
+            .collect()
+    }
+
+    fn string(&self, key: &str) -> Result<&'a str> {
+        match self.get(key)? {
+            Value::String(s) => Ok(s),
+            _ => err(format!("{}: expected a string", self.key_path(key))),
+        }
+    }
+
+    fn boolean(&self, key: &str) -> Result<bool> {
+        match self.get(key)? {
+            Value::Boolean(b) => Ok(*b),
+            _ => err(format!("{}: expected true or false", self.key_path(key))),
+        }
+    }
+
+    fn enumeration<E>(&self, key: &str, parse: fn(&str) -> Option<E>) -> Result<E> {
+        let text = self.string(key)?;
+        parse(text)
+            .ok_or_else(|| ConfigError(format!("{}: unknown value \"{text}\"", self.key_path(key))))
+    }
+
+    /// A `{ value, unit, assumption }` table with the exact unit the schema fixes for `key`.
+    fn quantity(&self, key: &str, unit: &str, range: Range) -> Result<f64> {
+        let path = self.key_path(key);
+        quantity_from(self.get(key)?, &path, unit, range)
+    }
+
+    fn count(&self, key: &str, min: i64, max: i64) -> Result<i64> {
+        let path = self.key_path(key);
+        count_from(self.get(key)?, &path, min, max)
+    }
+}
+
+fn quantity_table<'v>(value: &'v Value, path: &str, unit: &str) -> Result<&'v Value> {
+    let Value::Table(t) = value else {
+        return err(format!("{path}: expected {{ value, unit, assumption }}"));
+    };
+    for k in t.keys() {
+        if !["value", "unit", "assumption"].contains(&k.as_str()) {
+            return err(format!("{path}.{k}: unknown key"));
+        }
+    }
+    match t.get("unit") {
+        Some(Value::String(u)) if u == unit => {}
+        Some(Value::String(u)) => return err(format!("{path}: unit \"{u}\", expected \"{unit}\"")),
+        _ => return err(format!("{path}.unit: missing or not a string")),
+    }
+    match t.get("assumption") {
+        Some(Value::Boolean(_)) => {}
+        _ => return err(format!("{path}.assumption: missing or not a boolean")),
+    }
+    t.get("value")
+        .ok_or_else(|| ConfigError(format!("{path}.value: missing")))
+}
+
+fn quantity_from(value: &Value, path: &str, unit: &str, range: Range) -> Result<f64> {
+    let v = match quantity_table(value, path, unit)? {
+        Value::Float(f) => *f,
+        #[allow(clippy::cast_precision_loss)]
+        Value::Integer(i) => *i as f64,
+        _ => return err(format!("{path}.value: expected a number")),
+    };
+    if !v.is_finite() || !range.check(v) {
+        return err(format!(
+            "{path}: {v} must be finite and {}",
+            range.describe()
+        ));
+    }
+    Ok(v)
+}
+
+fn count_from(value: &Value, path: &str, min: i64, max: i64) -> Result<i64> {
+    match quantity_table(value, path, "count")? {
+        Value::Integer(i) if (min..=max).contains(i) => Ok(*i),
+        Value::Integer(i) => err(format!("{path}: {i} must be in [{min}, {max}]")),
+        _ => err(format!("{path}.value: expected an integer count")),
+    }
+}
+
+fn narrow<T: TryFrom<i64>>(v: i64, path: &str) -> Result<T> {
+    T::try_from(v).map_err(|_| ConfigError(format!("{path}: {v} out of range")))
+}
+
+fn pad_index(names: &[String], name: &str, path: &str) -> Result<PadId> {
+    match names.iter().position(|n| n == name) {
+        Some(i) => narrow(i64::try_from(i).unwrap_or(i64::MAX), path),
+        None => err(format!("{path}: no pad named \"{name}\"")),
+    }
+}
+
+/// Parse and validate a scenario. `text` is the raw `scenario.toml`.
+pub fn parse(text: &str) -> Result<Config> {
+    let root: Table = text
+        .parse()
+        .map_err(|e| ConfigError(format!("not valid TOML: {e}")))?;
+    let top = Section::new(&root, "");
+    top.allow(&[
+        "schema_version",
+        "meta",
+        "sim",
+        "geo",
+        "pads",
+        "lanes",
+        "synthetic_network",
+        "drone",
+        "payload",
+        "charging",
+        "pad_ops",
+        "handshake",
+        "policy",
+        "demand",
+        "truck",
+        "metrics",
+        "costs",
+        "faults",
+    ])?;
+    let version = top.string("schema_version")?;
+    if version != SCHEMA_VERSION {
+        return err(format!(
+            "schema_version: \"{version}\", this core reads \"{SCHEMA_VERSION}\""
+        ));
+    }
+    let meta = top.section("meta")?;
+    meta.allow(&["name", "preset", "status", "city", "description"])?;
+    let name = meta.string("name")?.to_owned();
+    let preset = meta.enumeration("preset", Preset::from_name)?;
+    meta.string("city")?;
+    meta.string("description")?;
+    if meta.enumeration("status", ConfigStatus::from_name)? == ConfigStatus::Stub {
+        return err(format!(
+            "meta.status: \"{name}\" is a STUB config and cannot be run"
+        ));
+    }
+
+    let sim = top.section("sim")?;
+    sim.allow(&[
+        "seed",
+        "duration_s",
+        "warmup_s",
+        "start_time_of_day_s",
+        "replications",
+    ])?;
+    let seed_path = sim.key_path("seed");
+    let seed = match quantity_table(sim.get("seed")?, &seed_path, "1")? {
+        Value::Integer(i) if *i >= 0 => u64::try_from(*i).unwrap_or(0),
+        _ => {
+            return err(format!(
+                "{seed_path}.value: expected a non-negative integer"
+            ));
+        }
+    };
+    let duration_s = sim.quantity("duration_s", "s", Range::Pos)?;
+    let warmup_s = sim.quantity("warmup_s", "s", Range::NonNeg)?;
+    let start_time_of_day_s = sim.quantity("start_time_of_day_s", "s", Range::NonNeg)?;
+    if start_time_of_day_s >= SECONDS_PER_DAY {
+        return err("sim.start_time_of_day_s: must be < 86400");
+    }
+    let replications = narrow(
+        sim.count("replications", 1, i64::from(u32::MAX))?,
+        "sim.replications",
+    )?;
+
+    let geo = top.section("geo")?;
+    geo.allow(&["origin_lat_deg", "origin_lon_deg"])?;
+    let origin_lat_deg = geo.quantity("origin_lat_deg", "deg", Range::Lat)?;
+    let origin_lon_deg = geo.quantity("origin_lon_deg", "deg", Range::Lon)?;
+
+    let (pads, lanes) = parse_network(&top, origin_lat_deg, origin_lon_deg, seed)?;
+    let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
+
+    let drone = parse_drone(&top.section("drone")?, &names, &pads)?;
+    let payload = top.section("payload")?;
+    payload.allow(&["pod_gross_mass_kg", "pod_empty_mass_kg"])?;
+    let pod_gross_mass_kg = payload.quantity("pod_gross_mass_kg", "kg", Range::Pos)?;
+    let pod_empty_mass_kg = payload.quantity("pod_empty_mass_kg", "kg", Range::Pos)?;
+
+    let ch = top.section("charging")?;
+    ch.allow(&["mode", "power_w", "efficiency", "charge_while_parked"])?;
+    let charging = ChargingCfg {
+        mode: ch.enumeration("mode", ChargingMode::from_name)?,
+        power_w: ch.quantity("power_w", "W", Range::Pos)?,
+        efficiency: ch.quantity("efficiency", "1", Range::Prob)?,
+        charge_while_parked: if ch.has("charge_while_parked") {
+            ch.boolean("charge_while_parked")?
+        } else {
+            false
+        },
+    };
+    if charging.efficiency <= 0.0 {
+        return err("charging.efficiency: must be > 0");
+    }
+
+    let pad_ops = parse_pad_ops(&top.section("pad_ops")?)?;
+    let handshake = parse_handshake(&top.section("handshake")?)?;
+    let policy = parse_policy(&top.section("policy")?)?;
+    let (deadline_offset_ms, flows) = parse_demand(&top.section("demand")?, &names, &pads)?;
+    let truck = parse_truck(&top.section("truck")?)?;
+
+    let m = top.section("metrics")?;
+    m.allow(&["hist_bin_s", "hist_max_s"])?;
+    let hist_bin_ms = ms_from_s(m.quantity("hist_bin_s", "s", Range::Pos)?);
+    let hist_max_ms = ms_from_s(m.quantity("hist_max_s", "s", Range::Pos)?);
+
+    let c = top.section("costs")?;
+    c.allow(&["truck_per_m", "truck_per_s", "drone_per_s", "energy_per_j"])?;
+    let costs = CostsCfg {
+        truck_per_m: c.quantity("truck_per_m", "cu/m", Range::NonNeg)?,
+        truck_per_s: c.quantity("truck_per_s", "cu/s", Range::NonNeg)?,
+        drone_per_s: c.quantity("drone_per_s", "cu/s", Range::NonNeg)?,
+        energy_per_j: c.quantity("energy_per_j", "cu/J", Range::NonNeg)?,
+    };
+
+    let mut faults = Vec::new();
+    for f in top.tables("faults")? {
+        f.allow(&["kind", "pad", "start_s", "duration_s"])?;
+        faults.push(FaultCfg {
+            kind: f.enumeration("kind", FaultKind::from_name)?,
+            pad: pad_index(&names, f.string("pad")?, &f.key_path("pad"))?,
+            start_ms: ms_from_s(f.quantity("start_s", "s", Range::NonNeg)?),
+            duration_ms: ms_from_s(f.quantity("duration_s", "s", Range::Pos)?),
+        });
+    }
+
+    let cfg = Config {
+        name,
+        preset,
+        source_hash: fnv1a64(text.as_bytes()),
+        seed,
+        duration_ms: ms_from_s(duration_s),
+        warmup_ms: ms_from_s(warmup_s),
+        start_time_of_day_s,
+        replications,
+        origin_lat_deg,
+        origin_lon_deg,
+        pads,
+        lanes,
+        drone,
+        pod_gross_mass_kg,
+        pod_empty_mass_kg,
+        charging,
+        pad_ops,
+        handshake,
+        policy,
+        deadline_offset_ms,
+        flows,
+        truck,
+        hist_bin_ms,
+        hist_max_ms,
+        costs,
+        faults,
+    };
+    check_rules(&cfg)?;
+    Ok(cfg)
+}
+
+fn parse_pads(top: &Section<'_>) -> Result<Vec<PadCfg>> {
+    let mut pads = Vec::new();
+    for p in top.tables("pads")? {
+        p.allow(&[
+            "name",
+            "lat_deg",
+            "lon_deg",
+            "is_hub",
+            "service_mode",
+            "pod_return_policy",
+            "initial_empty_pods",
+            "parking_capacity",
+        ])?;
+        let name = p.string("name")?;
+        let valid = name.len() <= 32
+            && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        if !valid {
+            return err(format!("{}: bad pad name \"{name}\"", p.key_path("name")));
+        }
+        let parking_capacity = if p.has("parking_capacity") {
+            narrow(
+                p.count("parking_capacity", 0, i64::from(u16::MAX))?,
+                &p.key_path("parking_capacity"),
+            )?
+        } else {
+            0
+        };
+        pads.push(PadCfg {
+            name: name.to_owned(),
+            lat_deg: p.quantity("lat_deg", "deg", Range::Lat)?,
+            lon_deg: p.quantity("lon_deg", "deg", Range::Lon)?,
+            is_hub: p.boolean("is_hub")?,
+            service_mode: p.enumeration("service_mode", ServiceMode::from_name)?,
+            return_policy: p.enumeration("pod_return_policy", ReturnPolicy::from_name)?,
+            initial_empty_pods: narrow(
+                p.count("initial_empty_pods", 0, i64::from(u32::MAX))?,
+                "pads[].initial_empty_pods",
+            )?,
+            parking_capacity,
+        });
+    }
+    if pads.len() < 2 || pads.len() >= usize::from(PadId::MAX) {
+        return err("pads: need at least 2 pads and fewer than 65535");
+    }
+    Ok(pads)
+}
+
+type PadsAndLanes = (Vec<PadCfg>, Vec<(PadId, PadId)>);
+
+fn parse_network(top: &Section<'_>, lat0: f64, lon0: f64, seed: u64) -> Result<PadsAndLanes> {
+    let explicit = top.has("pads") || top.has("lanes");
+    match (explicit, top.has("synthetic_network")) {
+        (true, true) => return err("give either pads/lanes or synthetic_network, not both"),
+        (false, false) => return err("missing network: give pads and lanes, or synthetic_network"),
+        (false, true) => {
+            let s = top.section("synthetic_network")?;
+            s.allow(&[
+                "topology",
+                "n_pads",
+                "radius_m",
+                "mesh_neighbors",
+                "service_mode",
+                "pod_return_policy",
+                "initial_empty_pods",
+                "parking_capacity",
+                "hub_parking_capacity",
+            ])?;
+            let cfg = SyntheticNetworkCfg {
+                topology: s.enumeration("topology", NetworkTopology::from_name)?,
+                n_pads: narrow(s.count("n_pads", 2, 65_534)?, "synthetic_network.n_pads")?,
+                radius_m: s.quantity("radius_m", "m", Range::Pos)?,
+                mesh_neighbors: narrow(
+                    s.count("mesh_neighbors", 1, 65_534)?,
+                    "synthetic_network.mesh_neighbors",
+                )?,
+                service_mode: s.enumeration("service_mode", ServiceMode::from_name)?,
+                return_policy: s.enumeration("pod_return_policy", ReturnPolicy::from_name)?,
+                initial_empty_pods: narrow(
+                    s.count("initial_empty_pods", 0, i64::from(u32::MAX))?,
+                    "synthetic_network.initial_empty_pods",
+                )?,
+                parking_capacity: narrow(
+                    s.count("parking_capacity", 0, i64::from(u16::MAX))?,
+                    "synthetic_network.parking_capacity",
+                )?,
+                hub_parking_capacity: narrow(
+                    s.count("hub_parking_capacity", 0, i64::from(u16::MAX))?,
+                    "synthetic_network.hub_parking_capacity",
+                )?,
+            };
+            return Ok(network::generate(&cfg, lat0, lon0, seed));
+        }
+        (true, false) => {}
+    }
+    let pads = parse_pads(top)?;
+    let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
+    for (i, n) in names.iter().enumerate() {
+        if names[..i].contains(n) {
+            return err(format!("pads: R1 duplicate pad name \"{n}\""));
+        }
+    }
+    let mut lanes: Vec<(PadId, PadId)> = Vec::new();
+    for l in top.tables("lanes")? {
+        l.allow(&["pad_a", "pad_b"])?;
+        let a = pad_index(&names, l.string("pad_a")?, &l.key_path("pad_a"))?;
+        let b = pad_index(&names, l.string("pad_b")?, &l.key_path("pad_b"))?;
+        let key = (a.min(b), a.max(b));
+        if a == b || lanes.contains(&key) {
+            return err(format!("{}: R2 self or duplicate lane", l.path));
+        }
+        lanes.push(key);
+    }
+    if lanes.is_empty() {
+        return err("lanes: at least one lane is required");
+    }
+    Ok((pads, lanes))
+}
+
+fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<DroneCfg> {
+    d.allow(&[
+        "fleet_size",
+        "initial_pads",
+        "empty_mass_kg",
+        "latch_mass_kg",
+        "mtow_kg",
+        "battery_capacity_j",
+        "initial_soc",
+        "reserve_soc",
+        "charge_target_soc",
+        "cruise_speed_mps",
+        "cruise_power_ref_w",
+        "hover_power_ref_w",
+        "power_ref_mass_kg",
+        "takeoff_s",
+        "approach_s",
+        "go_around_s",
+        "hop_s",
+        "p_release_fault",
+        "p_latch_fault",
+    ])?;
+    let fleet_size: u16 = narrow(d.count("fleet_size", 1, 65_534)?, "drone.fleet_size")?;
+    let initial_pads = if d.has("initial_pads") {
+        let Value::Array(items) = d.get("initial_pads")? else {
+            return err("drone.initial_pads: expected an array of pad names");
+        };
+        let mut out = Vec::with_capacity(items.len());
+        for (i, v) in items.iter().enumerate() {
+            let path = format!("drone.initial_pads[{i}]");
+            let Value::String(s) = v else {
+                return err(format!("{path}: expected a pad name"));
+            };
+            out.push(pad_index(names, s, &path)?);
+        }
+        out
+    } else {
+        round_robin_placement(pads, fleet_size)
+    };
+    Ok(DroneCfg {
+        fleet_size,
+        initial_pads,
+        empty_mass_kg: d.quantity("empty_mass_kg", "kg", Range::Pos)?,
+        latch_mass_kg: d.quantity("latch_mass_kg", "kg", Range::NonNeg)?,
+        mtow_kg: d.quantity("mtow_kg", "kg", Range::Pos)?,
+        battery_capacity_j: d.quantity("battery_capacity_j", "J", Range::Pos)?,
+        initial_soc: d.quantity("initial_soc", "1", Range::Prob)?,
+        reserve_soc: d.quantity("reserve_soc", "1", Range::Prob)?,
+        charge_target_soc: d.quantity("charge_target_soc", "1", Range::Prob)?,
+        cruise_speed_mps: d.quantity("cruise_speed_mps", "m/s", Range::Pos)?,
+        cruise_power_ref_w: d.quantity("cruise_power_ref_w", "W", Range::Pos)?,
+        hover_power_ref_w: d.quantity("hover_power_ref_w", "W", Range::Pos)?,
+        power_ref_mass_kg: d.quantity("power_ref_mass_kg", "kg", Range::Pos)?,
+        takeoff_s: d.quantity("takeoff_s", "s", Range::Pos)?,
+        approach_s: d.quantity("approach_s", "s", Range::Pos)?,
+        go_around_s: d.quantity("go_around_s", "s", Range::Pos)?,
+        hop_s: d.quantity("hop_s", "s", Range::Pos)?,
+        p_release_fault: d.quantity("p_release_fault", "1", Range::Prob)?,
+        p_latch_fault: d.quantity("p_latch_fault", "1", Range::Prob)?,
+    })
+}
+
+/// Spec 8.6: drone i goes to the next pad, round-robin by ID, that still has a free slot.
+/// If the fleet exceeds the slots, the extra drones are left unplaced and R5 rejects the config.
+fn round_robin_placement(pads: &[PadCfg], fleet_size: u16) -> Vec<PadId> {
+    let mut used = vec![0u16; pads.len()];
+    let mut out = Vec::with_capacity(usize::from(fleet_size));
+    let mut next = 0usize;
+    for _ in 0..fleet_size {
+        let start = next;
+        loop {
+            if used[next] < pads[next].slots() {
+                used[next] += 1;
+                out.push(PadId::try_from(next).unwrap_or(PadId::MAX));
+                next = (next + 1) % pads.len();
+                break;
+            }
+            next = (next + 1) % pads.len();
+            if next == start {
+                return out;
+            }
+        }
+    }
+    out
+}
+
+fn parse_pad_ops(p: &Section<'_>) -> Result<PadOpsCfg> {
+    p.allow(&[
+        "pod_place_s",
+        "pod_remove_s",
+        "release_s",
+        "release_verify_s",
+        "latch_s",
+        "latch_verify_s",
+        "manual_release_s",
+        "manual_latch_s",
+        "p_marker_detect",
+        "max_go_arounds",
+        "release_max_retries",
+        "latch_max_retries",
+        "out_empty_policy",
+        "out_empty_wait_timeout_s",
+        "pc_fault_rate_per_h",
+        "pc_fault_duration_s",
+    ])?;
+    let ms = |key: &str, r: Range| p.quantity(key, "s", r).map(ms_from_s);
+    Ok(PadOpsCfg {
+        pod_place_ms: ms("pod_place_s", Range::NonNeg)?,
+        pod_remove_ms: ms("pod_remove_s", Range::NonNeg)?,
+        release_ms: ms("release_s", Range::Pos)?,
+        release_verify_ms: ms("release_verify_s", Range::Pos)?,
+        latch_ms: ms("latch_s", Range::Pos)?,
+        latch_verify_ms: ms("latch_verify_s", Range::Pos)?,
+        manual_release_ms: ms("manual_release_s", Range::Pos)?,
+        manual_latch_ms: ms("manual_latch_s", Range::Pos)?,
+        p_marker_detect: p.quantity("p_marker_detect", "1", Range::Prob)?,
+        max_go_arounds: narrow(p.count("max_go_arounds", 0, 255)?, "pad_ops.max_go_arounds")?,
+        release_max_retries: narrow(
+            p.count("release_max_retries", 0, 255)?,
+            "pad_ops.release_max_retries",
+        )?,
+        latch_max_retries: narrow(
+            p.count("latch_max_retries", 0, 255)?,
+            "pad_ops.latch_max_retries",
+        )?,
+        out_empty_policy: p.enumeration("out_empty_policy", OutEmptyPolicy::from_name)?,
+        out_empty_wait_ms: ms("out_empty_wait_timeout_s", Range::NonNeg)?,
+        pc_fault_rate_per_s: p.quantity("pc_fault_rate_per_h", "1/h", Range::NonNeg)?
+            / SECONDS_PER_HOUR,
+        pc_fault_duration_ms: ms("pc_fault_duration_s", Range::Pos)?,
+    })
+}
+
+fn parse_handshake(h: &Section<'_>) -> Result<HandshakeCfg> {
+    h.allow(&[
+        "local_latency_s",
+        "fm_latency_s",
+        "p_msg_loss",
+        "response_timeout_s",
+        "max_retries",
+        "hold_retry_s",
+        "pc_silence_alert_s",
+    ])?;
+    let ms = |key: &str, r: Range| h.quantity(key, "s", r).map(ms_from_s);
+    let p_msg_loss = h.quantity("p_msg_loss", "1", Range::Prob)?;
+    if p_msg_loss >= 1.0 {
+        return err("handshake.p_msg_loss: must be < 1");
+    }
+    Ok(HandshakeCfg {
+        local_latency_ms: ms("local_latency_s", Range::NonNeg)?,
+        fm_latency_ms: ms("fm_latency_s", Range::NonNeg)?,
+        p_msg_loss,
+        response_timeout_ms: ms("response_timeout_s", Range::Pos)?,
+        max_retries: narrow(h.count("max_retries", 0, 255)?, "handshake.max_retries")?,
+        hold_retry_ms: ms("hold_retry_s", Range::Pos)?,
+        pc_silence_alert_ms: ms("pc_silence_alert_s", Range::Pos)?,
+    })
+}
+
+fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
+    p.allow(&[
+        "assignment",
+        "dispatch",
+        "holding",
+        "drone_rebalancing",
+        "pod_rebalancing",
+        "diversion",
+        "in_occupied_action",
+        "max_hold_s",
+        "marker_hold_s",
+        "marker_max_hold_cycles",
+        "pod_min_per_pad",
+    ])?;
+    // One implementation of each in phase 2; the names are still validated.
+    p.enumeration("assignment", AssignmentPolicyName::from_name)?;
+    p.enumeration("dispatch", DispatchPolicyName::from_name)?;
+    p.enumeration("holding", HoldingPolicyName::from_name)?;
+    p.enumeration("drone_rebalancing", DroneRebalancingPolicyName::from_name)?;
+    p.enumeration("pod_rebalancing", PodRebalancingPolicyName::from_name)?;
+    p.enumeration("diversion", DiversionPolicyName::from_name)?;
+    Ok(PolicyCfg {
+        in_occupied_action: p.enumeration("in_occupied_action", InOccupiedAction::from_name)?,
+        max_hold_s: p.quantity("max_hold_s", "s", Range::NonNeg)?,
+        marker_hold_s: p.quantity("marker_hold_s", "s", Range::Pos)?,
+        marker_max_hold_cycles: narrow(
+            p.count("marker_max_hold_cycles", 0, 255)?,
+            "policy.marker_max_hold_cycles",
+        )?,
+        pod_min_per_pad: narrow(
+            p.count("pod_min_per_pad", 0, i64::from(u32::MAX))?,
+            "policy.pod_min_per_pad",
+        )?,
+    })
+}
+
+fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(TimeMs, Vec<Flow>)> {
+    d.allow(&[
+        "deadline_offset_s",
+        "flows",
+        "rate_per_pad_per_h",
+        "hub_weight",
+    ])?;
+    let deadline_offset_ms = ms_from_s(d.quantity("deadline_offset_s", "s", Range::Pos)?);
+    let generated = d.has("rate_per_pad_per_h") || d.has("hub_weight");
+    if generated == d.has("flows") {
+        return err("demand: give either flows, or rate_per_pad_per_h with hub_weight");
+    }
+    if !generated {
+        let mut flows = Vec::new();
+        for f in d.tables("flows")? {
+            f.allow(&["origin", "destination", "rate_per_h"])?;
+            let origin = pad_index(names, f.string("origin")?, &f.key_path("origin"))?;
+            let dest = pad_index(names, f.string("destination")?, &f.key_path("destination"))?;
+            if origin == dest {
+                return err(format!("{}: R9 origin equals destination", f.path));
+            }
+            flows.push(Flow {
+                origin,
+                dest,
+                rate_per_s: f.quantity("rate_per_h", "1/h", Range::NonNeg)? / SECONDS_PER_HOUR,
+            });
+        }
+        if flows.is_empty() {
+            return err("demand.flows: at least one flow is required");
+        }
+        return Ok((deadline_offset_ms, flows));
+    }
+    let rate_per_s = d.quantity("rate_per_pad_per_h", "1/h", Range::NonNeg)? / SECONDS_PER_HOUR;
+    let hub_weight = d.quantity("hub_weight", "1", Range::Factor)?;
+    let weight = |p: &PadCfg| if p.is_hub { hub_weight } else { 1.0 };
+    let mut flows = Vec::new();
+    for o in 0..pads.len() {
+        let total: f64 = pads
+            .iter()
+            .enumerate()
+            .filter(|(q, _)| *q != o)
+            .map(|(_, p)| weight(p))
+            .sum();
+        for (q, dest) in pads.iter().enumerate() {
+            if q != o {
+                flows.push(Flow {
+                    origin: PadId::try_from(o).unwrap_or(PadId::MAX),
+                    dest: PadId::try_from(q).unwrap_or(PadId::MAX),
+                    rate_per_s: rate_per_s * weight(dest) / total,
+                });
+            }
+        }
+    }
+    Ok((deadline_offset_ms, flows))
+}
+
+fn parse_truck(t: &Section<'_>) -> Result<TruckCfg> {
+    t.allow(&[
+        "matrix_source",
+        "synthetic_detour_factor",
+        "synthetic_free_flow_speed_mps",
+        "dispatch_delay_s",
+        "load_s",
+        "unload_s",
+        "tod_speed_factors",
+    ])?;
+    let Value::Array(items) = t.get("tod_speed_factors")? else {
+        return err("truck.tod_speed_factors: expected an array of 24 quantities");
+    };
+    if items.len() != HOURS_PER_DAY {
+        return err(format!(
+            "truck.tod_speed_factors: {} entries, expected 24",
+            items.len()
+        ));
+    }
+    let mut tod_speed_factors = [0.0; HOURS_PER_DAY];
+    for (i, v) in items.iter().enumerate() {
+        tod_speed_factors[i] = quantity_from(
+            v,
+            &format!("truck.tod_speed_factors[{i}]"),
+            "1",
+            Range::Factor,
+        )?;
+    }
+    let detour_factor = t.quantity("synthetic_detour_factor", "1", Range::Factor)?;
+    if detour_factor < 1.0 {
+        return err("truck.synthetic_detour_factor: must be >= 1");
+    }
+    Ok(TruckCfg {
+        matrix_source: t.enumeration("matrix_source", MatrixSource::from_name)?,
+        detour_factor,
+        free_flow_speed_mps: t.quantity("synthetic_free_flow_speed_mps", "m/s", Range::Pos)?,
+        dispatch_delay_s: t.quantity("dispatch_delay_s", "s", Range::NonNeg)?,
+        load_s: t.quantity("load_s", "s", Range::NonNeg)?,
+        unload_s: t.quantity("unload_s", "s", Range::NonNeg)?,
+        tod_speed_factors,
+    })
+}
+
+/// R3 to R11 and R13 (R1, R2, R9 are checked while parsing; R12 and R16 need routes).
+fn check_rules(cfg: &Config) -> Result<()> {
+    let n = cfg.pads.len();
+    let mut seen = vec![false; n];
+    let mut stack = vec![0usize];
+    seen[0] = true;
+    while let Some(u) = stack.pop() {
+        for &(a, b) in &cfg.lanes {
+            let (a, b) = (usize::from(a), usize::from(b));
+            let v = if a == u {
+                b
+            } else if b == u {
+                a
+            } else {
+                continue;
+            };
+            if !seen[v] {
+                seen[v] = true;
+                stack.push(v);
+            }
+        }
+    }
+    if seen.iter().any(|s| !s) {
+        return err("lanes: R3 the lane graph is not connected");
+    }
+    let d = &cfg.drone;
+    if d.initial_pads.len() != usize::from(d.fleet_size) {
+        return err(
+            "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)",
+        );
+    }
+    let mut per_pad = vec![0u16; n];
+    for &p in &d.initial_pads {
+        per_pad[usize::from(p)] += 1;
+    }
+    for (i, &c) in per_pad.iter().enumerate() {
+        if c > cfg.pads[i].slots() {
+            return err(format!(
+                "drone.initial_pads: R4 {c} drones at {} exceed its {} slot(s)",
+                cfg.pads[i].name,
+                cfg.pads[i].slots()
+            ));
+        }
+    }
+    let total_slots: u32 = cfg.pads.iter().map(|p| u32::from(p.slots())).sum();
+    if u32::from(d.fleet_size) > total_slots {
+        return err(format!(
+            "drone.fleet_size: R5 {} drones exceed {total_slots} parking slots",
+            d.fleet_size
+        ));
+    }
+    let margin = d.mtow_kg - d.empty_mass_kg - d.latch_mass_kg;
+    if cfg.pod_gross_mass_kg > margin || cfg.pod_empty_mass_kg >= cfg.pod_gross_mass_kg {
+        return err(format!(
+            "payload: R6 pod of {} kg does not fit a margin of {margin} kg",
+            cfg.pod_gross_mass_kg
+        ));
+    }
+    if !(d.reserve_soc < d.charge_target_soc && d.reserve_soc < d.initial_soc) {
+        return err("drone: R7 reserve_soc must be below charge_target_soc and initial_soc");
+    }
+    if cfg.warmup_ms >= cfg.duration_ms {
+        return err("sim: R8 warmup_s must be below duration_s");
+    }
+    let mut windows: Vec<(PadId, TimeMs, TimeMs)> = Vec::new();
+    for f in &cfg.faults {
+        if f.start_ms >= cfg.duration_ms {
+            return err("faults: R10 a fault starts after the run ends");
+        }
+        let end = f.start_ms + f.duration_ms;
+        if windows
+            .iter()
+            .any(|&(p, s, e)| p == f.pad && f.start_ms < e && s < end)
+        {
+            return err(format!(
+                "faults: R10 overlapping windows on {}",
+                cfg.pads[usize::from(f.pad)].name
+            ));
+        }
+        windows.push((f.pad, f.start_ms, end));
+    }
+    if cfg.charging.mode == ChargingMode::HubOnly && !cfg.pads.iter().any(|p| p.is_hub) {
+        return err("charging.mode: R11 HUB_ONLY needs at least one hub pad");
+    }
+    if cfg.hist_max_ms <= cfg.hist_bin_ms {
+        return err("metrics: R13 hist_max_s must exceed hist_bin_s");
+    }
+    Ok(())
+}

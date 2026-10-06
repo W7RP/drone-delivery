@@ -4,3 +4,5 @@ runs/
 calib/
 __pycache__/
 .venv/
+# Rust build output.
+target/

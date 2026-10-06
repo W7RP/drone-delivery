@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.2.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.2.1. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -648,7 +648,7 @@ reason for the timer goes away. A popped TIMER whose `gen` differs is discarded.
   | LATCH | 4 | drone_id | lock success per `LATCH_DONE` |
   | PC_FAULT | 5 | pad_id | exponential inter-fault time, rate `pad_ops.pc_fault_rate_per_h / 3600` per s |
   | MSG_LOSS | 6 | `(sender EntityKind code << 16) OR sender id` | loss per message on the D <-> PC link |
-  | NETWORK | 7 | 0 | MESH pad positions (8.6) |
+  | NETWORK | 7 | 0 | MESH pad positions (8.6); seeded from the config `sim.seed`, replication 0 |
 
 - Uniform draw: `u = (next_u64 >> 11) * 2^-53`. Bernoulli(p): success iff `u < p`.
   Exponential(rate): `-ln(1 - u) / rate`, converted to ms by the rule in section 0.
@@ -1035,7 +1035,9 @@ Runs once at load, before any check that needs pads, and produces exactly the `p
 - HUB_SPOKE: `P0` is the hub (`is_hub` = true, `hub_parking_capacity`) at the geo origin.
   Spoke i (1 .. n-1) sits at ENU (r cos a, r sin a) with a = 2 pi (i - 1) / (n - 1). Lanes:
   hub to every spoke.
-- MESH: no hub. Pad i is drawn from the NETWORK stream (5.4) uniformly in the disc of radius r:
+- MESH: no hub. Pad i is drawn from the NETWORK stream (5.4), seeded from replication 0 of the
+  config's own `sim.seed` (a CLI seed override or another replication never changes the
+  network, A41), uniformly in the disc of radius r:
   two draws u1, u2, then rho = r sqrt(u1), a = 2 pi u2. Lanes: each pad to its
   `mesh_neighbors` nearest pads (ties to lower ID), plus the edges of the minimum spanning tree
   of the complete distance graph (Prim from P0, ties to lower ID) so the graph is connected;
@@ -1225,6 +1227,13 @@ that:
 - A40 Costs use an abstract unit `cu`; truck cost counts loading, driving and unloading time
   and road distance, not the dispatch delay. Drone cost spreads a per-drone time cost over the
   metrics window plus grid energy.
+- A41 The generated network depends only on the config file, so runs that differ in seed or
+  replication compare demand and faults over the same pads and lanes.
+- A42 FM judges a parked drone's energy from the soc in its last `DRONE_STATUS`; parked
+  charging (A16) is therefore not counted until the drone reports again, which errs on the
+  safe side.
+- A43 Phase 2 builds the truck matrix in memory from SYNTHETIC parameters and rejects
+  `truck.matrix_source` = FILE, which needs the offline pipeline.
 
 ## 11 Amendments
 
@@ -1232,3 +1241,4 @@ that:
 |---|---|---|
 | 1.1.0 | `pads[].parking_capacity` and `charging.charge_while_parked`; `Spot` gains PARKING; `PadState` gains `parked`; V36, V40, D01, D18, D19, D20, D23, 6.4, R4, R5, A08, A16 updated. | Replaces "idle drones park on OUT, so fleet <= pads" so fleets larger than the pad count can park without blocking IN or OUT. |
 | 1.2.0 | `synthetic_network` and generated demand (8.6); `costs` and M8; `road_m` in `truck_matrix.bin` (minor 1); `events.bin` (9.4) and `deliveries.csv`; `Order.fail_reason`; R16; NETWORK stream; D24; ground watchdog table; PC-fault deferral and fault-end matching; hold-limit and HUB_ONLY idle rules; A36 to A40. | Needed to implement the phase-2 core: generated topologies, the cost baseline, a streamed event log, failure reasons, and behaviours the 1.1.0 tables left implicit. |
+| 1.2.1 | A41 to A43; network seed rule in 8.6 and 5.4. | Decisions made while implementing the phase-2 core. |
