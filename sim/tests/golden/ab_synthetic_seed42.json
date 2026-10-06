@@ -1,0 +1,101 @@
+{
+  "abort_rate": 0.02631578947368421,
+  "alerts": {
+    "DIVERTED": 2,
+    "DRONE_GROUNDED": 0,
+    "DRONE_SILENT": 0,
+    "ENERGY_STRANDED": 0,
+    "LATCH_FAULT": 0,
+    "NO_ALTERNATE": 0,
+    "PAD_OUT_OF_SERVICE": 0,
+    "PC_SILENT": 0,
+    "RELEASE_FAULT": 0
+  },
+  "battery_cycles": {
+    "fleet_mean": 4.0764785056699155,
+    "per_delivery": 0.19885261003267882,
+    "per_drone": [
+      4.020759105463176,
+      4.132197905876655
+    ]
+  },
+  "cost": {
+    "actual_deliveries_per_drone_h": 2.7333333333333334,
+    "breakeven_deliveries_per_drone_h": 0.2830191234641373,
+    "cost_ratio": 0.10455148233438713,
+    "drone_cost_per_delivery": 2.6627811173081204,
+    "truck_cost_per_delivery": 25.46861180592107
+  },
+  "deliveries_in_window": 41,
+  "deliveries_per_h": 5.466666666666667,
+  "divert_count": 2,
+  "door_to_door_s": {
+    "mean": 3738.3542702702703,
+    "n": 37,
+    "p50": 2470.0,
+    "p95": 9620.0
+  },
+  "events_processed": 3059,
+  "fleet_size": 2,
+  "go_around_rate": 0.14492753623188406,
+  "latch_abort_count": 0,
+  "open_at_end": 2,
+  "orders_closed": {
+    "delivered": 37,
+    "diverted": 1,
+    "failed": 0
+  },
+  "pads": 2,
+  "pod_availability": [
+    0.3840491111111111,
+    0.9531196666666667
+  ],
+  "queue_time_s": {
+    "landing_hold": {
+      "mean": 75.38716666666666,
+      "n": 6,
+      "p50": 80.0,
+      "p95": 160.0
+    },
+    "pickup_wait": {
+      "mean": 324.3707631578948,
+      "n": 38,
+      "p50": 230.0,
+      "p95": 650.0
+    },
+    "placement_wait": {
+      "mean": 2488.437263157895,
+      "n": 38,
+      "p50": 1040.0,
+      "p95": 8530.0
+    }
+  },
+  "replication": 0,
+  "saving_s": -1275.7713783783786,
+  "scenario": "ab_synthetic",
+  "seed": 42,
+  "shipment_requests_in_window": 50,
+  "source_hash": "5b6bb9e91c19fc4d",
+  "speedup": 0.6586780624165934,
+  "spot_utilization": {
+    "in": [
+      0.03765185185185185,
+      0.0486
+    ],
+    "out": [
+      0.4538635555555556,
+      0.4755385555555556
+    ]
+  },
+  "stockout_fraction": 0.34,
+  "truck_door_to_door_s": {
+    "mean": 2462.3719473684196,
+    "n": 38,
+    "p50": 2400.0,
+    "p95": 2680.0
+  },
+  "window_s": [
+    1800.0,
+    28800.0
+  ]
+}
