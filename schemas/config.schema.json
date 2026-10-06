@@ -11,7 +11,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "meta": {
       "type": "object",
@@ -130,6 +130,10 @@
           },
           "initial_empty_pods": {
             "$ref": "common.schema.json#/$defs/q_count_nonneg"
+          },
+          "parking_capacity": {
+            "$ref": "common.schema.json#/$defs/q_count_nonneg",
+            "description": "Optional; default 0 (idle drones park on OUT)."
           }
         }
       }
@@ -280,6 +284,10 @@
               "exclusiveMinimum": 0
             }
           }
+        },
+        "charge_while_parked": {
+          "type": "boolean",
+          "description": "Optional; default false."
         }
       }
     },

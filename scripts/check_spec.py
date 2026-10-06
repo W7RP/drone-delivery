@@ -141,6 +141,12 @@ def check_dispatch_energy(cfg: dict, name: str) -> None:
                 )
 
 
+def parking_slots(pad: dict) -> int:
+    """slots(p) from spec 6.4: parking capacity, or 1 for the OUT spot when it is 0."""
+    capacity = q(pad["parking_capacity"]) if "parking_capacity" in pad else 0
+    return capacity if capacity > 0 else 1
+
+
 def check_complete_config(cfg: dict, name: str) -> None:
     pads = [p["name"] for p in cfg["pads"]]
     pad_set = set(pads)
@@ -166,15 +172,18 @@ def check_complete_config(cfg: dict, name: str) -> None:
     if seen != pad_set:
         fail(f"{name}: R3 lane graph not connected")
     d = cfg["drone"]
+    slots = {p["name"]: parking_slots(p) for p in cfg["pads"]}
     init = d["initial_pads"]
     if (
         len(init) != q(d["fleet_size"])
-        or len(set(init)) != len(init)
         or not set(init) <= pad_set
+        or any(init.count(p) > slots[p] for p in set(init))
     ):
-        fail(f"{name}: R4 drone.initial_pads inconsistent with fleet_size or pads")
-    if q(d["fleet_size"]) > len(pads):
-        fail(f"{name}: R5 fleet_size exceeds pad count")
+        fail(
+            f"{name}: R4 drone.initial_pads inconsistent with fleet_size, pads or slots"
+        )
+    if q(d["fleet_size"]) > sum(slots.values()):
+        fail(f"{name}: R5 fleet_size exceeds total parking slots")
     pl = cfg["payload"]
     margin = q(d["mtow_kg"]) - q(d["empty_mass_kg"]) - q(d["latch_mass_kg"])
     if q(pl["pod_gross_mass_kg"]) > margin or q(pl["pod_empty_mass_kg"]) >= q(
@@ -222,7 +231,11 @@ def check_configs(schemas: dict, registry: Registry) -> int:
     for path in sorted((ROOT / "configs").glob("*/scenario.toml")):
         n += 1
         name = path.parent.name
-        cfg = tomli.loads(path.read_text())
+        try:
+            cfg = tomli.loads(path.read_text())
+        except tomli.TOMLDecodeError as err:
+            fail(f"{name}: not valid TOML: {err}")
+            continue
         for err in validator.iter_errors(cfg):
             fail(
                 f"{name}: schema: {'/'.join(map(str, err.absolute_path))}: {err.message[:200]}"

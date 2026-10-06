@@ -123,7 +123,8 @@
     "Spot": {
       "enum": [
         "IN",
-        "OUT"
+        "OUT",
+        "PARKING"
       ]
     },
     "VisitState": {
