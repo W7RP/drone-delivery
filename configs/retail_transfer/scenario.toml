@@ -1,0 +1,15 @@
+# Preset stub. Only metadata and a geo origin exist so far; the sim refuses STUB configs.
+# Network, fleet, demand and truck sections follow the same schema as ab_synthetic once filled in.
+
+schema_version = "1.0.0"
+
+[meta]
+name = "retail_transfer"
+preset = "RETAIL_TRANSFER"
+status = "STUB"
+city = "Pittsburgh"
+description = "Mesh of store and back-room pads exchanging stock between sites. Multi-hop routes, pod rebalancing matters."
+
+[geo]
+origin_lat_deg = { value = 40.4406, unit = "deg", assumption = true }
+origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }

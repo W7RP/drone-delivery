@@ -1,0 +1,15 @@
+# Preset stub. Only metadata and a geo origin exist so far; the sim refuses STUB configs.
+# Network, fleet, demand and truck sections follow the same schema as ab_synthetic once filled in.
+
+schema_version = "1.0.0"
+
+[meta]
+name = "remote_terrain"
+preset = "REMOTE_TERRAIN"
+status = "STUB"
+city = "Pittsburgh"
+description = "Long lanes across river valleys and hills where truck routes detour heavily. Range and hub-only charging matter."
+
+[geo]
+origin_lat_deg = { value = 40.4406, unit = "deg", assumption = true }
+origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }

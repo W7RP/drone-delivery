@@ -1,0 +1,642 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drone-delivery.invalid/schemas/config.schema.json",
+  "title": "drone-delivery scenario config (scenario.toml)",
+  "description": "Every numeric value is a quantity object {value, unit, assumption}. Units are fixed per key by the referenced q_* definition. Cross-field rules that JSON Schema cannot express are listed in docs/spec.md section 8.3 and checked by scripts/check_spec.py.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "meta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "name",
+        "preset",
+        "status",
+        "city",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "preset": {
+          "$ref": "common.schema.json#/$defs/Preset"
+        },
+        "status": {
+          "$ref": "common.schema.json#/$defs/ConfigStatus"
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sim": {
+      "type": "object",
+      "required": [
+        "seed",
+        "duration_s",
+        "warmup_s",
+        "start_time_of_day_s",
+        "replications"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "$ref": "common.schema.json#/$defs/q_seed"
+        },
+        "duration_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "warmup_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "start_time_of_day_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 86399
+            }
+          }
+        },
+        "replications": {
+          "$ref": "common.schema.json#/$defs/q_count_pos"
+        }
+      }
+    },
+    "geo": {
+      "type": "object",
+      "required": [
+        "origin_lat_deg",
+        "origin_lon_deg"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "origin_lat_deg": {
+          "$ref": "common.schema.json#/$defs/q_lat_deg"
+        },
+        "origin_lon_deg": {
+          "$ref": "common.schema.json#/$defs/q_lon_deg"
+        }
+      }
+    },
+    "pads": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 65535,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "lat_deg",
+          "lon_deg",
+          "is_hub",
+          "service_mode",
+          "pod_return_policy",
+          "initial_empty_pods"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "common.schema.json#/$defs/name"
+          },
+          "lat_deg": {
+            "$ref": "common.schema.json#/$defs/q_lat_deg"
+          },
+          "lon_deg": {
+            "$ref": "common.schema.json#/$defs/q_lon_deg"
+          },
+          "is_hub": {
+            "type": "boolean"
+          },
+          "service_mode": {
+            "$ref": "common.schema.json#/$defs/ServiceMode"
+          },
+          "pod_return_policy": {
+            "$ref": "common.schema.json#/$defs/ReturnPolicy"
+          },
+          "initial_empty_pods": {
+            "$ref": "common.schema.json#/$defs/q_count_nonneg"
+          }
+        }
+      }
+    },
+    "lanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "pad_a",
+          "pad_b"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "pad_a": {
+            "$ref": "common.schema.json#/$defs/name"
+          },
+          "pad_b": {
+            "$ref": "common.schema.json#/$defs/name"
+          }
+        }
+      }
+    },
+    "drone": {
+      "type": "object",
+      "required": [
+        "fleet_size",
+        "initial_pads",
+        "empty_mass_kg",
+        "latch_mass_kg",
+        "mtow_kg",
+        "battery_capacity_j",
+        "initial_soc",
+        "reserve_soc",
+        "charge_target_soc",
+        "cruise_speed_mps",
+        "cruise_power_ref_w",
+        "hover_power_ref_w",
+        "power_ref_mass_kg",
+        "takeoff_s",
+        "approach_s",
+        "go_around_s",
+        "hop_s",
+        "p_release_fault",
+        "p_latch_fault"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "fleet_size": {
+          "$ref": "common.schema.json#/$defs/q_count_pos"
+        },
+        "initial_pads": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/name"
+          }
+        },
+        "empty_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "latch_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_nonneg"
+        },
+        "mtow_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "battery_capacity_j": {
+          "$ref": "common.schema.json#/$defs/q_J_pos"
+        },
+        "initial_soc": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "reserve_soc": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "charge_target_soc": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "cruise_speed_mps": {
+          "$ref": "common.schema.json#/$defs/q_mps_pos"
+        },
+        "cruise_power_ref_w": {
+          "$ref": "common.schema.json#/$defs/q_W_pos"
+        },
+        "hover_power_ref_w": {
+          "$ref": "common.schema.json#/$defs/q_W_pos"
+        },
+        "power_ref_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "takeoff_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "approach_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "go_around_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "hop_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "p_release_fault": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "p_latch_fault": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "pod_gross_mass_kg",
+        "pod_empty_mass_kg"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pod_gross_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "pod_empty_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        }
+      }
+    },
+    "charging": {
+      "type": "object",
+      "required": [
+        "mode",
+        "power_w",
+        "efficiency"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "$ref": "common.schema.json#/$defs/ChargingMode"
+        },
+        "power_w": {
+          "$ref": "common.schema.json#/$defs/q_W_pos"
+        },
+        "efficiency": {
+          "$ref": "common.schema.json#/$defs/q_prob",
+          "properties": {
+            "value": {
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      }
+    },
+    "pad_ops": {
+      "type": "object",
+      "required": [
+        "pod_place_s",
+        "pod_remove_s",
+        "release_s",
+        "release_verify_s",
+        "latch_s",
+        "latch_verify_s",
+        "manual_release_s",
+        "manual_latch_s",
+        "p_marker_detect",
+        "max_go_arounds",
+        "release_max_retries",
+        "latch_max_retries",
+        "out_empty_policy",
+        "out_empty_wait_timeout_s",
+        "pc_fault_rate_per_h",
+        "pc_fault_duration_s"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pod_place_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "pod_remove_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "release_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "release_verify_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "latch_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "latch_verify_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "manual_release_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "manual_latch_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "p_marker_detect": {
+          "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "max_go_arounds": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 255
+            }
+          }
+        },
+        "release_max_retries": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 255
+            }
+          }
+        },
+        "latch_max_retries": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 255
+            }
+          }
+        },
+        "out_empty_policy": {
+          "$ref": "common.schema.json#/$defs/OutEmptyPolicy"
+        },
+        "out_empty_wait_timeout_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "pc_fault_rate_per_h": {
+          "$ref": "common.schema.json#/$defs/q_per_h_nonneg"
+        },
+        "pc_fault_duration_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        }
+      }
+    },
+    "handshake": {
+      "type": "object",
+      "required": [
+        "local_latency_s",
+        "fm_latency_s",
+        "p_msg_loss",
+        "response_timeout_s",
+        "max_retries",
+        "hold_retry_s",
+        "pc_silence_alert_s"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "local_latency_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "fm_latency_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "p_msg_loss": {
+          "$ref": "common.schema.json#/$defs/q_prob",
+          "properties": {
+            "value": {
+              "exclusiveMaximum": 1
+            }
+          }
+        },
+        "response_timeout_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "max_retries": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 255
+            }
+          }
+        },
+        "hold_retry_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "pc_silence_alert_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "assignment",
+        "dispatch",
+        "holding",
+        "drone_rebalancing",
+        "pod_rebalancing",
+        "diversion",
+        "in_occupied_action",
+        "max_hold_s",
+        "marker_hold_s",
+        "marker_max_hold_cycles",
+        "pod_min_per_pad"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "assignment": {
+          "$ref": "common.schema.json#/$defs/AssignmentPolicyName"
+        },
+        "dispatch": {
+          "$ref": "common.schema.json#/$defs/DispatchPolicyName"
+        },
+        "holding": {
+          "$ref": "common.schema.json#/$defs/HoldingPolicyName"
+        },
+        "drone_rebalancing": {
+          "$ref": "common.schema.json#/$defs/DroneRebalancingPolicyName"
+        },
+        "pod_rebalancing": {
+          "$ref": "common.schema.json#/$defs/PodRebalancingPolicyName"
+        },
+        "diversion": {
+          "$ref": "common.schema.json#/$defs/DiversionPolicyName"
+        },
+        "in_occupied_action": {
+          "$ref": "common.schema.json#/$defs/InOccupiedAction"
+        },
+        "max_hold_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "marker_hold_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "marker_max_hold_cycles": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 255
+            }
+          }
+        },
+        "pod_min_per_pad": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
+        }
+      }
+    },
+    "demand": {
+      "type": "object",
+      "required": [
+        "deadline_offset_s",
+        "flows"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "deadline_offset_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "flows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "origin",
+              "destination",
+              "rate_per_h"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "origin": {
+                "$ref": "common.schema.json#/$defs/name"
+              },
+              "destination": {
+                "$ref": "common.schema.json#/$defs/name"
+              },
+              "rate_per_h": {
+                "$ref": "common.schema.json#/$defs/q_per_h_nonneg"
+              }
+            }
+          }
+        }
+      }
+    },
+    "truck": {
+      "type": "object",
+      "required": [
+        "matrix_source",
+        "synthetic_detour_factor",
+        "synthetic_free_flow_speed_mps",
+        "dispatch_delay_s",
+        "load_s",
+        "unload_s",
+        "tod_speed_factors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "matrix_source": {
+          "$ref": "common.schema.json#/$defs/MatrixSource"
+        },
+        "synthetic_detour_factor": {
+          "$ref": "common.schema.json#/$defs/q_factor",
+          "properties": {
+            "value": {
+              "minimum": 1
+            }
+          }
+        },
+        "synthetic_free_flow_speed_mps": {
+          "$ref": "common.schema.json#/$defs/q_mps_pos"
+        },
+        "dispatch_delay_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "load_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "unload_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "tod_speed_factors": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": {
+            "$ref": "common.schema.json#/$defs/q_factor"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "hist_bin_s",
+        "hist_max_s"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hist_bin_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "hist_max_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        }
+      }
+    },
+    "faults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "pad",
+          "start_s",
+          "duration_s"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "common.schema.json#/$defs/FaultKind"
+          },
+          "pad": {
+            "$ref": "common.schema.json#/$defs/name"
+          },
+          "start_s": {
+            "$ref": "common.schema.json#/$defs/q_s_nonneg"
+          },
+          "duration_s": {
+            "$ref": "common.schema.json#/$defs/q_s_pos"
+          }
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "meta": {
+        "properties": {
+          "status": {
+            "const": "COMPLETE"
+          }
+        }
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "sim",
+      "geo",
+      "pads",
+      "lanes",
+      "drone",
+      "payload",
+      "charging",
+      "pad_ops",
+      "handshake",
+      "policy",
+      "demand",
+      "truck",
+      "metrics",
+      "faults"
+    ]
+  },
+  "else": {
+    "description": "A STUB carries metadata and optionally a geo origin only. The sim refuses to run it.",
+    "propertyNames": {
+      "enum": [
+        "schema_version",
+        "meta",
+        "geo"
+      ]
+    }
+  }
+}

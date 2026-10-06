@@ -1,0 +1,1907 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drone-delivery.invalid/schemas/events.schema.json",
+  "title": "drone-delivery DES events and messages",
+  "description": "One record per scheduled event. Messages are events of class MESSAGE delivered to their receiver after the link latency; x-from/x-to name the sender and receiver. Ordering key is (t_ms, class code, seq) as defined in docs/spec.md section 5.",
+  "type": "object",
+  "required": [
+    "t_ms",
+    "seq",
+    "class",
+    "kind",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "t_ms": {
+      "$ref": "common.schema.json#/$defs/t_ms"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "x-type": "u64",
+      "x-unit": "-"
+    },
+    "class": {
+      "$ref": "common.schema.json#/$defs/EventClass",
+      "x-type": "u8",
+      "x-unit": "-"
+    },
+    "kind": {
+      "enum": [
+        "LANDING_REQUEST",
+        "LANDING_CANCEL",
+        "APPROACH_ABORT",
+        "LANDED",
+        "RELEASE_REPORT",
+        "LATCH_REPORT",
+        "DEPART_REQUEST",
+        "DEPARTED",
+        "LANDING_GRANT",
+        "LANDING_HOLD",
+        "LANDING_REFUSED",
+        "RELEASE_CMD",
+        "HOP_CMD",
+        "LATCH_CMD",
+        "CHARGE_START",
+        "SERVICE_COMPLETE",
+        "DEPART_CLEAR",
+        "DRONE_STATUS",
+        "MISSION_REQUEST",
+        "HOLD_REPORT",
+        "MISSION_ASSIGN",
+        "HOLD_CONTINUE",
+        "POD_PLACED",
+        "POD_LATCHED",
+        "POD_DELIVERED",
+        "POD_REMOVED",
+        "PAD_STATUS",
+        "SHIPMENT_PENDING",
+        "PICKUP_ASSIGNED",
+        "POD_RETURN_REQUEST",
+        "SHIPMENT_REQUEST",
+        "POD_PLACE_DONE",
+        "POD_REMOVE_DONE",
+        "TAKEOFF_DONE",
+        "LANE_DONE",
+        "APPROACH_DONE",
+        "GO_AROUND_DONE",
+        "HOP_DONE",
+        "RELEASE_DONE",
+        "LATCH_DONE",
+        "FAULT_START",
+        "FAULT_END",
+        "TIMER"
+      ],
+      "x-type": "u16",
+      "x-unit": "-"
+    },
+    "msg": {
+      "$ref": "#/$defs/MessageHeader"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDING_REQUEST"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDING_REQUEST"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDING_CANCEL"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDING_CANCEL"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "APPROACH_ABORT"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/APPROACH_ABORT"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "RELEASE_REPORT"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/RELEASE_REPORT"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LATCH_REPORT"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LATCH_REPORT"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "DEPART_REQUEST"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/DEPART_REQUEST"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "DEPARTED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/DEPARTED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDING_GRANT"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDING_GRANT"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDING_HOLD"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDING_HOLD"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANDING_REFUSED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANDING_REFUSED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "RELEASE_CMD"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/RELEASE_CMD"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "HOP_CMD"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/HOP_CMD"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LATCH_CMD"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/LATCH_CMD"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "CHARGE_START"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/CHARGE_START"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "SERVICE_COMPLETE"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/SERVICE_COMPLETE"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "DEPART_CLEAR"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/DEPART_CLEAR"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "DRONE_STATUS"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/DRONE_STATUS"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "MISSION_REQUEST"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/MISSION_REQUEST"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "HOLD_REPORT"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/HOLD_REPORT"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "MISSION_ASSIGN"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/MISSION_ASSIGN"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "HOLD_CONTINUE"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/HOLD_CONTINUE"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_PLACED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_PLACED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_LATCHED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_LATCHED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_DELIVERED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_DELIVERED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_REMOVED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_REMOVED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "PAD_STATUS"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/PAD_STATUS"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "SHIPMENT_PENDING"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/SHIPMENT_PENDING"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "PICKUP_ASSIGNED"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/PICKUP_ASSIGNED"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_RETURN_REQUEST"
+        },
+        "class": {
+          "const": "MESSAGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_RETURN_REQUEST"
+        }
+      },
+      "required": [
+        "msg"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "SHIPMENT_REQUEST"
+        },
+        "class": {
+          "const": "ARRIVAL"
+        },
+        "payload": {
+          "$ref": "#/$defs/SHIPMENT_REQUEST"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_PLACE_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_PLACE_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "POD_REMOVE_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/POD_REMOVE_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "TAKEOFF_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/TAKEOFF_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LANE_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/LANE_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "APPROACH_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/APPROACH_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "GO_AROUND_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/GO_AROUND_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "HOP_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/HOP_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "RELEASE_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/RELEASE_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "LATCH_DONE"
+        },
+        "class": {
+          "const": "COMPLETION"
+        },
+        "payload": {
+          "$ref": "#/$defs/LATCH_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "FAULT_START"
+        },
+        "class": {
+          "const": "STATE_CHANGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/FAULT_START"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "FAULT_END"
+        },
+        "class": {
+          "const": "STATE_CHANGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/FAULT_END"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "TIMER"
+        },
+        "class": {
+          "const": "TIMER"
+        },
+        "payload": {
+          "$ref": "#/$defs/TIMER"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "MessageHeader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "msg_seq",
+        "sent_t_ms"
+      ],
+      "properties": {
+        "msg_seq": {
+          "$ref": "common.schema.json#/$defs/msg_seq"
+        },
+        "sent_t_ms": {
+          "$ref": "common.schema.json#/$defs/t_ms"
+        }
+      }
+    },
+    "LANDING_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "pod_id",
+        "soc"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "LANDING_CANCEL": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "APPROACH_ABORT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "reason"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/HoldReason",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "LANDED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "spot",
+        "pod_id",
+        "soc"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "RELEASE_REPORT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "latch_open"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "latch_open": {
+          "$ref": "common.schema.json#/$defs/flag"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "LATCH_REPORT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "pod_id",
+        "locked"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "locked": {
+          "$ref": "common.schema.json#/$defs/flag"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "DEPART_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "dest_pad",
+        "mission"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "mission": {
+          "$ref": "common.schema.json#/$defs/MissionKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "DEPARTED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "spot"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "PAD"
+    },
+    "LANDING_GRANT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "spot"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "LANDING_HOLD": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "reason",
+        "queue_pos"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/HoldReason",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "queue_pos": {
+          "$ref": "common.schema.json#/$defs/count_u16"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "LANDING_REFUSED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "reason"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/HoldReason",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "RELEASE_CMD": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "attempt"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "attempt": {
+          "$ref": "common.schema.json#/$defs/count_u8"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "HOP_CMD": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "LATCH_CMD": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "pod_id",
+        "attempt"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "attempt": {
+          "$ref": "common.schema.json#/$defs/count_u8"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "CHARGE_START": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "dwell_s"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "dwell_s": {
+          "$ref": "common.schema.json#/$defs/duration_s_f32"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "SERVICE_COMPLETE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id",
+        "outcome",
+        "spot",
+        "pod_id",
+        "soc"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "outcome": {
+          "$ref": "common.schema.json#/$defs/ServiceOutcome",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "DEPART_CLEAR": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "DRONE"
+    },
+    "DRONE_STATUS": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "mode",
+        "pad_id",
+        "dest_pad",
+        "pod_id",
+        "soc"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "mode": {
+          "$ref": "common.schema.json#/$defs/DroneMode",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "FLEET_MANAGER"
+    },
+    "MISSION_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "spot",
+        "pod_id",
+        "soc",
+        "outcome"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        },
+        "outcome": {
+          "$ref": "common.schema.json#/$defs/ServiceOutcome",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "FLEET_MANAGER"
+    },
+    "HOLD_REPORT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "reason",
+        "hold_cycles",
+        "soc"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "reason": {
+          "$ref": "common.schema.json#/$defs/HoldReason",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "hold_cycles": {
+          "$ref": "common.schema.json#/$defs/count_u8"
+        },
+        "soc": {
+          "$ref": "common.schema.json#/$defs/soc"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "DRONE",
+      "x-to": "FLEET_MANAGER"
+    },
+    "MISSION_ASSIGN": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "mission",
+        "dest_pad",
+        "order_id",
+        "pickup_order_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "mission": {
+          "$ref": "common.schema.json#/$defs/MissionKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "order_id": {
+          "$ref": "common.schema.json#/$defs/order_id"
+        },
+        "pickup_order_id": {
+          "$ref": "common.schema.json#/$defs/order_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "FLEET_MANAGER",
+      "x-to": "DRONE"
+    },
+    "HOLD_CONTINUE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "retry_after_s"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "retry_after_s": {
+          "$ref": "common.schema.json#/$defs/duration_s_f32"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "FLEET_MANAGER",
+      "x-to": "DRONE"
+    },
+    "POD_PLACED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id",
+        "kind",
+        "dest_pad",
+        "requested_t_ms",
+        "deadline_t_ms",
+        "payload_kg"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/OrderKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "requested_t_ms": {
+          "$ref": "common.schema.json#/$defs/t_ms"
+        },
+        "deadline_t_ms": {
+          "$ref": "common.schema.json#/$defs/t_ms"
+        },
+        "payload_kg": {
+          "$ref": "common.schema.json#/$defs/mass_kg"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "POD_LATCHED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "POD_DELIVERED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "POD_REMOVED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "PAD_STATUS": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "mode",
+        "empty_pods",
+        "backlog_len",
+        "in_drone",
+        "out_drone",
+        "out_pod"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "mode": {
+          "$ref": "common.schema.json#/$defs/PadMode",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "empty_pods": {
+          "$ref": "common.schema.json#/$defs/count_u16"
+        },
+        "backlog_len": {
+          "$ref": "common.schema.json#/$defs/count_u16"
+        },
+        "in_drone": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "out_drone": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "out_pod": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "SHIPMENT_PENDING": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "out_drone"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "out_drone": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "PAD",
+      "x-to": "FLEET_MANAGER"
+    },
+    "PICKUP_ASSIGNED": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id",
+        "order_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "order_id": {
+          "$ref": "common.schema.json#/$defs/order_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "FLEET_MANAGER",
+      "x-to": "PAD"
+    },
+    "POD_RETURN_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id",
+        "dest_pad"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "MESSAGE",
+      "x-from": "FLEET_MANAGER",
+      "x-to": "PAD"
+    },
+    "SHIPMENT_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "dest_pad",
+        "deadline_t_ms"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "dest_pad": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "deadline_t_ms": {
+          "$ref": "common.schema.json#/$defs/t_ms"
+        }
+      },
+      "x-class": "ARRIVAL"
+    },
+    "POD_PLACE_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "POD_REMOVE_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "pod_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "pod_id": {
+          "$ref": "common.schema.json#/$defs/pod_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "TAKEOFF_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "LANE_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "lane_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "lane_id": {
+          "$ref": "common.schema.json#/$defs/lane_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "APPROACH_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id",
+        "spot"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "spot": {
+          "$ref": "common.schema.json#/$defs/Spot",
+          "x-type": "u8",
+          "x-unit": "-"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "GO_AROUND_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "HOP_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "RELEASE_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "LATCH_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "drone_id",
+        "pad_id"
+      ],
+      "properties": {
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "COMPLETION"
+    },
+    "FAULT_START": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault",
+        "pad_id"
+      ],
+      "properties": {
+        "fault": {
+          "$ref": "common.schema.json#/$defs/FaultKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "STATE_CHANGE"
+    },
+    "FAULT_END": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault",
+        "pad_id"
+      ],
+      "properties": {
+        "fault": {
+          "$ref": "common.schema.json#/$defs/FaultKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        }
+      },
+      "x-class": "STATE_CHANGE"
+    },
+    "TIMER": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timer",
+        "owner_kind",
+        "owner_id",
+        "subject_id",
+        "gen"
+      ],
+      "properties": {
+        "timer": {
+          "$ref": "common.schema.json#/$defs/TimerKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "owner_kind": {
+          "$ref": "common.schema.json#/$defs/EntityKind",
+          "x-type": "u8",
+          "x-unit": "-"
+        },
+        "owner_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "x-type": "u16",
+          "x-unit": "-"
+        },
+        "subject_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "gen": {
+          "$ref": "common.schema.json#/$defs/gen"
+        }
+      },
+      "x-class": "TIMER"
+    }
+  }
+}

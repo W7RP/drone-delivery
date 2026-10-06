@@ -1,0 +1,571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drone-delivery.invalid/schemas/common.schema.json",
+  "title": "drone-delivery shared definitions",
+  "description": "IDs, enums and unit-tagged quantities shared by config, entity and event schemas. Enum integer code = zero-based position in the enum list. x-type gives the in-memory/binary type; x-unit gives the unit ('-' = none).",
+  "$defs": {
+    "pad_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "x-type": "u16",
+      "x-unit": "-",
+      "description": "Dense pad index. 65535 = NONE."
+    },
+    "drone_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "x-type": "u16",
+      "x-unit": "-",
+      "description": "Dense drone index. 65535 = NONE."
+    },
+    "pod_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "x-type": "u32",
+      "x-unit": "-",
+      "description": "Dense pod index. 4294967295 = NONE."
+    },
+    "order_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "x-type": "u32",
+      "x-unit": "-",
+      "description": "Order index in creation order. 4294967295 = NONE."
+    },
+    "lane_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "x-type": "u32",
+      "x-unit": "-",
+      "description": "Directed lane index into the CSR edge arrays. 4294967295 = NONE."
+    },
+    "t_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "x-type": "u64",
+      "x-unit": "ms",
+      "description": "Simulation time since run start. 18446744073709551615 = NONE (unset)."
+    },
+    "msg_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "x-type": "u32",
+      "x-unit": "-",
+      "description": "Per-sender message sequence number, used for idempotent retries."
+    },
+    "gen": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "x-type": "u32",
+      "x-unit": "-",
+      "description": "Timer generation; a timer whose gen differs from its owner's current gen is stale and ignored."
+    },
+    "soc": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-type": "f32",
+      "x-unit": "1",
+      "description": "Battery state of charge as a fraction of battery_capacity_j."
+    },
+    "mass_kg": {
+      "type": "number",
+      "minimum": 0,
+      "x-type": "f32",
+      "x-unit": "kg"
+    },
+    "energy_j": {
+      "type": "number",
+      "minimum": 0,
+      "x-type": "f32",
+      "x-unit": "J"
+    },
+    "duration_s_f32": {
+      "type": "number",
+      "minimum": 0,
+      "x-type": "f32",
+      "x-unit": "s"
+    },
+    "count_u8": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255,
+      "x-type": "u8",
+      "x-unit": "count"
+    },
+    "count_u16": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "x-type": "u16",
+      "x-unit": "count"
+    },
+    "flag": {
+      "type": "boolean",
+      "x-type": "bool",
+      "x-unit": "-"
+    },
+    "PadMode": {
+      "enum": [
+        "ONLINE",
+        "CONTROLLER_FAULT",
+        "OUT_OF_SERVICE"
+      ]
+    },
+    "Spot": {
+      "enum": [
+        "IN",
+        "OUT"
+      ]
+    },
+    "VisitState": {
+      "enum": [
+        "HELD",
+        "APPROACH",
+        "RELEASING",
+        "VERIFY_RELEASE",
+        "WAIT_OUT",
+        "HOPPING",
+        "LATCHING",
+        "VERIFY_LOCK",
+        "CHARGING",
+        "READY",
+        "DEPARTING",
+        "DRONE_SILENT",
+        "CLOSED"
+      ]
+    },
+    "VisitOutcome": {
+      "enum": [
+        "OPEN",
+        "COMPLETED",
+        "APPROACH_ABORTED",
+        "CANCELLED",
+        "REFUSED",
+        "LOST_CONTACT",
+        "DRONE_GROUNDED"
+      ]
+    },
+    "DroneMode": {
+      "enum": [
+        "PARKED",
+        "ON_PAD",
+        "TAKEOFF",
+        "EN_ROUTE",
+        "HOLDING",
+        "APPROACH",
+        "GO_AROUND",
+        "HOPPING",
+        "GROUNDED"
+      ]
+    },
+    "MissionKind": {
+      "enum": [
+        "NONE",
+        "DELIVER",
+        "PICKUP",
+        "REPOSITION",
+        "YIELD_LOCAL",
+        "DIVERT",
+        "PARK"
+      ]
+    },
+    "OrderKind": {
+      "enum": [
+        "SHIPMENT",
+        "POD_RETURN"
+      ]
+    },
+    "OrderStatus": {
+      "enum": [
+        "CREATED",
+        "ASSIGNED",
+        "LATCHED",
+        "IN_TRANSIT",
+        "DELIVERED",
+        "DIVERTED",
+        "FAILED"
+      ]
+    },
+    "PodLocation": {
+      "enum": [
+        "PAD_INVENTORY",
+        "PAD_OUT",
+        "PAD_IN",
+        "ON_DRONE",
+        "LOST"
+      ]
+    },
+    "HoldReason": {
+      "enum": [
+        "IN_OCCUPIED",
+        "AWAIT_OUT",
+        "MARKER_NOT_DETECTED",
+        "PC_SILENT",
+        "OUT_OF_SERVICE"
+      ]
+    },
+    "ServiceOutcome": {
+      "enum": [
+        "NORMAL",
+        "NO_POD",
+        "RELEASE_FAILED",
+        "LATCH_FAILED"
+      ]
+    },
+    "AlertCode": {
+      "enum": [
+        "RELEASE_FAULT",
+        "LATCH_FAULT",
+        "PC_SILENT",
+        "DRONE_SILENT",
+        "DIVERTED",
+        "NO_ALTERNATE",
+        "DRONE_GROUNDED",
+        "ENERGY_STRANDED",
+        "PAD_OUT_OF_SERVICE"
+      ]
+    },
+    "AlertSeverity": {
+      "enum": [
+        "INFO",
+        "WARNING",
+        "CRITICAL"
+      ]
+    },
+    "EntityKind": {
+      "enum": [
+        "PAD",
+        "DRONE",
+        "FLEET_MANAGER"
+      ]
+    },
+    "EventClass": {
+      "enum": [
+        "STATE_CHANGE",
+        "COMPLETION",
+        "MESSAGE",
+        "ARRIVAL",
+        "TIMER"
+      ]
+    },
+    "TimerKind": {
+      "enum": [
+        "PC_LANDING_TIMEOUT",
+        "PC_RESPONSE_TIMEOUT",
+        "PC_VERIFY_RELEASE_DONE",
+        "PC_VERIFY_LOCK_DONE",
+        "PC_OUT_WAIT_TIMEOUT",
+        "PC_CHARGE_DONE",
+        "D_RESPONSE_TIMEOUT",
+        "D_HOLD_RETRY",
+        "D_PC_SILENCE_ALERT",
+        "D_ENERGY_RESERVE",
+        "FM_HOLD_LIMIT",
+        "END_OF_RUN"
+      ]
+    },
+    "FlightSource": {
+      "enum": [
+        "DES",
+        "PX4_SITL"
+      ]
+    },
+    "ServiceMode": {
+      "enum": [
+        "AUTO",
+        "MANUAL"
+      ]
+    },
+    "ReturnPolicy": {
+      "enum": [
+        "KEEP_LOCAL",
+        "RETURN_HOME"
+      ]
+    },
+    "ChargingMode": {
+      "enum": [
+        "OUT_CONTACTS",
+        "HUB_ONLY"
+      ]
+    },
+    "OutEmptyPolicy": {
+      "enum": [
+        "WAIT",
+        "DEPART_EMPTY"
+      ]
+    },
+    "InOccupiedAction": {
+      "enum": [
+        "HOLD",
+        "DIVERT"
+      ]
+    },
+    "FaultKind": {
+      "enum": [
+        "MARKER_NOT_DETECTED",
+        "PC_FAULT",
+        "OUT_OF_SERVICE",
+        "RELEASE_FAULT",
+        "LATCH_FAULT"
+      ]
+    },
+    "Preset": {
+      "enum": [
+        "SYNTHETIC",
+        "PARTS_LOGISTICS",
+        "HOSPITAL_LAB",
+        "RETAIL_TRANSFER",
+        "REMOTE_TERRAIN"
+      ]
+    },
+    "ConfigStatus": {
+      "enum": [
+        "COMPLETE",
+        "STUB"
+      ]
+    },
+    "MatrixSource": {
+      "enum": [
+        "SYNTHETIC",
+        "FILE"
+      ]
+    },
+    "AssignmentPolicyName": {
+      "enum": [
+        "MIN_ETA"
+      ]
+    },
+    "DispatchPolicyName": {
+      "enum": [
+        "IMMEDIATE"
+      ]
+    },
+    "HoldingPolicyName": {
+      "enum": [
+        "BOUNDED_HOLD"
+      ]
+    },
+    "DroneRebalancingPolicyName": {
+      "enum": [
+        "NEAREST_UNCLAIMED"
+      ]
+    },
+    "PodRebalancingPolicyName": {
+      "enum": [
+        "MIN_THRESHOLD"
+      ]
+    },
+    "DiversionPolicyName": {
+      "enum": [
+        "NEAREST_FEASIBLE"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$"
+    },
+    "quantity": {
+      "type": "object",
+      "required": [
+        "value",
+        "unit",
+        "assumption"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "assumption": {
+          "type": "boolean",
+          "description": "true = placeholder, not real data."
+        }
+      }
+    },
+    "q_s_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "s"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_s_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "s"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_mps_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m/s"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_kg_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "kg"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_kg_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "kg"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_W_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "W"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_J_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "J"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_lat_deg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "deg"
+        },
+        "value": {
+          "minimum": -90,
+          "maximum": 90
+        }
+      }
+    },
+    "q_lon_deg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "deg"
+        },
+        "value": {
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    },
+    "q_prob": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "1"
+        },
+        "value": {
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "q_factor": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "1"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "q_per_h_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "1/h"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_count_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "count"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "q_count_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "count"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "q_seed": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "1"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        }
+      }
+    }
+  }
+}

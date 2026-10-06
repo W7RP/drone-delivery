@@ -1,0 +1,6 @@
+# Derived and run outputs are regenerated from configs; never commit them.
+configs/*/derived/
+runs/
+calib/
+__pycache__/
+.venv/

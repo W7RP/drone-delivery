@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drone-delivery.invalid/schemas/entities.schema.json",
+  "title": "drone-delivery entity records",
+  "description": "Logical record layouts for docs/spec.md section 2. x-type is the in-memory type (stored as flat arrays indexed by ID); x-unit is the unit ('-' = none). Times are integer milliseconds of sim time.",
+  "$defs": {
+    "Order": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "order_id": { "$ref": "common.schema.json#/$defs/order_id" },
+        "kind": { "$ref": "common.schema.json#/$defs/OrderKind", "x-type": "u8", "x-unit": "-" },
+        "status": { "$ref": "common.schema.json#/$defs/OrderStatus", "x-type": "u8", "x-unit": "-" },
+        "pod_id": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "origin_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "dest_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "delivered_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "payload_kg": { "$ref": "common.schema.json#/$defs/mass_kg" },
+        "requested_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "placed_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "deadline_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "assigned_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "latched_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "departed_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "delivered_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "truck_delivered_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" }
+      }
+    },
+    "Pod": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pod_id": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "home_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "location": { "$ref": "common.schema.json#/$defs/PodLocation", "x-type": "u8", "x-unit": "-" },
+        "pad_id": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "order_id": { "$ref": "common.schema.json#/$defs/order_id" },
+        "loaded": { "$ref": "common.schema.json#/$defs/flag" },
+        "return_dest_pad": { "$ref": "common.schema.json#/$defs/pad_id" }
+      }
+    },
+    "PadState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pad_id": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "mode": { "$ref": "common.schema.json#/$defs/PadMode", "x-type": "u8", "x-unit": "-" },
+        "is_hub": { "$ref": "common.schema.json#/$defs/flag" },
+        "has_charger": { "$ref": "common.schema.json#/$defs/flag" },
+        "service_mode": { "$ref": "common.schema.json#/$defs/ServiceMode", "x-type": "u8", "x-unit": "-" },
+        "in_drone": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "in_reserved_by": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "in_pod": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "out_drone": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "out_reserved_by": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "out_pod": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "out_placing": { "$ref": "common.schema.json#/$defs/flag" },
+        "empty_pods": { "$ref": "common.schema.json#/$defs/count_u16" },
+        "backlog_len": { "$ref": "common.schema.json#/$defs/count_u16" },
+        "landing_queue_len": { "$ref": "common.schema.json#/$defs/count_u16" },
+        "mode_since_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" }
+      }
+    },
+    "Visit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pad_id": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "state": { "$ref": "common.schema.json#/$defs/VisitState", "x-type": "u8", "x-unit": "-" },
+        "spot": { "$ref": "common.schema.json#/$defs/Spot", "x-type": "u8", "x-unit": "-" },
+        "attempt": { "$ref": "common.schema.json#/$defs/count_u8" },
+        "gen": { "$ref": "common.schema.json#/$defs/gen" },
+        "state_since_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "outcome": { "$ref": "common.schema.json#/$defs/VisitOutcome", "x-type": "u8", "x-unit": "-" },
+        "arrived_with_pod": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "pickup_pod": { "$ref": "common.schema.json#/$defs/pod_id" }
+      }
+    },
+    "DroneState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "mode": { "$ref": "common.schema.json#/$defs/DroneMode", "x-type": "u8", "x-unit": "-" },
+        "pad_id": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "mission": { "$ref": "common.schema.json#/$defs/MissionKind", "x-type": "u8", "x-unit": "-" },
+        "dest_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "lane_id": { "$ref": "common.schema.json#/$defs/lane_id" },
+        "pod_id": { "$ref": "common.schema.json#/$defs/pod_id" },
+        "order_id": { "$ref": "common.schema.json#/$defs/order_id" },
+        "pickup_order_id": { "$ref": "common.schema.json#/$defs/order_id" },
+        "soc": { "$ref": "common.schema.json#/$defs/soc" },
+        "payload_kg": { "$ref": "common.schema.json#/$defs/mass_kg" },
+        "go_arounds": { "$ref": "common.schema.json#/$defs/count_u8" },
+        "hold_cycles": { "$ref": "common.schema.json#/$defs/count_u8" },
+        "energy_charged_j": { "type": "number", "minimum": 0, "x-type": "f64", "x-unit": "J" },
+        "mode_since_t_ms": { "$ref": "common.schema.json#/$defs/t_ms" }
+      }
+    },
+    "Lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lane_id": { "$ref": "common.schema.json#/$defs/lane_id" },
+        "from_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "to_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "length_m": { "type": "number", "exclusiveMinimum": 0, "x-type": "f32", "x-unit": "m" },
+        "reverse_lane_id": { "$ref": "common.schema.json#/$defs/lane_id" }
+      }
+    },
+    "FlightModelQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lane_id": { "$ref": "common.schema.json#/$defs/lane_id" },
+        "payload_kg": { "$ref": "common.schema.json#/$defs/mass_kg" }
+      }
+    },
+    "FlightEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "time_s": { "$ref": "common.schema.json#/$defs/duration_s_f32" },
+        "energy_j": { "$ref": "common.schema.json#/$defs/energy_j" }
+      }
+    },
+    "Alert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t_ms", "code", "severity", "source_kind", "source_id", "pad_id", "drone_id", "order_id"],
+      "properties": {
+        "t_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "code": { "$ref": "common.schema.json#/$defs/AlertCode", "x-type": "u8", "x-unit": "-" },
+        "severity": { "$ref": "common.schema.json#/$defs/AlertSeverity", "x-type": "u8", "x-unit": "-" },
+        "source_kind": { "$ref": "common.schema.json#/$defs/EntityKind", "x-type": "u8", "x-unit": "-" },
+        "source_id": { "type": "integer", "minimum": 0, "maximum": 65535, "x-type": "u16", "x-unit": "-" },
+        "pad_id": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "order_id": { "$ref": "common.schema.json#/$defs/order_id" }
+      }
+    },
+    "FlightLogRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "t_start_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "t_end_ms": { "$ref": "common.schema.json#/$defs/t_ms" },
+        "lane_id": { "$ref": "common.schema.json#/$defs/lane_id" },
+        "order_id": { "$ref": "common.schema.json#/$defs/order_id" },
+        "payload_kg": { "$ref": "common.schema.json#/$defs/mass_kg" },
+        "energy_j": { "$ref": "common.schema.json#/$defs/energy_j" },
+        "soc_start": { "$ref": "common.schema.json#/$defs/soc" },
+        "soc_end": { "$ref": "common.schema.json#/$defs/soc" },
+        "drone_id": { "$ref": "common.schema.json#/$defs/drone_id" },
+        "from_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "to_pad": { "$ref": "common.schema.json#/$defs/pad_id" },
+        "source": { "$ref": "common.schema.json#/$defs/FlightSource", "x-type": "u8", "x-unit": "-" }
+      }
+    }
+  }
+}
