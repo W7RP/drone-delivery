@@ -12,25 +12,25 @@
     "RELEASE_FAULT": 0
   },
   "battery_cycles": {
-    "fleet_mean": 4.0764785056699155,
-    "per_delivery": 0.19885261003267882,
+    "fleet_mean": 4.076478393028577,
+    "per_delivery": 0.19885260453797934,
     "per_drone": [
-      4.020759105463176,
-      4.132197905876655
+      4.020758802464803,
+      4.1321979835923495
     ]
   },
   "cost": {
     "actual_deliveries_per_drone_h": 2.7333333333333334,
-    "breakeven_deliveries_per_drone_h": 0.2830191234641373,
-    "cost_ratio": 0.10455148233438713,
-    "drone_cost_per_delivery": 2.6627811173081204,
+    "breakeven_deliveries_per_drone_h": 0.2830191234553348,
+    "cost_ratio": 0.10455148230332,
+    "drone_cost_per_delivery": 2.6627811165168835,
     "truck_cost_per_delivery": 25.46861180592107
   },
   "deliveries_in_window": 41,
   "deliveries_per_h": 5.466666666666667,
   "divert_count": 2,
   "door_to_door_s": {
-    "mean": 3738.3542702702703,
+    "mean": 3738.354324324325,
     "n": 37,
     "p50": 2470.0,
     "p95": 9620.0
@@ -47,44 +47,44 @@
   },
   "pads": 2,
   "pod_availability": [
-    0.3840491111111111,
-    0.9531196666666667
+    0.38404925925925926,
+    0.9531195555555556
   ],
   "queue_time_s": {
     "landing_hold": {
-      "mean": 75.38716666666666,
+      "mean": 75.38683333333334,
       "n": 6,
       "p50": 80.0,
       "p95": 160.0
     },
     "pickup_wait": {
-      "mean": 324.3707631578948,
+      "mean": 324.37081578947374,
       "n": 38,
       "p50": 230.0,
       "p95": 650.0
     },
     "placement_wait": {
-      "mean": 2488.437263157895,
+      "mean": 2488.4372894736844,
       "n": 38,
       "p50": 1040.0,
       "p95": 8530.0
     }
   },
   "replication": 0,
-  "saving_s": -1275.7713783783786,
+  "saving_s": -1275.7714324324327,
   "scenario": "ab_synthetic",
   "seed": 42,
   "shipment_requests_in_window": 50,
   "source_hash": "5b6bb9e91c19fc4d",
-  "speedup": 0.6586780624165934,
+  "speedup": 0.6586780528925578,
   "spot_utilization": {
     "in": [
       0.03765185185185185,
       0.0486
     ],
     "out": [
-      0.4538635555555556,
-      0.4755385555555556
+      0.45386377777777775,
+      0.4755384074074074
     ]
   },
   "stockout_fraction": 0.34,

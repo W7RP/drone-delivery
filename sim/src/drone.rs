@@ -30,11 +30,13 @@ impl World {
 
     fn drain(&mut self, d: DroneId, joules: f64) {
         let cap = self.cfg.drone.battery_capacity_j;
-        self.dr_mut(d).soc -= joules / cap;
+        let dr = self.dr_mut(d);
+        let soc = dr.soc64() - joules / cap;
+        dr.set_soc(soc);
     }
 
     fn hover(&mut self, d: DroneId, seconds: f64) {
-        let p = self.energy.model.hover_power_w(self.dr(d).payload_kg);
+        let p = self.energy.model.hover_power_w(self.dr(d).payload64());
         self.drain(d, p * seconds);
     }
 
@@ -53,7 +55,7 @@ impl World {
             pad: dr.pad,
             dest: dr.dest,
             pod: dr.pod,
-            soc: dr.soc as f32,
+            soc: dr.soc,
         };
         self.send(msg);
     }
@@ -109,13 +111,14 @@ impl World {
         self.dr_mut(d).pad = pad;
         self.drone_to(d, code, DroneMode::Holding);
         let now = self.now;
-        let p_hover = self.energy.model.hover_power_w(self.dr(d).payload_kg);
+        let p_hover = self.energy.model.hover_power_w(self.dr(d).payload64());
         let dr = self.dr_mut(d);
         dr.hold_since = now;
         dr.gen_reserve = dr.gen_reserve.wrapping_add(1);
         let generation = dr.gen_reserve;
-        let usable_j =
-            ((dr.soc - self.cfg.drone.reserve_soc) * self.cfg.drone.battery_capacity_j).max(0.0);
+        let usable_j = ((dr.soc64() - self.cfg.drone.reserve_soc)
+            * self.cfg.drone.battery_capacity_j)
+            .max(0.0);
         self.timer(
             ms_from_s(usable_j / p_hover),
             TimerKind::DEnergyReserve,
@@ -142,7 +145,7 @@ impl World {
             drone: d,
             pad: dr.pad,
             pod: dr.pod,
-            soc: dr.soc as f32,
+            soc: dr.soc,
         };
         self.drone_send_pc(d, msg);
         self.dr_mut(d).retries = 0;
@@ -159,7 +162,7 @@ impl World {
             pad: dr.pad,
             reason,
             hold_cycles: dr.hold_cycles,
-            soc: dr.soc as f32,
+            soc: dr.soc,
         };
         self.send(msg);
     }
@@ -168,10 +171,10 @@ impl World {
         let dest = self.dr(d).dest;
         let lane = self.net.next_lane(from, dest);
         let len = f64::from(self.net.lane_len_m[lane as usize]);
-        let (time_s, _) = self.energy.model.segment(len, self.dr(d).payload_kg);
+        let (time_s, _) = self.energy.model.segment(len, self.dr(d).payload64());
         let now = self.now;
         #[allow(clippy::cast_possible_truncation)]
-        let soc = self.dr(d).soc as f32;
+        let soc = self.dr(d).soc;
         let dr = self.dr_mut(d);
         dr.lane = lane;
         dr.lane_start = now;
@@ -300,7 +303,7 @@ impl World {
                     pad: dr.pad,
                     spot: dr.spot.unwrap_or(Spot::In),
                     pod: dr.pod,
-                    soc: dr.soc as f32,
+                    soc: dr.soc,
                     outcome,
                 };
                 self.send(msg);
@@ -493,7 +496,7 @@ impl World {
             pad,
             spot,
             pod: dr.pod,
-            soc: dr.soc as f32,
+            soc: dr.soc,
         };
         let quiet = if spot == Spot::In && dr.pod == NO_POD {
             self.cfg.pad_ops.out_empty_wait_ms
@@ -556,7 +559,7 @@ impl World {
 
     fn lane_done(&mut self, d: DroneId, lane: u32) {
         let len = f64::from(self.net.lane_len_m[lane as usize]);
-        let payload = self.dr(d).payload_kg;
+        let payload = self.dr(d).payload64();
         let (_, energy_j) = self.energy.model.segment(len, payload);
         self.drain(d, energy_j);
         self.flight_record(d, lane, energy_j);
@@ -580,10 +583,10 @@ impl World {
         rec[20..24].copy_from_slice(&dr.order.to_le_bytes());
         #[allow(clippy::cast_possible_truncation)]
         {
-            rec[24..28].copy_from_slice(&(dr.payload_kg as f32).to_le_bytes());
+            rec[24..28].copy_from_slice(&dr.payload_kg.to_le_bytes());
             rec[28..32].copy_from_slice(&(energy_j as f32).to_le_bytes());
             rec[32..36].copy_from_slice(&dr.lane_soc_start.to_le_bytes());
-            rec[36..40].copy_from_slice(&(dr.soc as f32).to_le_bytes());
+            rec[36..40].copy_from_slice(&dr.soc.to_le_bytes());
         }
         rec[40..42].copy_from_slice(&d.to_le_bytes());
         rec[42..44].copy_from_slice(&self.net.lane_from[lane as usize].to_le_bytes());

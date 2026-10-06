@@ -29,13 +29,19 @@ pub struct FmDrone {
     pub pod: PodId,
     pub order: OrderId,
     pub pickup_order: OrderId,
-    pub soc: f64,
+    pub soc: f32,
     pub depart_t: TimeMs,
     pub spot: Option<Spot>,
     pub hold_since: TimeMs,
     pub landed_since_hold: bool,
     /// Sent MISSION_REQUEST and has no mission yet: idle and assignable from any pad.
     pub awaiting_mission: bool,
+}
+
+impl FmDrone {
+    pub fn soc64(&self) -> f64 {
+        f64::from(self.soc)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -219,7 +225,7 @@ impl Fm {
                     pod: NO_POD,
                     order: NO_ORDER,
                     pickup_order: NO_ORDER,
-                    soc: cfg.drone.initial_soc,
+                    soc: crate::world::narrow_f32(cfg.drone.initial_soc),
                     depart_t: 0,
                     spot: None,
                     hold_since: 0,
@@ -264,7 +270,7 @@ impl Fm {
         }
     }
 
-    pub fn init_drone(&mut self, d: DroneId, pad: PadId, spot: Option<Spot>, soc: f64) {
+    pub fn init_drone(&mut self, d: DroneId, pad: PadId, spot: Option<Spot>, soc: f32) {
         let fd = &mut self.drones[usize::from(d)];
         fd.pad = pad;
         fd.last_pad = pad;
@@ -362,7 +368,7 @@ impl FleetView<'_> {
     }
 
     fn nearest_unclaimed(&self, d: DroneId, from: PadId, need_charger: bool) -> Option<PadId> {
-        let soc = self.drone(d).soc;
+        let soc = self.drone(d).soc64();
         self.energy.nearest_other(self.net, from, |q| {
             self.unclaimed_for(q, d)
                 && (!need_charger || self.charger(q))
@@ -404,20 +410,20 @@ impl AssignmentPolicy for MinEta {
                 || (fd.mode == DroneMode::OnPad && fd.awaiting_mission);
             let parked_elsewhere = idle && fd.pad != p && fd.pod == NO_POD;
             let (eta_ms, mut soc) = if at_origin {
-                (0, fd.soc)
+                (0, f64::from(fd.soc))
             } else if inbound {
                 let route_s = v.energy.route_time_s(v.net, fd.last_pad, p) + v.cfg.drone.takeoff_s;
                 let arrive = fd.depart_t + ms_from_s(route_s);
                 let used = v.energy.route_energy(v.net, fd.last_pad, p, v.payload(e));
-                (arrive.saturating_sub(v.now), fd.soc - used / cap)
+                (arrive.saturating_sub(v.now), f64::from(fd.soc) - used / cap)
             } else if parked_elsewhere {
-                if !v.dispatch_ok(fd.soc, fd.pad, p, 0.0) {
+                if !v.dispatch_ok(f64::from(fd.soc), fd.pad, p, 0.0) {
                     continue;
                 }
                 let route_s = v.cfg.drone.takeoff_s + v.energy.route_time_s(v.net, fd.pad, p);
                 let used = hover0 * (v.cfg.drone.takeoff_s + v.cfg.drone.approach_s)
                     + v.energy.route_energy(v.net, fd.pad, p, 0.0);
-                (ms_from_s(route_s), fd.soc - used / cap)
+                (ms_from_s(route_s), f64::from(fd.soc) - used / cap)
             } else {
                 continue;
             };
@@ -503,8 +509,13 @@ impl HoldingPolicy for BoundedHold {
                 let more_s = v.cfg.policy.marker_hold_s + v.energy.t_cycle_s;
                 let ok = hold_cycles <= v.cfg.policy.marker_max_hold_cycles
                     && alt.is_some_and(|q| {
-                        v.energy
-                            .divert_ok(v.net, fd.soc - hover * more_s / cap, pad, q, m)
+                        v.energy.divert_ok(
+                            v.net,
+                            f64::from(fd.soc) - hover * more_s / cap,
+                            pad,
+                            q,
+                            m,
+                        )
                     });
                 if ok {
                     HoldDecision::Continue {
@@ -529,7 +540,7 @@ impl HoldingPolicy for BoundedHold {
                 };
                 let reserve_for_divert =
                     v.energy.route_energy(v.net, pad, q, m) + hover * v.energy.t_cycle_s;
-                let spare_j = v.energy.usable_j(fd.soc) - reserve_for_divert;
+                let spare_j = v.energy.usable_j(f64::from(fd.soc)) - reserve_for_divert;
                 if spare_j <= 0.0 {
                     return HoldDecision::Divert;
                 }
@@ -558,7 +569,7 @@ impl DroneRebalancingPolicy for NearestUnclaimed {
             pickup_order: NO_ORDER,
         };
         if !v.charger(p)
-            && fd.soc < v.energy.charge_target_soc
+            && f64::from(fd.soc) < v.energy.charge_target_soc
             && let Some(q) = v.nearest_unclaimed(d, p, true)
         {
             return Some(reposition(q));
@@ -677,7 +688,7 @@ impl DiversionPolicy for NearestFeasible {
     /// fewest other drones holding over the pad or diverting to it. Without the congestion
     /// term two busy neighbours bounce a drone between them until its reserve (6.6 amendment).
     fn alternate(&self, v: &FleetView<'_>, d: DroneId, failed: PadId) -> Option<PadId> {
-        let soc = v.drone(d).soc;
+        let soc = v.drone(d).soc64();
         let m = v.payload(d);
         let congestion = |q: PadId| {
             v.fm.drones
@@ -1035,7 +1046,7 @@ impl World {
         let prev = self.fm.drones[usize::from(d)];
         let has_parking = pad != NO_PAD && self.cfg.pads[usize::from(pad)].parking_capacity > 0;
         let fd = self.fd_mut(d);
-        fd.soc = f64::from(soc);
+        fd.soc = soc;
         fd.pod = pod;
         match mode {
             DroneMode::EnRoute => {
@@ -1142,7 +1153,7 @@ impl World {
         fd.dest = pad;
         fd.spot = Some(spot);
         fd.pod = pod;
-        fd.soc = f64::from(soc);
+        fd.soc = soc;
         fd.mission = MissionKind::None;
         fd.awaiting_mission = true;
         if outcome == ServiceOutcome::LatchFailed {
@@ -1175,7 +1186,7 @@ impl World {
                 let v = self.view();
                 let payload = v.payload(d);
                 !matches!(m.kind, MissionKind::Deliver | MissionKind::Divert)
-                    || v.dispatch_ok(v.drone(d).soc, pad, m.dest, payload)
+                    || v.dispatch_ok(v.drone(d).soc64(), pad, m.dest, payload)
             };
             if ok {
                 if m.kind == MissionKind::Divert {
@@ -1449,7 +1460,7 @@ impl World {
         }
         fd.mode = DroneMode::Holding;
         fd.pad = pad;
-        fd.soc = f64::from(soc);
+        fd.soc = soc;
         fd.landed_since_hold = false;
         if matches!(reason, HoldReason::PcSilent)
             && self.fm.pads[usize::from(pad)].mode == PadMode::Online

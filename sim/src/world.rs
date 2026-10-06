@@ -35,6 +35,11 @@ impl std::fmt::Display for OptId {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
+pub fn narrow_f32(v: f64) -> f32 {
+    v as f32
+}
+
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
 
@@ -170,8 +175,8 @@ pub struct DroneSt {
     pub pod: PodId,
     pub order: OrderId,
     pub pickup_order: OrderId,
-    pub soc: f64,
-    pub payload_kg: f64,
+    pub soc: f32,
+    pub payload_kg: f32,
     pub go_arounds: u8,
     pub hold_cycles: u8,
     pub energy_charged_j: f64,
@@ -201,6 +206,27 @@ pub struct DroneSt {
     pub left_pad_at: TimeMs,
 }
 
+impl DroneSt {
+    /// Stored as f32 (spec 0); arithmetic is done in f64 and narrowed once, here.
+    pub fn soc64(&self) -> f64 {
+        f64::from(self.soc)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn set_soc(&mut self, soc: f64) {
+        self.soc = soc as f32;
+    }
+
+    pub fn payload64(&self) -> f64 {
+        f64::from(self.payload_kg)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn set_payload(&mut self, kg: f64) {
+        self.payload_kg = kg as f32;
+    }
+}
+
 pub struct World {
     pub cfg: Config,
     pub net: Network,
@@ -217,7 +243,7 @@ pub struct World {
     pub rng: Streams,
     pub out: Outputs,
     /// Physical mass of each pod (gross while loaded, empty otherwise).
-    pub pod_mass_kg: Vec<f64>,
+    pub pod_mass_kg: Vec<f32>,
     /// PC-side return reservation per pod (P06), NO_PAD when unreserved.
     pub pc_return_dest: Vec<PadId>,
     pub ended: bool,
@@ -305,7 +331,7 @@ impl World {
                 pod: NO_POD,
                 order: NO_ORDER,
                 pickup_order: NO_ORDER,
-                soc: cfg.drone.initial_soc,
+                soc: 0.0,
                 payload_kg: 0.0,
                 go_arounds: 0,
                 hold_cycles: 0,
@@ -339,7 +365,7 @@ impl World {
         let fm = Fm::new(&cfg, &pod_home);
         let entities = n_pads + n_drones + cfg.flows.len();
         let mut world = World {
-            pod_mass_kg: vec![cfg.pod_empty_mass_kg; total_pods],
+            pod_mass_kg: vec![narrow_f32(cfg.pod_empty_mass_kg); total_pods],
             pc_return_dest: vec![NO_PAD; total_pods],
             energy,
             replication,
@@ -359,6 +385,9 @@ impl World {
             net,
             cfg,
         };
+        for d in &mut world.drones {
+            d.set_soc(world.cfg.drone.initial_soc);
+        }
         world.place_initial_drones();
         world.schedule_initial_events();
         world
@@ -384,7 +413,7 @@ impl World {
                 v.state = VisitState::Ready;
                 v.spot = Spot::Out;
                 v.outcome = VisitOutcome::Open;
-                v.soc = self.soc_f32(id);
+                v.soc = self.drones[d].soc;
                 let i = self.visit_index(pad, id);
                 self.visits[i] = v;
             }
@@ -790,7 +819,7 @@ impl World {
 
     pub fn soc_f32(&self, d: DroneId) -> f32 {
         #[allow(clippy::cast_possible_truncation)]
-        let s = self.drones[usize::from(d)].soc as f32;
+        let s = self.drones[usize::from(d)].soc;
         s
     }
 

@@ -1,6 +1,6 @@
 # Phase 2 results
 
-Conditions: commit `4d81103`, release build, seed 42, replication 0, each scenario's own
+Conditions: commit `4d81103` (numbers re-checked unchanged after the f32 storage change), release build, seed 42, replication 0, each scenario's own
 `configs/<name>/scenario.toml`. Every input number is a placeholder (`assumption = true`), so
 these numbers show how the model behaves, not what a real network would do. Times are
 door-to-door from the shipment request; the truck serves the same orders over the
@@ -46,6 +46,7 @@ under WSL2, measured with `/usr/bin/time -v` by `scripts/verify.sh`:
 | Wall time | 0.69 s | 60 s |
 | Peak RSS | 8 MB | 200 MB |
 | `events.bin` on disk | 112 MB | streamed, never held in memory |
+| Heap allocations during one simulated day of the same case | 137 for 207 476 events | no per-event allocation (`sim/tests/allocations.rs`) |
 
 At the overloaded demand the scale case was first written with (6 requests per pad-hour), the
 same run processed 2.37 million events in 1.1 s at 10 MB.

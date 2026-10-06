@@ -702,9 +702,10 @@ impl World {
         let cap = self.cfg.drone.battery_capacity_j;
         let target = self.cfg.drone.charge_target_soc;
         let drone = &mut self.drones[usize::from(d)];
-        let room = ((target - drone.soc) * cap).max(0.0);
+        let room = ((target - drone.soc64()) * cap).max(0.0);
         let added = joules.min(room);
-        drone.soc += added / cap;
+        let soc = drone.soc64() + added / cap;
+        drone.set_soc(soc);
         drone.energy_charged_j += added;
         self.metrics.energy_added(usize::from(d), self.now, added);
     }
@@ -924,7 +925,7 @@ impl World {
             let pod = self.lowest_unreserved_pod(p).expect("empty_pods > 0");
             let n = self.pad(p).empty_pods - 1;
             self.set_empty_pods(p, n);
-            self.pod_mass_kg[pod as usize] = self.cfg.pod_gross_mass_kg;
+            self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_gross_mass_kg);
             Placement {
                 pod,
                 kind: OrderKind::Shipment,
@@ -934,7 +935,7 @@ impl World {
             }
         } else if let Some((pod, dest, requested)) = self.pad_mut(p).returns.pop_front() {
             self.pc_return_dest[pod as usize] = NO_PAD;
-            self.pod_mass_kg[pod as usize] = self.cfg.pod_empty_mass_kg;
+            self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_empty_mass_kg);
             Placement {
                 pod,
                 kind: OrderKind::PodReturn,
@@ -980,7 +981,7 @@ impl World {
         s.out_pod = pod;
         self.log_transition(tcode::p(3), p, NO_DRONE, NO_STATE, NO_STATE);
         #[allow(clippy::cast_possible_truncation)]
-        let payload_kg = self.pod_mass_kg[pod as usize] as f32;
+        let payload_kg = self.pod_mass_kg[pod as usize];
         self.send(Msg::PodPlaced {
             pad: p,
             pod,
@@ -999,7 +1000,7 @@ impl World {
         s.inventory.push(pod);
         let n = s.empty_pods + 1;
         self.set_empty_pods(p, n);
-        self.pod_mass_kg[pod as usize] = self.cfg.pod_empty_mass_kg;
+        self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_empty_mass_kg);
         self.log_transition(tcode::p(5), p, NO_DRONE, NO_STATE, NO_STATE);
         self.send(Msg::PodRemoved { pad: p, pod });
     }
