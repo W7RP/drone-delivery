@@ -271,7 +271,8 @@
         "D_PC_SILENCE_ALERT",
         "D_ENERGY_RESERVE",
         "FM_HOLD_LIMIT",
-        "END_OF_RUN"
+        "END_OF_RUN",
+        "FM_PAD_RECHECK"
       ]
     },
     "FlightSource": {

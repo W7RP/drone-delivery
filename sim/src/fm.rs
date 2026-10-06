@@ -34,6 +34,8 @@ pub struct FmDrone {
     pub spot: Option<Spot>,
     pub hold_since: TimeMs,
     pub landed_since_hold: bool,
+    /// Sent MISSION_REQUEST and has no mission yet: idle and assignable from any pad.
+    pub awaiting_mission: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -192,6 +194,11 @@ pub struct Fm {
     pub unassigned: Vec<OrderId>,
     pub msg_seq: u32,
     pub hold_gen: Vec<u32>,
+    /// Generation of each pad's FM_PAD_RECHECK timer.
+    pub pad_gen: Vec<u32>,
+    /// ENERGY_STRANDED already raised for this drone's current stranding.
+    pub stranded: Vec<bool>,
+    retrying: bool,
     /// Claims per pad (spec 6.4), refreshed before each rebalancing decision.
     pub claims: Vec<u16>,
     returns_buf: Vec<PodReturn>,
@@ -217,6 +224,7 @@ impl Fm {
                     spot: None,
                     hold_since: 0,
                     landed_since_hold: false,
+                    awaiting_mission: false,
                 };
                 n_drones
             ],
@@ -247,6 +255,9 @@ impl Fm {
             unassigned: Vec::with_capacity(cfg.pads.len() * 2),
             msg_seq: 0,
             hold_gen: vec![0; n_drones],
+            pad_gen: vec![0; cfg.pads.len()],
+            stranded: vec![false; n_drones],
+            retrying: false,
             claims: vec![0; cfg.pads.len()],
             returns_buf: Vec::with_capacity(cfg.pads.len()),
             policies: Policies::defaults(),
@@ -375,7 +386,9 @@ impl AssignmentPolicy for MinEta {
                 fd.mode,
                 DroneMode::Takeoff | DroneMode::EnRoute | DroneMode::Holding
             ) && fd.dest == p;
-            let parked_elsewhere = fd.mode == DroneMode::Parked && fd.pad != p && fd.pod == NO_POD;
+            let idle = fd.mode == DroneMode::Parked
+                || (fd.mode == DroneMode::OnPad && fd.awaiting_mission);
+            let parked_elsewhere = idle && fd.pad != p && fd.pod == NO_POD;
             let (eta_ms, mut soc) = if at_origin {
                 (0, fd.soc)
             } else if inbound {
@@ -682,6 +695,9 @@ impl World {
     }
 
     pub(crate) fn fm_message(&mut self, sent: TimeMs, msg: Msg) {
+        if let (EntityKind::Pad, pad) = msg.sender() {
+            self.fm_pad_alive(pad);
+        }
         match msg {
             Msg::PodPlaced {
                 pad,
@@ -803,6 +819,30 @@ impl World {
             o.status = OrderStatus::Latched;
             o.latched_t_ms = sent;
             o.drone_id = drone;
+            // The pad may have let the drone latch after FM had unassigned or moved the pickup
+            // (messages cross); the latch decides. Drop the order from the unassigned list and
+            // free any other drone that was since sent for it.
+            self.fm.unassigned.retain(|&x| x != order);
+            for e in 0..self.fm.drones.len() {
+                let other = self.fm.drones[e];
+                if e != usize::from(drone) && other.pickup_order == order {
+                    let id = DroneId::try_from(e).expect("fleet size fits u16");
+                    self.fd_mut(id).pickup_order = NO_ORDER;
+                    if matches!(
+                        other.mode,
+                        DroneMode::Takeoff | DroneMode::EnRoute | DroneMode::Holding
+                    ) {
+                        self.send(Msg::MissionAssign {
+                            drone: id,
+                            mission: MissionKind::Reposition,
+                            dest: other.dest,
+                            order: other.order,
+                            pickup_order: NO_ORDER,
+                        });
+                        self.fd_mut(id).mission = MissionKind::Reposition;
+                    }
+                }
+            }
         }
     }
 
@@ -831,6 +871,9 @@ impl World {
             OrderStatus::Diverted
         };
         self.fm_close_order(order, status, pad, sent, None);
+        // The drone is empty now and may take a pod waiting at this pad.
+        self.fm_run_assignment();
+        self.fm_retry_waiting();
     }
 
     fn fm_pod_removed(&mut self, pad: PadId, pod: PodId) {
@@ -888,6 +931,7 @@ impl World {
                 self.fm_reroute_inbound(pad);
             }
         }
+        self.fm_retry_waiting();
     }
 
     /// 6.6 reroute inbound: every drone whose destination stopped being usable.
@@ -973,6 +1017,9 @@ impl World {
                 fd.mission = MissionKind::None;
                 fd.landed_since_hold = true;
                 fd.spot = None;
+                // 6.1 amendment: a drone landing where a pod waits can take it at once.
+                self.fm_run_assignment();
+                self.fm_retry_waiting();
             }
             DroneMode::Parked => {
                 fd.mode = mode;
@@ -985,6 +1032,20 @@ impl World {
                 } else {
                     Spot::Out
                 });
+                // A pickup assigned while the drone was moving into parking is started now.
+                let pickup = fd.pickup_order;
+                if pickup != NO_ORDER {
+                    let origin = self.fm.orders[pickup as usize].origin_pad;
+                    let m = Mission {
+                        kind: MissionKind::Pickup,
+                        dest: origin,
+                        order: NO_ORDER,
+                        pickup_order: pickup,
+                    };
+                    self.fm_send_mission(d, m);
+                }
+                self.fm_run_assignment();
+                self.fm_retry_waiting();
             }
             DroneMode::Grounded => {
                 fd.mode = mode;
@@ -1037,6 +1098,7 @@ impl World {
         fd.pod = pod;
         fd.soc = f64::from(soc);
         fd.mission = MissionKind::None;
+        fd.awaiting_mission = true;
         if outcome == ServiceOutcome::LatchFailed {
             let order = fd.pickup_order;
             fd.pickup_order = NO_ORDER;
@@ -1046,6 +1108,13 @@ impl World {
             }
         }
         self.fm_steal_local_pickup(d, pad);
+        self.fm_dispatch_waiting(d);
+    }
+
+    /// Decide a mission for a drone that asked for one (6.2, then 6.4). Called again by
+    /// `fm_retry_waiting` while the drone is still waiting.
+    fn fm_dispatch_waiting(&mut self, d: DroneId) {
+        let pad = self.fm.drones[usize::from(d)].pad;
         let mut mission = {
             let v = self.view();
             v.fm.policies.dispatch.mission_for(&v, d)
@@ -1066,16 +1135,40 @@ impl World {
                 self.fm_send_mission(d, m);
                 return;
             }
+            self.fm_alert_stranded(d, pad, m.order);
+        }
+        self.fm_place_idle(d);
+    }
+
+    /// ENERGY_STRANDED once per stranding (A24); cleared when the drone gets a mission.
+    fn fm_alert_stranded(&mut self, d: DroneId, pad: PadId, order: OrderId) {
+        if !self.fm.stranded[usize::from(d)] {
+            self.fm.stranded[usize::from(d)] = true;
             self.alert(
                 AlertCode::EnergyStranded,
                 AlertSeverity::Warning,
                 (EntityKind::FleetManager, 0),
                 pad,
                 d,
-                m.order,
+                order,
             );
         }
-        self.fm_place_idle(d);
+    }
+
+    /// A24 amendment: drones left waiting for a mission are retried whenever FM's view
+    /// changes, so a blocked drone is never forgotten.
+    fn fm_retry_waiting(&mut self) {
+        if self.fm.retrying {
+            return;
+        }
+        self.fm.retrying = true;
+        for i in 0..self.fm.drones.len() {
+            let fd = self.fm.drones[i];
+            if fd.awaiting_mission && fd.mode == DroneMode::OnPad {
+                self.fm_dispatch_waiting(DroneId::try_from(i).expect("fleet size fits u16"));
+            }
+        }
+        self.fm.retrying = false;
     }
 
     fn fm_place_idle(&mut self, d: DroneId) {
@@ -1088,14 +1181,7 @@ impl World {
             Some(m) => self.fm_send_mission(d, m),
             None => {
                 let pad = self.fm.drones[usize::from(d)].pad;
-                self.alert(
-                    AlertCode::EnergyStranded,
-                    AlertSeverity::Warning,
-                    (EntityKind::FleetManager, 0),
-                    pad,
-                    d,
-                    NO_ORDER,
-                );
+                self.fm_alert_stranded(d, pad, NO_ORDER);
                 let fd = self.fm.drones[usize::from(d)];
                 let parkable = self.cfg.pads[usize::from(pad)].parking_capacity > 0
                     || (fd.spot == Some(Spot::Out)
@@ -1177,6 +1263,10 @@ impl World {
         let mut i = 0;
         while i < self.fm.unassigned.len() {
             let order = self.fm.unassigned[i];
+            if self.fm.orders[order as usize].status != OrderStatus::Created {
+                self.fm.unassigned.remove(i);
+                continue;
+            }
             let pick = {
                 let v = self.view();
                 v.fm.policies.assignment.assign(&v, order)
@@ -1245,8 +1335,10 @@ impl World {
             pickup_order: m.pickup_order,
         });
         let now = self.now;
+        self.fm.stranded[usize::from(d)] = false;
         let fd = self.fd_mut(d);
         let from_pad = fd.pad;
+        fd.awaiting_mission = false;
         fd.mission = m.kind;
         fd.dest = m.dest;
         fd.pickup_order = m.pickup_order;
@@ -1305,6 +1397,18 @@ impl World {
             && self.fm.pads[usize::from(pad)].mode == PadMode::Online
         {
             self.fm.pads[usize::from(pad)].mode = PadMode::ControllerFault;
+            // 4.5 amendment: the suspicion lapses after one expected outage (FM_PAD_RECHECK).
+            let generation = self.fm.pad_gen[usize::from(pad)].wrapping_add(1);
+            self.fm.pad_gen[usize::from(pad)] = generation;
+            let ms = self.cfg.pad_ops.pc_fault_duration_ms;
+            self.timer(
+                ms,
+                TimerKind::FmPadRecheck,
+                EntityKind::FleetManager,
+                0,
+                pad,
+                generation,
+            );
             // Reroute diverts this drone too, along with every other drone bound for the pad.
             self.fm_reroute_inbound(pad);
             return;
@@ -1342,6 +1446,23 @@ impl World {
                 }
             }
         }
+    }
+
+    /// Any message from a PC proves it is up: clear a PC_SILENT suspicion (4.5 amendment).
+    fn fm_pad_alive(&mut self, pad: PadId) {
+        let fp = &mut self.fm.pads[usize::from(pad)];
+        if fp.mode == PadMode::ControllerFault {
+            fp.mode = PadMode::Online;
+            self.fm.pad_gen[usize::from(pad)] = self.fm.pad_gen[usize::from(pad)].wrapping_add(1);
+            self.fm_run_assignment();
+        }
+        self.fm_retry_waiting();
+    }
+
+    /// FM_PAD_RECHECK: the suspected pad gets another chance; a still-silent PC is caught again
+    /// by the next drone that tries to land there.
+    pub(crate) fn fm_pad_recheck(&mut self, pad: PadId) {
+        self.fm_pad_alive(pad);
     }
 
     pub(crate) fn fm_hold_limit(&mut self, d: DroneId) {

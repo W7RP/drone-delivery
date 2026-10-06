@@ -337,9 +337,20 @@ impl World {
         }
     }
 
+    /// Send a ground report and arm the 4.4.1 watchdog for its quiet time. Every report goes
+    /// through here so a re-sent report can never leave the drone without a watchdog.
+    fn send_report(&mut self, d: DroneId, msg: Msg, quiet_ms: TimeMs) {
+        self.drone_send_pc(d, msg);
+        let dr = self.dr_mut(d);
+        dr.last_report = Some(msg);
+        dr.last_report_quiet_ms = quiet_ms;
+        self.ground_watchdog(d, quiet_ms);
+    }
+
     fn resend_report(&mut self, d: DroneId) {
         if let Some(report) = self.dr(d).last_report {
-            self.drone_send_pc(d, report);
+            let quiet = self.dr(d).last_report_quiet_ms;
+            self.send_report(d, report, quiet);
         }
     }
 
@@ -489,9 +500,7 @@ impl World {
         } else {
             0
         };
-        self.drone_send_pc(d, msg);
-        self.dr_mut(d).last_report = Some(msg);
-        self.ground_watchdog(d, quiet);
+        self.send_report(d, msg, quiet);
     }
 
     fn takeoff_done(&mut self, d: DroneId, pad: PadId) {
@@ -651,10 +660,8 @@ impl World {
             latch_open: open,
         };
         self.drone_to(d, tcode::d(15), DroneMode::OnPad);
-        self.drone_send_pc(d, msg);
-        self.dr_mut(d).last_report = Some(msg);
         let quiet = self.cfg.pad_ops.release_verify_ms + self.cfg.pad_ops.out_empty_wait_ms;
-        self.ground_watchdog(d, quiet);
+        self.send_report(d, msg, quiet);
     }
 
     fn latch_done(&mut self, d: DroneId, pad: PadId) {
@@ -685,10 +692,8 @@ impl World {
             locked,
         };
         self.drone_to(d, tcode::d(15), DroneMode::OnPad);
-        self.drone_send_pc(d, msg);
-        self.dr_mut(d).last_report = Some(msg);
         let quiet = self.cfg.pad_ops.latch_verify_ms;
-        self.ground_watchdog(d, quiet);
+        self.send_report(d, msg, quiet);
     }
 
     pub(crate) fn drone_timer(&mut self, d: DroneId, timer: TimerKind) {
@@ -718,6 +723,10 @@ impl World {
                 }
                 crate::world::Await::Ground => {
                     self.drone_to(d, tcode::d(16), mode);
+                    if self.dr(d).silence_since == crate::ids::NO_TIME {
+                        let now = self.now;
+                        self.dr_mut(d).silence_since = now;
+                    }
                     self.resend_last(d);
                     let retries = self.dr(d).retries.saturating_add(1);
                     self.dr_mut(d).retries = retries;

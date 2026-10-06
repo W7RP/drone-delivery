@@ -99,7 +99,7 @@ code_enum!(TimerKind {
     PcOutWaitTimeout = "PC_OUT_WAIT_TIMEOUT", PcChargeDone = "PC_CHARGE_DONE",
     DResponseTimeout = "D_RESPONSE_TIMEOUT", DHoldRetry = "D_HOLD_RETRY",
     DPcSilenceAlert = "D_PC_SILENCE_ALERT", DEnergyReserve = "D_ENERGY_RESERVE",
-    FmHoldLimit = "FM_HOLD_LIMIT", EndOfRun = "END_OF_RUN",
+    FmHoldLimit = "FM_HOLD_LIMIT", EndOfRun = "END_OF_RUN", FmPadRecheck = "FM_PAD_RECHECK",
 });
 code_enum!(FlightSource { Des = "DES", Px4Sitl = "PX4_SITL" });
 code_enum!(ServiceMode { Auto = "AUTO", Manual = "MANUAL" });

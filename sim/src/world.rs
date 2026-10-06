@@ -92,7 +92,7 @@ pub struct PadSt {
     pub msg_seq: u32,
 }
 
-/// One visit per drone (a drone has at most one open visit), indexed by drone ID.
+/// The PC's record of one drone's pass through its pad, indexed by `visit_index(pad, drone)`.
 #[derive(Clone, Copy, Debug)]
 pub struct Visit {
     pub pad: PadId,
@@ -192,6 +192,7 @@ pub struct DroneSt {
     pub done_release_attempt: u8,
     pub done_latch_attempt: u8,
     pub last_report: Option<Msg>,
+    pub last_report_quiet_ms: TimeMs,
     pub service_done: bool,
     pub approach_spot: Spot,
     pub cmd_attempt: u8,
@@ -326,6 +327,7 @@ impl World {
                 done_release_attempt: 0,
                 done_latch_attempt: 0,
                 last_report: None,
+                last_report_quiet_ms: 0,
                 service_done: false,
                 approach_spot: Spot::In,
                 cmd_attempt: 0,
@@ -345,7 +347,7 @@ impl World {
             seq: 0,
             queue: BinaryHeap::with_capacity(entities * QUEUE_SLOTS_PER_ENTITY),
             pads,
-            visits: vec![Visit::closed(); n_drones],
+            visits: vec![Visit::closed(); n_pads * n_drones],
             drones,
             fm,
             metrics,
@@ -383,7 +385,8 @@ impl World {
                 v.spot = Spot::Out;
                 v.outcome = VisitOutcome::Open;
                 v.soc = self.soc_f32(id);
-                self.visits[d] = v;
+                let i = self.visit_index(pad, id);
+                self.visits[i] = v;
             }
             self.fm
                 .init_drone(id, pad, self.drones[d].spot, self.drones[d].soc);
@@ -676,7 +679,7 @@ impl World {
         };
         match owner_kind {
             EntityKind::Pad => {
-                let v = &self.visits[usize::from(subject)];
+                let v = &self.visits[self.visit_index(owner_id, subject)];
                 v.is_open_at(owner_id) && v.generation == generation
             }
             EntityKind::Drone => {
@@ -689,9 +692,11 @@ impl World {
                         _ => d.gen_reserve,
                     }
             }
-            EntityKind::FleetManager => {
-                timer == TimerKind::EndOfRun || self.fm.hold_gen[usize::from(subject)] == generation
-            }
+            EntityKind::FleetManager => match timer {
+                TimerKind::EndOfRun => true,
+                TimerKind::FmPadRecheck => self.fm.pad_gen[usize::from(subject)] == generation,
+                _ => self.fm.hold_gen[usize::from(subject)] == generation,
+            },
         }
     }
 
@@ -757,13 +762,11 @@ impl World {
                     self.pad_tick(owner_id);
                 }
                 EntityKind::Drone => self.drone_timer(owner_id, timer),
-                EntityKind::FleetManager => {
-                    if timer == TimerKind::EndOfRun {
-                        self.ended = true;
-                    } else {
-                        self.fm_hold_limit(subject);
-                    }
-                }
+                EntityKind::FleetManager => match timer {
+                    TimerKind::EndOfRun => self.ended = true,
+                    TimerKind::FmPadRecheck => self.fm_pad_recheck(subject),
+                    _ => self.fm_hold_limit(subject),
+                },
             },
             _ => self.drone_completion(ev),
         }
@@ -777,6 +780,12 @@ impl World {
             self.dispatch(entry);
         }
         self.pads[usize::from(pad)].deferred = held;
+    }
+
+    /// Visits are kept per (pad, drone) so a pad that is faulted or waiting on a silent drone
+    /// never loses its record when the drone starts a visit elsewhere.
+    pub fn visit_index(&self, pad: PadId, drone: DroneId) -> usize {
+        usize::from(pad) * self.drones.len() + usize::from(drone)
     }
 
     pub fn soc_f32(&self, d: DroneId) -> f32 {
@@ -856,9 +865,12 @@ impl World {
                 self.now
             );
         }
-        // The PC's spot occupancy may lag the physical truth by one DEPARTED message (or its
-        // sensor-fallback timeout), never more, unless the PC is faulted.
-        let lag_ms = self.cfg.handshake.local_latency_ms + self.cfg.handshake.response_timeout_ms;
+        // The PC's spot occupancy may lag the physical truth by at most one departure-timer
+        // period (a lost DEPARTED is caught by the spot sensor at the next check), unless the
+        // PC is faulted.
+        let move_ms = ms_from_s(self.cfg.drone.takeoff_s.max(self.cfg.drone.hop_s));
+        let lag_ms =
+            move_ms + self.cfg.handshake.local_latency_ms + self.cfg.handshake.response_timeout_ms;
         for (p, pad) in self.pads.iter().enumerate() {
             if pad.mode == PadMode::ControllerFault {
                 continue;

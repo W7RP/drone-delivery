@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.2.1. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.2.3. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -147,7 +147,7 @@ failure returns an `ASSIGNED` order to `CREATED`.
 | Field | Type | Unit | Description |
 |---|---|---|---|
 | pad_id | u16 | - | |
-| drone_id | u16 | - | At most one open visit per drone. |
+| drone_id | u16 | - | At most one open visit per drone at a given pad. A pad that was faulted or waiting on a silent drone may still hold a visit for a drone that has gone elsewhere; its sensor checks close it (V36, V41). |
 | state | u8 VisitState | - | Section 3.3. |
 | spot | u8 Spot | - | Spot granted or occupied. |
 | attempt | u8 | count | Current release or latch attempt, starting at 1. |
@@ -349,13 +349,13 @@ presence sensor instead of declaring silence (A12).
 | V08 | APPROACH | LATCHING | PC | `LANDED` spot OUT | `out_pod` = visit `pickup_pod` | `out_drone` = d, attempt = 1. | In: `LANDED`. Out: `LATCH_CMD` attempt 1. |
 | V09 | APPROACH | CHARGING | PC | `LANDED` spot OUT | no pickup; `has_charger`; soc < `drone.charge_target_soc` | Compute dwell (3.7). | In: `LANDED`. Out: `CHARGE_START` (dwell_s). |
 | V10 | APPROACH | READY | PC | `LANDED` spot OUT | no pickup; no charge needed or no charger | none | In: `LANDED`. Out: `SERVICE_COMPLETE` outcome NO_POD. |
-| V11 | APPROACH | APPROACH | PC | `LANDING_REQUEST` from the same drone | none (its grant was lost) | none | In: `LANDING_REQUEST`. Out: `LANDING_GRANT` re-sent. |
+| V11 | APPROACH | APPROACH | PC | `LANDING_REQUEST` from the same drone | none (its grant was lost) | Restart `PC_LANDING_TIMEOUT`: the drone approaches from this grant. | In: `LANDING_REQUEST`. Out: `LANDING_GRANT` re-sent. |
 | V12 | APPROACH | CLOSED | PC | `APPROACH_ABORT` reason MARKER_NOT_DETECTED | none | Free reservation; outcome APPROACH_ABORTED; run landing queue. | In: `APPROACH_ABORT`. |
 | V13 | APPROACH | per V06 to V10 | PC | `PC_LANDING_TIMEOUT` | granted spot sensor shows a drone | Treat as `LANDED` using the pod/soc from the drone's `LANDING_REQUEST`. | Out: `RELEASE_CMD`, `LATCH_CMD`, `CHARGE_START` or `SERVICE_COMPLETE`, as in the matching row V06 to V10. |
 | V14 | APPROACH | CLOSED | PC | `PC_LANDING_TIMEOUT` | granted spot sensor empty | Free reservation; outcome LOST_CONTACT; run landing queue. | Out: `ALERT` DRONE_SILENT (WARNING). |
 | V15 | RELEASING | VERIFY_RELEASE | PC | `RELEASE_REPORT` | none | Store `latch_open`; arm verify timer. | In: `RELEASE_REPORT`. |
 | V16 | RELEASING | RELEASING | PC | `PC_RESPONSE_TIMEOUT` | retries left | Retry rule. | Out: `RELEASE_CMD` re-sent. |
-| V17 | RELEASING, HOPPING, LATCHING, DEPARTING | DRONE_SILENT | PC | `PC_RESPONSE_TIMEOUT` | no retries left; sensor fallback not applicable or sensor shows the drone still on its original spot | Remember the state left; spot stays blocked. | Out: `ALERT` DRONE_SILENT (WARNING). |
+| V17 | RELEASING, HOPPING, LATCHING, DEPARTING | DRONE_SILENT | PC | `PC_RESPONSE_TIMEOUT` | no retries left; sensor fallback not applicable or sensor shows the drone still on its original spot | Remember the state left; spot stays blocked; arm `PC_RESPONSE_TIMEOUT` every `handshake.response_timeout_s` to watch the spot sensor (V41). | Out: `ALERT` DRONE_SILENT (WARNING). |
 | V18 | VERIFY_RELEASE | WAIT_OUT | PC | `PC_VERIFY_RELEASE_DONE` | `latch_open` and IN pod sensor shows a pod | `in_pod` = pod; pod location PAD_IN, `loaded` stays true until removal; arm `PC_OUT_WAIT_TIMEOUT`; evaluate V21. **Delivery measurement point.** | Out: `POD_DELIVERED` to FM. |
 | V19 | VERIFY_RELEASE | RELEASING | PC | `PC_VERIFY_RELEASE_DONE` | release not verified; attempt <= `pad_ops.release_max_retries` | attempt += 1. | Out: `RELEASE_CMD` (new attempt). |
 | V20 | VERIFY_RELEASE | CLOSED | PC | `PC_VERIFY_RELEASE_DONE` | release not verified; attempt > `pad_ops.release_max_retries` | outcome DRONE_GROUNDED; drone stays on IN with its pod; pad mode goes OUT_OF_SERVICE for the rest of the run (M03). | Out: `ALERT` RELEASE_FAULT (CRITICAL); `SERVICE_COMPLETE` outcome RELEASE_FAILED to the drone. |
@@ -375,12 +375,15 @@ presence sensor instead of declaring silence (A12).
 | V34 | READY | DEPARTING | PC | `DEPART_REQUEST` | no other visit at this pad is HOPPING or DEPARTING (one airborne movement at a time, A32) | Arm timer. If the guard is false, hold the request and re-evaluate when that movement ends. | In: `DEPART_REQUEST`. Out: `DEPART_CLEAR`. |
 | V35 | DEPARTING | DEPARTING | PC | `PC_RESPONSE_TIMEOUT` | spot sensor still shows the drone; retries left | Retry rule. | Out: `DEPART_CLEAR` re-sent. |
 | V36 | DEPARTING | CLOSED | PC | `DEPARTED`, or `PC_RESPONSE_TIMEOUT` with spot sensor empty | none | Free spot (or `parked` -= 1 when leaving PARKING); `parked` += 1 when the mission was PARK; outcome COMPLETED; P04 if leaving IN; run landing queue; P02. | In: `DEPARTED`. |
-| V37 | DRONE_SILENT | state left | PC | Any message from that drone | none | Return to the remembered state, then process the message as in that state. | In: any drone message (`LANDED`, `RELEASE_REPORT`, `LATCH_REPORT`, `DEPART_REQUEST`, `DEPARTED`). Out: as the resumed state's row. |
+| V37 | DRONE_SILENT | state left | PC | Any message from that drone | none | Return to the remembered state, re-arm its `PC_RESPONSE_TIMEOUT`, then process the message as in that state. | In: any drone message (`LANDED`, `RELEASE_REPORT`, `LATCH_REPORT`, `DEPART_REQUEST`, `DEPARTED`). Out: as the resumed state's row. |
 | V38 | any open state except HELD | same | PC | Duplicate drone message already answered (retry after a lost reply) | none | Idempotent: no state change. | Out: re-send the last command for this visit (for CHARGING: `CHARGE_START` with remaining dwell). |
 | V39 | READY | READY | PC | P01 adds to the backlog | visit is on OUT with no pickup (a drone parked on OUT looks like this to the PC) | none; FM decides whether the drone yields (6.4) | Out: `SHIPMENT_PENDING` (pad_id, out_drone) to FM. |
 | V40 | (none) | READY | PC | `DEPART_REQUEST` from a drone with no open visit | the parking sensor shows the drone in the parking area | Create a visit at spot PARKING, then apply V34 at once. | In: `DEPART_REQUEST`. Out: `DEPART_CLEAR` (via V34). |
+| V41 | DRONE_SILENT | CLOSED | PC | `PC_RESPONSE_TIMEOUT` | the spot sensor shows the spot empty | The silent drone has left. If it was DEPARTING, act as V36 (outcome COMPLETED); otherwise free the spot, outcome LOST_CONTACT. | In: none needed; the trigger is the sensor check on `PC_RESPONSE_TIMEOUT`. |
+| V42 | (none) | per V06 to V10 | PC | `LANDED` from a drone with no open visit at this pad (its grant timed out just before touchdown, V14) | the spot sensor shows that drone on the spot and the PC holds no other drone or reservation there | Adopt it: create the visit and continue as V06 to V10. | In: `LANDED`. Out: as the matching row V06 to V10 (`RELEASE_CMD`, `LATCH_CMD`, `CHARGE_START` or `SERVICE_COMPLETE`). |
 
-`LANDING_CANCEL` or `APPROACH_ABORT` for a drone with no open visit is ignored. The visit
+`LANDING_CANCEL` or `APPROACH_ABORT` for a drone with no open visit is ignored; `LANDED` is
+handled by V42 and `DEPART_REQUEST` by V40. The visit
 gen is incremented on every row, so timers from an earlier state are ignored.
 
 ### 3.5 Spot assignment and the landing queue
@@ -390,6 +393,9 @@ On `LANDING_REQUEST` from drone d (and on every queue run, for the queue head):
 1. d carries a pod: grant IN if IN is free. Otherwise not available.
 2. d is empty: grant OUT if OUT is drone-free and `out_pod` is NONE or d's pickup pod.
    Otherwise grant IN if IN is free. Otherwise not available.
+
+Interlock: a spot is available only if its presence sensor also shows no drone on it, whatever
+the PC's records say (fail-safe against a stale record).
 
 The landing queue is FIFO by first request time. A queue run happens whenever a spot becomes
 available (V05, V12, V14, V24 to V26, V36, P05, M02) and grants at most one visit per spot.
@@ -524,7 +530,7 @@ on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until 
 | D04 | HOLDING | APPROACH | `LANDING_GRANT` | none | Schedule `APPROACH_DONE` after `drone.approach_s`. | In: `LANDING_GRANT`. |
 | D05 | APPROACH | GO_AROUND, ON_PAD or HOLDING | `APPROACH_DONE` | Draw MARKER (p = `pad_ops.p_marker_detect`, or 0 inside a MARKER_NOT_DETECTED window). Detected: ON_PAD. Missed with `go_arounds` < `pad_ops.max_go_arounds`: GO_AROUND. Missed otherwise: HOLDING. | ON_PAD: reset counters. GO_AROUND: `go_arounds` += 1, schedule `GO_AROUND_DONE` after `drone.go_around_s`. HOLDING: `go_arounds` = 0, `hold_cycles` += 1. | Out ON_PAD: `LANDED`, `DRONE_STATUS`. Out HOLDING: `APPROACH_ABORT` to PC, `HOLD_REPORT` reason MARKER_NOT_DETECTED to FM. |
 | D06 | GO_AROUND | APPROACH | `GO_AROUND_DONE` | none | Schedule `APPROACH_DONE`. | none needed; the PC's T_land_timeout covers all go-arounds. Recorded in the event trace. |
-| D07 | HOLDING | HOLDING | `LANDING_HOLD` | first hold at this pad or reason changed | Arm `D_HOLD_RETRY` after `handshake.hold_retry_s`. | In: `LANDING_HOLD`. Out: `HOLD_REPORT` reason IN_OCCUPIED. |
+| D07 | HOLDING | HOLDING | `LANDING_HOLD` | none | Arm `D_HOLD_RETRY` after `handshake.hold_retry_s`. Send the report only on the first hold at this pad or when the reason changed. | In: `LANDING_HOLD`. Out: `HOLD_REPORT` reason IN_OCCUPIED (first time). |
 | D08 | HOLDING | HOLDING | `D_HOLD_RETRY` | none | Arm `D_RESPONSE_TIMEOUT`. | Out: `LANDING_REQUEST`. |
 | D09 | HOLDING | HOLDING | `D_RESPONSE_TIMEOUT` | retries left | Retry. | Out: `LANDING_REQUEST` re-sent. |
 | D10 | HOLDING | HOLDING | `D_RESPONSE_TIMEOUT` | no retries left | Treat PC as silent; keep re-requesting every `handshake.hold_retry_s` until FM decides. | Out: `HOLD_REPORT` reason PC_SILENT. |
@@ -565,7 +571,7 @@ outstanding.
 
 | Who goes silent | Detected by | Detecting side does | Alert |
 |---|---|---|---|
-| PC, drone in the air | D: `D_RESPONSE_TIMEOUT` on `LANDING_REQUEST` after `handshake.max_retries` | `HOLD_REPORT` reason PC_SILENT (D10). FM marks the pad CONTROLLER_FAULT in its view, stops sending drones there, and diverts the drone (6.3, 6.6). FM clears the mark on `PAD_STATUS` ONLINE. | DIVERTED (WARNING) from FM |
+| PC, drone in the air | D: `D_RESPONSE_TIMEOUT` on `LANDING_REQUEST` after `handshake.max_retries` | `HOLD_REPORT` reason PC_SILENT (D10). FM marks the pad CONTROLLER_FAULT in its view, stops sending drones there, and diverts the drone (6.3, 6.6). FM clears the mark on any message from that PC, or when `FM_PAD_RECHECK` fires after `pad_ops.pc_fault_duration_s` (A44). | DIVERTED (WARNING) from FM |
 | PC, drone on the ground | D: `D_RESPONSE_TIMEOUT` on any message after retries | Stay landed, keep re-sending (D16). Resume when the PC answers. | PC_SILENT (WARNING) after `handshake.pc_silence_alert_s` |
 | Drone, after grant | PC: `PC_LANDING_TIMEOUT` | Spot sensor decides: drone present means landed (V13); empty means lost (V14). | DRONE_SILENT (WARNING) if lost |
 | Drone, on a spot | PC: `PC_RESPONSE_TIMEOUT` after retries | DRONE_SILENT, spot stays blocked, resume on any drone message (V17, V37). | DRONE_SILENT (WARNING) |
@@ -607,7 +613,8 @@ PC_VERIFY_LOCK_DONE, PC_OUT_WAIT_TIMEOUT, PC_CHARGE_DONE (owner PC: owner_id = p
 subject_id = drone_id of the visit, gen = visit gen); D_RESPONSE_TIMEOUT, D_HOLD_RETRY,
 D_PC_SILENCE_ALERT, D_ENERGY_RESERVE (owner drone: owner_id = subject_id = drone_id);
 FM_HOLD_LIMIT (owner FM: owner_id = 0, subject_id = drone_id); END_OF_RUN (owner core,
-recorded as FLEET_MANAGER with owner_id = 0 and subject_id = NONE, at `sim.duration_s`).
+recorded as FLEET_MANAGER with owner_id = 0 and subject_id = NONE, at `sim.duration_s`);
+FM_PAD_RECHECK (owner FM: owner_id = 0, subject_id = pad_id, A44).
 
 ### 5.2 Ordering and tie-break
 
@@ -689,16 +696,24 @@ divert_ok(d, b, q, m)   := soc*C - [E_route(b, q, m) + P_h(m) * T_cycle_s] >= dr
 
 Called on `POD_PLACED`, on `MISSION_REQUEST` (a drone became free), on `MISSION_REQUEST`
 outcome LATCH_FAILED (the order goes back to CREATED, the failed drone is excluded for that
-order), and on `PAD_STATUS` ONLINE.
+order), on `PAD_STATUS` ONLINE or any other proof that a suspected pad is up (4.5), on
+`DRONE_STATUS` ON_PAD or PARKED, and on `POD_DELIVERED` (a drone that lands or empties where a
+pod waits takes it at once).
 
 Default MIN_ETA. Candidates are drones not GROUNDED with no pickup already assigned, that are
 (a) on the origin pad (READY or WAIT_OUT, or PARKED there, ETA 0), (b) en route to the origin pad (ETA =
-remaining route time), or (c) parked elsewhere (ETA = `drone.takeoff_s` + route time). Keep
+remaining route time), or (c) idle elsewhere: PARKED, or on a pad having sent
+`MISSION_REQUEST` with no mission yet (ETA = `drone.takeoff_s` + route time). Keep
 candidates with `dispatch_ok` for origin -> order destination (from the drone's soc after
 reaching origin, assuming charge to `drone.charge_target_soc` if the origin has a charger).
 Choose minimum ETA, ties to lower drone_id. A pickup may move to a candidate with a strictly
 smaller ETA until the pod is latched (A30). On assignment FM sends `PICKUP_ASSIGNED` to the
-origin PC and, for (b) and (c), `MISSION_ASSIGN` with `pickup_order_id`.
+origin PC and, for (b) and (c), `MISSION_ASSIGN` with `pickup_order_id`. Only CREATED orders
+are assigned. `POD_LATCHED` is authoritative: if the pad let a drone latch a pod whose order FM
+had meanwhile unassigned or moved (messages cross), the order belongs to the drone that latched
+it and any other drone sent for it is released. A drone assigned
+while it moves into a parking area gets its PICKUP mission when its `DRONE_STATUS` PARKED
+arrives.
 
 ### 6.2 Dispatch: `mission_for(view, drone_id) -> Option<Mission>`
 
@@ -1200,7 +1215,9 @@ that:
 - A23 The dispatch energy guard covers takeoff, the route, the worst landing contingency at the
   destination, one diversion and, under HUB_ONLY, reaching a charger.
 - A24 If no feasible mission exists for a drone that cannot charge where it is, FM raises
-  ENERGY_STRANDED and the drone stays on its spot.
+  ENERGY_STRANDED once and the drone stays on its spot. FM retries every drone still waiting
+  for a mission whenever its view changes (pad status, a suspicion lifted, a landing, a
+  delivery, a placement), so a blocked drone is never forgotten.
 - A25 The landing queue is FIFO per pad.
 - A26 Config enum values are UPPER_SNAKE strings, identical to the schema enums.
 - A27 Fault windows of any kinds on the same pad do not overlap; random PC faults are
@@ -1234,6 +1251,10 @@ that:
   safe side.
 - A43 Phase 2 builds the truck matrix in memory from SYNTHETIC parameters and rejects
   `truck.matrix_source` = FILE, which needs the offline pipeline.
+- A44 A PC_SILENT report can be a false alarm (lost radio messages). FM therefore treats any
+  subsequent message from that PC as proof it is up and, failing that, lifts the suspicion after one
+  expected outage (`pad_ops.pc_fault_duration_s`); a PC that is still down is detected again by
+  the next drone.
 
 ## 11 Amendments
 
@@ -1242,3 +1263,5 @@ that:
 | 1.1.0 | `pads[].parking_capacity` and `charging.charge_while_parked`; `Spot` gains PARKING; `PadState` gains `parked`; V36, V40, D01, D18, D19, D20, D23, 6.4, R4, R5, A08, A16 updated. | Replaces "idle drones park on OUT, so fleet <= pads" so fleets larger than the pad count can park without blocking IN or OUT. |
 | 1.2.0 | `synthetic_network` and generated demand (8.6); `costs` and M8; `road_m` in `truck_matrix.bin` (minor 1); `events.bin` (9.4) and `deliveries.csv`; `Order.fail_reason`; R16; NETWORK stream; D24; ground watchdog table; PC-fault deferral and fault-end matching; hold-limit and HUB_ONLY idle rules; A36 to A40. | Needed to implement the phase-2 core: generated topologies, the cost baseline, a streamed event log, failure reasons, and behaviours the 1.1.0 tables left implicit. |
 | 1.2.1 | A41 to A43; network seed rule in 8.6 and 5.4. | Decisions made while implementing the phase-2 core. |
+| 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
+| 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
