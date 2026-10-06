@@ -63,6 +63,10 @@ fn scale_fleet_keeps_moving_without_forced_landings() {
     );
     let mut t: toml::Table = std::fs::read_to_string(path).unwrap().parse().unwrap();
     set_q(&mut t, "sim.duration_s", 21_600.0);
+    // The overload the bugs were found under (the scenario config itself now runs below
+    // capacity): 6 requests per pad-hour and the weakest pod rebalancing.
+    set_q(&mut t, "demand.rate_per_pad_per_h", 6.0);
+    set_q(&mut t, "policy.pod_min_per_pad", 1);
     let r = run(&t);
     assert!(
         r.summary["deliveries_per_h"].as_f64().unwrap() > 80.0,

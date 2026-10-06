@@ -104,7 +104,7 @@ in_occupied_action = "HOLD"
 max_hold_s = { value = 180.0, unit = "s", assumption = true }
 marker_hold_s = { value = 60.0, unit = "s", assumption = true }
 marker_max_hold_cycles = { value = 1, unit = "count", assumption = true }
-pod_min_per_pad = { value = 1, unit = "count", assumption = true }
+pod_min_per_pad = { value = 2, unit = "count", assumption = true }
 
 [demand]
 deadline_offset_s = { value = 3600.0, unit = "s", assumption = true }
