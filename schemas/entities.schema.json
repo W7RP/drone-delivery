@@ -62,6 +62,11 @@
         },
         "truck_delivered_t_ms": {
           "$ref": "common.schema.json#/$defs/t_ms"
+        },
+        "fail_reason": {
+          "$ref": "common.schema.json#/$defs/AlertCode",
+          "x-type": "u8",
+          "x-unit": "-"
         }
       }
     },

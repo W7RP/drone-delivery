@@ -3,7 +3,7 @@
 # The single scheduled fault at the bottom exists to exercise the marker-miss -> hold -> divert
 # path walked in docs/paper-run.md (b).
 
-schema_version = "1.1.0"
+schema_version = "1.2.0"
 
 [meta]
 name = "ab_synthetic"
@@ -169,6 +169,12 @@ tod_speed_factors = [
 [metrics]
 hist_bin_s = { value = 10.0, unit = "s", assumption = true }
 hist_max_s = { value = 14400.0, unit = "s", assumption = true }
+
+[costs]
+truck_per_m = { value = 0.0008, unit = "cu/m", assumption = true }
+truck_per_s = { value = 0.012, unit = "cu/s", assumption = true }
+drone_per_s = { value = 0.002, unit = "cu/s", assumption = true }
+energy_per_j = { value = 4.0e-8, unit = "cu/J", assumption = true }
 
 [[faults]]
 kind = "MARKER_NOT_DETECTED"

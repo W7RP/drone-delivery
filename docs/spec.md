@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.1.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.2.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -72,7 +72,7 @@ Entities:
 | Visit | One drone's pass through one pad, from landing request to departure. The unit of the pad state machine (section 3). | PC | metrics |
 | Drone | One aircraft with its own latch. Identical class across the fleet. | D | FM (mirror via `DRONE_STATUS`), PC (via handshake) |
 | Lane | A directed straight-line air corridor between two pads. Config lists undirected lanes; each becomes two directed lanes in the CSR file. | offline pipeline (static) | D, FM |
-| Truck | Baseline only: one dedicated truck per order over the road matrix with time-of-day speed factors. Not simulated as a vehicle. | TB | metrics |
+| Truck | Baseline only: one dedicated truck per order over the road matrix (time and distance) with time-of-day speed factors. Not simulated as a vehicle. | TB | metrics |
 
 ## 2 Schemas
 
@@ -100,6 +100,7 @@ The flight model signature is in 2.7.
 | departed_t_ms | u64 | ms | Takeoff from origin completed (`DRONE_STATUS` EN_ROUTE send time). |
 | delivered_t_ms | u64 | ms | Release verified at `delivered_pad` (transition V18). |
 | truck_delivered_t_ms | u64 | ms | Baseline completion time, computed at creation (section 7, M2). |
+| fail_reason | u8 AlertCode | - | Why the order FAILED: RELEASE_FAULT (V20) or DRONE_GROUNDED (D14). Meaningful only when status = FAILED. |
 
 Order status: `CREATED` (on `POD_PLACED`) > `ASSIGNED` (drone chosen) > `LATCHED` (`POD_LATCHED`)
 > `IN_TRANSIT` (departed) > one of `DELIVERED` (released at `dest_pad`), `DIVERTED` (released at
@@ -275,7 +276,7 @@ Spot availability terms used in guards:
 
 | ID | From | To | Owner | Trigger | Guard | Action | Messages |
 |---|---|---|---|---|---|---|---|
-| M01 | ONLINE | CONTROLLER_FAULT | FI | `FAULT_START` kind PC_FAULT (scheduled in `faults[]`, or random at `pad_ops.pc_fault_rate_per_h`) | mode = ONLINE | PC stops processing. Messages addressed to it are dropped. Its timers that fire during the fault are held and fire at fault end in their original order. State is retained (A17). Random faults schedule `FAULT_END` after `pad_ops.pc_fault_duration_s`. | Out: none, silence is the fault. Detected by drones as `D_RESPONSE_TIMEOUT`, then reported as `HOLD_REPORT` reason PC_SILENT (in the air) or `ALERT` PC_SILENT (on the ground). |
+| M01 | ONLINE | CONTROLLER_FAULT | FI | `FAULT_START` kind PC_FAULT (scheduled in `faults[]`, or random at `pad_ops.pc_fault_rate_per_h`) | mode = ONLINE | PC stops processing. Messages addressed to it are dropped. Every other event addressed to it (its timers, `SHIPMENT_REQUEST`, `POD_PLACE_DONE`, `POD_REMOVE_DONE`) is held and processed at fault end in its original order (A36). State is retained (A17). Random faults schedule `FAULT_END` after `pad_ops.pc_fault_duration_s`. The PC records the fault's end time; a `FAULT_END` at any other time is ignored (A37). | Out: none, silence is the fault. Detected by drones as `D_RESPONSE_TIMEOUT`, then reported as `HOLD_REPORT` reason PC_SILENT (in the air) or `ALERT` PC_SILENT (on the ground). |
 | M02 | CONTROLLER_FAULT | ONLINE | FI | `FAULT_END` kind PC_FAULT | none | Fire held timers. For each open visit, re-send the last command sent to that drone. Re-run the landing queue (3.5) and placement (P02). | Out: `PAD_STATUS` mode ONLINE to FM; re-sent visit commands to drones. |
 | M03 | ONLINE | OUT_OF_SERVICE | FI or PC | `FAULT_START` kind OUT_OF_SERVICE, or V20 (drone grounded on IN) | mode = ONLINE | Every HELD visit goes to CLOSED outcome REFUSED. Visits already granted or on the pad continue to completion. No new grants, no new placements. | Out: `PAD_STATUS` mode OUT_OF_SERVICE to FM; `LANDING_REFUSED` reason OUT_OF_SERVICE to each HELD drone; on V20 also `ALERT` PAD_OUT_OF_SERVICE (CRITICAL). |
 | M04 | OUT_OF_SERVICE | ONLINE | FI | `FAULT_END` kind OUT_OF_SERVICE | no grounded drone on a spot | Resume grants and placements. | Out: `PAD_STATUS` mode ONLINE to FM. |
@@ -514,6 +515,7 @@ Every request with a reply timeout in 4.2 arms `D_RESPONSE_TIMEOUT` when sent an
 on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until soc reaches
 `drone.reserve_soc` at hover power) and disarmed on exit.
 
+
 | ID | Mode from | Mode to | Trigger | Guard | Action | Messages |
 |---|---|---|---|---|---|---|
 | D01 | PARKED or ON_PAD | TAKEOFF | `DEPART_CLEAR` | none | Schedule `TAKEOFF_DONE` after `drone.hop_s` if the mission is PARK (move into the parking area), else after `drone.takeoff_s`. Parked charging (A16) is applied here. | In: `DEPART_CLEAR`. |
@@ -527,7 +529,7 @@ on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until 
 | D09 | HOLDING | HOLDING | `D_RESPONSE_TIMEOUT` | retries left | Retry. | Out: `LANDING_REQUEST` re-sent. |
 | D10 | HOLDING | HOLDING | `D_RESPONSE_TIMEOUT` | no retries left | Treat PC as silent; keep re-requesting every `handshake.hold_retry_s` until FM decides. | Out: `HOLD_REPORT` reason PC_SILENT. |
 | D11 | HOLDING | HOLDING | `LANDING_REFUSED` | none | Wait for FM. | Out: `HOLD_REPORT` reason OUT_OF_SERVICE. |
-| D12 | HOLDING | EN_ROUTE | `MISSION_ASSIGN` DIVERT (or any mission with a new `dest_pad`) | none | Apply hold energy; route to the new pad. | Out: `LANDING_CANCEL` to the old PC; `DRONE_STATUS`. |
+| D12 | HOLDING | EN_ROUTE | `MISSION_ASSIGN` DIVERT (or any mission with a new `dest_pad`) | none | Apply hold energy; route to the new pad. In other modes a new `dest_pad` is handled by D24. | Out: `LANDING_CANCEL` to the old PC; `DRONE_STATUS`. |
 | D13 | ON_PAD | GROUNDED | `SERVICE_COMPLETE` outcome RELEASE_FAILED | none | Drone and pod stay on IN for the rest of the run. | Out: `DRONE_STATUS` GROUNDED. |
 | D14 | HOLDING | GROUNDED | `D_ENERGY_RESERVE` | none | Forced landing off the network. Pod location LOST. | Out: `LANDING_CANCEL`; `DRONE_STATUS` GROUNDED; `ALERT` DRONE_GROUNDED (CRITICAL). |
 | D15 | ON_PAD | ON_PAD or HOPPING | `RELEASE_CMD`, `RELEASE_DONE`, `HOP_CMD`, `HOP_DONE`, `LATCH_CMD`, `LATCH_DONE`, `CHARGE_START` | none | Execute: `RELEASE_DONE` after release duration (draw RELEASE: open with p = 1 - `drone.p_release_fault`, or 0 inside a RELEASE_FAULT window). `HOP_DONE` after `drone.hop_s` (mode HOPPING, back to ON_PAD at `HOP_DONE`). `LATCH_DONE` after latch duration (draw LATCH: locked with p = 1 - `drone.p_latch_fault`, or 0 inside a LATCH_FAULT window). | Out at completion: `RELEASE_REPORT`, `LANDED` spot OUT, `LATCH_REPORT`. |
@@ -539,6 +541,25 @@ on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until 
 | D21 | HOLDING | HOLDING | `HOLD_CONTINUE` | none | Arm `D_HOLD_RETRY` after `retry_after_s`. | In: `HOLD_CONTINUE`. |
 | D22 | EN_ROUTE or HOLDING | same | `MISSION_ASSIGN` with the same `dest_pad` | none | Update `pickup_order_id` only (a pickup added or moved while in flight, 6.1). | In: `MISSION_ASSIGN`. |
 | D23 | TAKEOFF | PARKED | `TAKEOFF_DONE` | mission = PARK | Drone is in the parking area of the same pad. | Out: `DEPARTED` (spot it left); `DRONE_STATUS` PARKED. |
+| D24 | EN_ROUTE, TAKEOFF, APPROACH or GO_AROUND | same | `MISSION_ASSIGN` with a new `dest_pad` | none | EN_ROUTE: store the new mission; the route is recomputed at the next `LANE_DONE` from that lane's end pad. TAKEOFF: store it and apply it at `TAKEOFF_DONE`. APPROACH or GO_AROUND: ignore it; the drone already holds a grant and FM reconciles on the next `DRONE_STATUS` or `HOLD_REPORT` (A38). | In: `MISSION_ASSIGN`. |
+
+#### 4.4.1 Ground watchdog
+
+On the ground the drone runs a watchdog for D16: after each message it sends to the PC
+(and after each PC message it receives) it arms `D_RESPONSE_TIMEOUT` for the longest time the
+PC may legitimately stay quiet, plus `handshake.response_timeout_s`:
+
+| Last exchange | Quiet time allowed before the timeout |
+|---|---|
+| sent `LANDED` (IN, with pod), `LANDED` (OUT) | 0 |
+| sent `LANDED` (IN, empty) | `pad_ops.out_empty_wait_timeout_s` |
+| sent `RELEASE_REPORT` | `pad_ops.release_verify_s` + `pad_ops.out_empty_wait_timeout_s` |
+| sent `LATCH_REPORT` | `pad_ops.latch_verify_s` |
+| received `CHARGE_START` | `dwell_s` |
+| sent `DEPART_REQUEST` | `drone.takeoff_s` + `drone.hop_s` (another movement may hold the clearance, V34) |
+
+No watchdog runs while the drone waits for FM (lossless link) or is PARKED with no request
+outstanding.
 
 ### 4.5 Silence handling
 
@@ -627,6 +648,7 @@ reason for the timer goes away. A popped TIMER whose `gen` differs is discarded.
   | LATCH | 4 | drone_id | lock success per `LATCH_DONE` |
   | PC_FAULT | 5 | pad_id | exponential inter-fault time, rate `pad_ops.pc_fault_rate_per_h / 3600` per s |
   | MSG_LOSS | 6 | `(sender EntityKind code << 16) OR sender id` | loss per message on the D <-> PC link |
+  | NETWORK | 7 | 0 | MESH pad positions (8.6) |
 
 - Uniform draw: `u = (next_u64 >> 11) * 2^-53`. Bernoulli(p): success iff `u < p`.
   Exponential(rate): `-ln(1 - u) / rate`, converted to ms by the rule in section 0.
@@ -670,7 +692,7 @@ outcome LATCH_FAILED (the order goes back to CREATED, the failed drone is exclud
 order), and on `PAD_STATUS` ONLINE.
 
 Default MIN_ETA. Candidates are drones not GROUNDED with no pickup already assigned, that are
-(a) on the origin pad (READY or WAIT_OUT, ETA 0), (b) en route to the origin pad (ETA =
+(a) on the origin pad (READY or WAIT_OUT, or PARKED there, ETA 0), (b) en route to the origin pad (ETA =
 remaining route time), or (c) parked elsewhere (ETA = `drone.takeoff_s` + route time). Keep
 candidates with `dispatch_ok` for origin -> order destination (from the drone's soc after
 reaching origin, assuming charge to `drone.charge_target_soc` if the origin has a charger).
@@ -703,7 +725,8 @@ Default BOUNDED_HOLD:
 - IN_OCCUPIED: `policy.in_occupied_action` = DIVERT gives DIVERT. HOLD gives CONTINUE with
   `handshake.hold_retry_s` and arms `FM_HOLD_LIMIT` at the earlier of hold start +
   `policy.max_hold_s` and the time `divert_ok` would stop holding at hover power. At the limit:
-  DIVERT.
+  DIVERT, unless FM's view has received `DRONE_STATUS` ON_PAD from the drone since the hold
+  began (it landed), in which case the timer is ignored.
 
 ### 6.4 Drone rebalancing
 
@@ -721,7 +744,11 @@ Default NEAREST_UNCLAIMED:
 
 - `place_idle`: PARK if this pad is unclaimed for the drone and either `parking_capacity` > 0,
   or the drone is on OUT and no pod is on OUT. Otherwise REPOSITION to the nearest unclaimed
-  ONLINE pad by route length (ties to lower pad_id).
+  ONLINE pad by route length (ties to lower pad_id). Exception: at a pad without a charger, a
+  drone below `drone.charge_target_soc` REPOSITIONs to the nearest unclaimed ONLINE pad with a
+  charger instead of parking (HUB_ONLY would otherwise strand it). A REPOSITION must pass
+  `dispatch_ok` with payload 0; if none does, FM raises ENERGY_STRANDED and sends PARK when the
+  drone may park here, else leaves it on its spot.
 - `yield_for` applies only to a drone parked on OUT (`parking_capacity` = 0); drones in a
   parking area never block. Cause = placement: YIELD_LOCAL (lift off, hover or land on IN, come
   back to OUT for the new pod). Cause = inbound: REPOSITION to the nearest unclaimed pad.
@@ -776,6 +803,8 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 | M6 | pod_availability (per pad), stockout_fraction | availability = (1 / T_W) * integral of [`empty_pods` > 0] dt. stockout_fraction = SHIPMENT_REQUESTs in W arriving when origin `empty_pods` = 0 / all SHIPMENT_REQUESTs in W. | P01, P02, P05, P06 | 1 |
 | M7 | abort_rate, go_around_rate, latch_abort_count, divert_count | abort_rate = SHIPMENT orders closed DIVERTED or FAILED / SHIPMENT orders closed (DELIVERED + DIVERTED + FAILED). go_around_rate = go-arounds / `APPROACH_DONE` count (all approaches in W). latch_abort_count = V30 count. divert_count = DIVERTED alerts. | FM order closure; D05; V30; 6.6 | 1, 1, count, count |
 
+| M8 | truck_cost_per_delivery, drone_cost_per_delivery, cost_ratio, breakeven_deliveries_per_drone_h, actual_deliveries_per_drone_h | Truck: mean of `truck_cost` (below) over M2's orders. Drone: (`costs.drone_per_s` * `drone.fleet_size` * T_W + `costs.energy_per_j` * E_grid) / count(M1), with E_grid = energy added in W / `charging.efficiency`. cost_ratio = drone / truck. Break-even = `costs.drone_per_s` * 3600 / (truck_cost_per_delivery - E_grid cost per delivery): the deliveries per drone-hour at which the drone cost per delivery equals the truck's; null if the denominator is <= 0 or there are no deliveries. Actual = count(M1) / `drone.fleet_size` / (T_W / 3600). | FM order closure; V33 | cu, cu, 1, 1/h, 1/h |
+
 Truck baseline per order:
 
 ```
@@ -783,10 +812,16 @@ t_dep_ms = requested_t_ms + ms(truck.dispatch_delay_s + truck.load_s)
 h        = floor(tod_s(t_dep_ms) / 3600)                    # 0..23
 T_ms     = ms(truck_matrix[origin][dest] / truck.tod_speed_factors[h])
 truck_delivered_t_ms = t_dep_ms + T_ms + ms(truck.unload_s)
+truck_cost = costs.truck_per_m * road_m[origin][dest]
+           + costs.truck_per_s * (truck.load_s + T_ms / 1000 + truck.unload_s)
 ```
+
+Costs are in an abstract cost unit `cu`; every cost key is a placeholder (A01).
 
 Run output `runs/<scenario>/<run_id>/metrics.json` holds one key per metric name above with the
 window, scenario name, seed, replication index and the `source_hash` of section 9.
+`deliveries.csv` holds one row per order (8.4), written when the order closes, with the open
+ones written at END_OF_RUN.
 
 ## 8 Config format and scenario layout
 
@@ -803,11 +838,15 @@ UPPER_SNAKE strings. Pads, lanes and flows reference pads by `name`; pad IDs are
 `meta.status` = STUB files carry only `schema_version`, `meta` and optionally `geo`. The core
 and pipeline refuse to run them.
 
+A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) or as
+`synthetic_network` (8.6), never both, and gives demand either as `demand.flows[]` or as
+`demand.rate_per_pad_per_h` with `demand.hub_weight`, never both.
+
 ### 8.2 Keys
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version, "1.1.0". |
+| schema_version | - | Config schema version, "1.2.0". |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -828,10 +867,19 @@ and pipeline refuse to run them.
 | pads[].pod_return_policy | - | KEEP_LOCAL or RETURN_HOME. |
 | pads[].initial_empty_pods | count | Pods at this pad at t = 0; their `home_pad`. |
 | pads[].parking_capacity | count | Parking slots that hold idle drones off IN and OUT. Optional, default 0: idle drones park on OUT. |
+| synthetic_network.topology | - | HUB_SPOKE or MESH (8.6). |
+| synthetic_network.n_pads | count | Pads to generate, >= 2. |
+| synthetic_network.radius_m | m | Spoke circle radius, or mesh disc radius. |
+| synthetic_network.mesh_neighbors | count | MESH: lanes to the k nearest pads. HUB_SPOKE ignores it. |
+| synthetic_network.service_mode | - | For every generated pad. |
+| synthetic_network.pod_return_policy | - | For every generated pad. |
+| synthetic_network.initial_empty_pods | count | For every generated pad. |
+| synthetic_network.parking_capacity | count | For every generated pad except a HUB_SPOKE hub. |
+| synthetic_network.hub_parking_capacity | count | HUB_SPOKE hub only. |
 | lanes[].pad_a | - | One end (undirected lane). |
 | lanes[].pad_b | - | Other end. |
 | drone.fleet_size | count | Number of drones. |
-| drone.initial_pads | - | Pad name per drone; the drone starts parked there (parking area if `parking_capacity` > 0, else on OUT). |
+| drone.initial_pads | - | Pad name per drone; the drone starts parked there (parking area if `parking_capacity` > 0, else on OUT). Optional: when absent, drones go round-robin over pads in ID order, skipping full pads (8.6). |
 | drone.empty_mass_kg | kg | Airframe and battery without latch or payload. |
 | drone.latch_mass_kg | kg | Latch carried by every drone; reduces payload margin and range. |
 | drone.mtow_kg | kg | Max takeoff mass. |
@@ -893,6 +941,8 @@ and pipeline refuse to run them.
 | demand.flows[].origin | - | Origin pad name. |
 | demand.flows[].destination | - | Destination pad name. |
 | demand.flows[].rate_per_h | 1/h | Poisson rate of shipment requests. |
+| demand.rate_per_pad_per_h | 1/h | Instead of `demand.flows[]`: every pad's total request rate, split over destinations (8.6). |
+| demand.hub_weight | 1 | Destination weight of a hub relative to 1 for other pads; used with `demand.rate_per_pad_per_h`. |
 | truck.matrix_source | - | SYNTHETIC or FILE (how the pipeline builds the matrix). |
 | truck.synthetic_detour_factor | 1 | Road length / straight length for SYNTHETIC. |
 | truck.synthetic_free_flow_speed_mps | m/s | Road speed for SYNTHETIC. |
@@ -902,6 +952,10 @@ and pipeline refuse to run them.
 | truck.tod_speed_factors[] | 1 | 24 factors; index = departure hour; travel time = free-flow / factor. |
 | metrics.hist_bin_s | s | Histogram bin width. |
 | metrics.hist_max_s | s | Start of the open-ended last bin. |
+| costs.truck_per_m | cu/m | Truck cost per road metre. |
+| costs.truck_per_s | cu/s | Truck and driver cost per second loading, driving and unloading. |
+| costs.drone_per_s | cu/s | Cost of one drone per second of the metrics window (ownership, ops share). |
+| costs.energy_per_j | cu/J | Grid energy cost. |
 | faults[].kind | - | FaultKind. |
 | faults[].pad | - | Pad name. |
 | faults[].start_s | s | Window start. |
@@ -926,6 +980,12 @@ Checked at load by the core and by `scripts/check_spec.py`:
 - R13 `metrics.hist_max_s` > `metrics.hist_bin_s`.
 - R14 `meta.name` equals the scenario directory name.
 - R15 Phase 1: every quantity has `assumption` = true.
+- R16 Every demand flow's route passes `dispatch_ok` with the gross payload from
+  `drone.charge_target_soc`; otherwise its orders could never be served.
+
+For a `synthetic_network` config the core checks R1 to R5, R9, R10, R12 and R16 after
+generation; `scripts/check_spec.py` checks only the rules that do not need the generated
+pads, plus that pad names it references follow the generated `P<index>` pattern.
 
 ### 8.4 Scenario directory layout
 
@@ -938,11 +998,19 @@ runs/<scenario>/<run_id>/                  written by the core, git-ignored
     metrics.json                           section 7
     alerts.jsonl                           one Alert (2.8) per line, enums as strings
     flight_log.bin                         section 9.3, source = DES
+    events.bin                             section 9.4, streamed while running
+    deliveries.csv                         one row per order (columns below)
 calib/<scenario>/flight_log.bin            PX4 SITL flights, source = PX4_SITL, git-ignored
 ```
 
 `run_id` = `seed<sim.seed>_rep<r>`. The core refuses derived files whose `source_hash` does
-not match the current `scenario.toml`.
+not match the current `scenario.toml`. The CLI may be given any output directory; it writes the
+files above into it.
+
+`deliveries.csv` columns: `order_id, kind, status, fail_reason, origin_pad, dest_pad,
+delivered_pad, drone_id, requested_t_ms, placed_t_ms, latched_t_ms, delivered_t_ms,
+drone_door_to_door_s, truck_door_to_door_s, truck_cost_cu`. Enums as strings, NONE IDs and
+unset times as empty fields.
 
 ### 8.5 Presets
 
@@ -955,7 +1023,30 @@ not match the current `scenario.toml`.
 | remote_terrain | REMOTE_TERRAIN | STUB | Long lanes where roads detour; range and hub-only charging. |
 
 A-B, hub-and-spoke and mesh differ only in `pads`, `lanes`, `demand.flows[]`, `charging.mode` and
-`pads[].is_hub`. The engine has no topology switch.
+`pads[].is_hub`. The engine has no topology switch; the generator in 8.6 only writes those
+lists.
+
+### 8.6 Synthetic network and demand generator
+
+Runs once at load, before any check that needs pads, and produces exactly the `pads[]`,
+`lanes[]`, `demand.flows[]` and `drone.initial_pads` the explicit form would have given.
+
+- Pad names are `P0` .. `P<n-1>`; pad ID = index.
+- HUB_SPOKE: `P0` is the hub (`is_hub` = true, `hub_parking_capacity`) at the geo origin.
+  Spoke i (1 .. n-1) sits at ENU (r cos a, r sin a) with a = 2 pi (i - 1) / (n - 1). Lanes:
+  hub to every spoke.
+- MESH: no hub. Pad i is drawn from the NETWORK stream (5.4) uniformly in the disc of radius r:
+  two draws u1, u2, then rho = r sqrt(u1), a = 2 pi u2. Lanes: each pad to its
+  `mesh_neighbors` nearest pads (ties to lower ID), plus the edges of the minimum spanning tree
+  of the complete distance graph (Prim from P0, ties to lower ID) so the graph is connected;
+  duplicates are merged.
+- ENU to geodetic uses the inverse of the section 0 projection.
+- Demand with `demand.rate_per_pad_per_h`: for each origin o (ID order) and destination q != o
+  (ID order), a flow with rate `rate_per_pad_per_h * w_q / sum over q' != o of w_q'`, where
+  w = `demand.hub_weight` for a hub and 1 otherwise. Poisson splitting keeps each origin's
+  total rate.
+- `drone.initial_pads` absent: drone i goes to the next pad in a round-robin over pad IDs that
+  still has fewer than `slots(p)` drones.
 
 ## 9 Binary data contracts
 
@@ -996,13 +1087,16 @@ Lanes are sorted by (from_pad, to_pad); `lane_id` is the position.
 
 ### 9.2 truck_matrix.bin
 
-magic `DDTRUCK\0`, count_a = n_pads, count_b = 0.
+magic `DDTRUCK\0`, version_minor 1, count_a = n_pads, count_b = 0.
 
 | Array | Type | Length | Meaning |
 |---|---|---|---|
 | free_flow_s | f32 | n_pads x n_pads | Row-major `[from][to]` free-flow road time in s. Diagonal 0, off-diagonal > 0 and finite (every pair must be reachable by road). |
+| road_m | f32 | n_pads x n_pads | Row-major road distance in m, same rules. Added in version_minor 1 for the cost baseline (M8). |
 
-SYNTHETIC: `straight ENU distance * truck.synthetic_detour_factor / truck.synthetic_free_flow_speed_mps`.
+SYNTHETIC: `road_m = straight ENU distance * truck.synthetic_detour_factor` and
+`free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`. In phase 2 the core builds this
+matrix in memory from the config; the file form is for the offline pipeline.
 FILE: the pipeline routes over a road network; the output format is identical.
 
 ### 9.3 flight_log.bin
@@ -1029,6 +1123,29 @@ traversal, written at `LANE_DONE`.
 
 The PX4/ROS 2 harness writes the same format (source = PX4_SITL, time from the sim clock of
 that flight), so calibration reads one format from both worlds.
+
+### 9.4 events.bin
+
+magic `DDEVLOG\0`, count_a = record_bytes (48), count_b = 0. Streamed through a buffered
+writer while the run executes; the core never holds the log in memory. One record per popped
+event, per lost message (at send time), and per state-machine transition, in processing order.
+
+| Offset | Size | Type | Field |
+|---|---|---|---|
+| 0 | 8 | u64 | t_ms |
+| 8 | 2 | u16 | kind: index into the `kind` enum of `events.schema.json`, or 0x8000 for a transition record |
+| 10 | 1 | u8 | class: EventClass code, 255 for a transition record |
+| 11 | 1 | u8 | status: 0 PROCESSED, 1 STALE (timer gen mismatch), 2 DROPPED (message to a faulted PC), 3 LOST (message lost on the link), 4 DEFERRED (held during a PC fault) |
+| 12 | 4 | u32 | msg_seq (0 for non-messages) |
+| 16 | 32 | u8[32] | args |
+
+Event args: the payload fields in the order of the event's `required` list in
+`events.schema.json`, each at its `x-type` width, little-endian, packed without padding, the
+rest zero. Enums are their codes.
+
+Transition args: u16 transition code (M = 1, P = 2, V = 3, D = 4, times 100, plus the number:
+V06 = 306), u16 pad_id, u16 drone_id, u8 from-state code, u8 to-state code (VisitState for V,
+DroneMode for D, PadMode for M, 255 where not applicable).
 
 ## 10 Assumptions
 
@@ -1096,9 +1213,22 @@ that:
 - A34 FM decisions take zero sim time; only link latency delays them.
 - A35 FM does not learn from marker misses; other drones keep using the pad during a marker
   fault window.
+- A36 During a PC fault, physical events at the pad (a shipper arriving, a pod placed or
+  removed) still happen but the PC registers them only when it recovers, in their original
+  order.
+- A37 Overlapping PC faults on one pad (a scheduled window during a random fault, or the
+  reverse) do not extend or shorten the active fault: the suppressed start has no end.
+- A38 A drone already granted and on approach finishes that landing even if FM has since
+  chosen a new destination for it.
+- A39 Phase-2 performance budgets, placeholders: 200 drones for 7 simulated days in a release
+  build within 60 s wall time and 200 MB peak RSS.
+- A40 Costs use an abstract unit `cu`; truck cost counts loading, driving and unloading time
+  and road distance, not the dispatch delay. Drone cost spreads a per-drone time cost over the
+  metrics window plus grid energy.
 
 ## 11 Amendments
 
 | Version | Change | Reason |
 |---|---|---|
 | 1.1.0 | `pads[].parking_capacity` and `charging.charge_while_parked`; `Spot` gains PARKING; `PadState` gains `parked`; V36, V40, D01, D18, D19, D20, D23, 6.4, R4, R5, A08, A16 updated. | Replaces "idle drones park on OUT, so fleet <= pads" so fleets larger than the pad count can park without blocking IN or OUT. |
+| 1.2.0 | `synthetic_network` and generated demand (8.6); `costs` and M8; `road_m` in `truck_matrix.bin` (minor 1); `events.bin` (9.4) and `deliveries.csv`; `Order.fail_reason`; R16; NETWORK stream; D24; ground watchdog table; PC-fault deferral and fault-end matching; hold-limit and HUB_ONLY idle rules; A36 to A40. | Needed to implement the phase-2 core: generated topologies, the cost baseline, a streamed event log, failure reasons, and behaviours the 1.1.0 tables left implicit. |

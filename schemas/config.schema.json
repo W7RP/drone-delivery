@@ -11,7 +11,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "1.1.0"
+      "const": "1.2.0"
     },
     "meta": {
       "type": "object",
@@ -158,11 +158,60 @@
         }
       }
     },
+    "synthetic_network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topology",
+        "n_pads",
+        "radius_m",
+        "mesh_neighbors",
+        "service_mode",
+        "pod_return_policy",
+        "initial_empty_pods",
+        "parking_capacity",
+        "hub_parking_capacity"
+      ],
+      "properties": {
+        "topology": {
+          "$ref": "common.schema.json#/$defs/NetworkTopology"
+        },
+        "n_pads": {
+          "$ref": "common.schema.json#/$defs/q_count_pos",
+          "properties": {
+            "value": {
+              "minimum": 2,
+              "maximum": 65534
+            }
+          }
+        },
+        "radius_m": {
+          "$ref": "common.schema.json#/$defs/q_m_pos"
+        },
+        "mesh_neighbors": {
+          "$ref": "common.schema.json#/$defs/q_count_pos"
+        },
+        "service_mode": {
+          "$ref": "common.schema.json#/$defs/ServiceMode"
+        },
+        "pod_return_policy": {
+          "$ref": "common.schema.json#/$defs/ReturnPolicy"
+        },
+        "initial_empty_pods": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
+        },
+        "parking_capacity": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
+        },
+        "hub_parking_capacity": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
+        }
+      }
+    },
     "drone": {
       "type": "object",
       "required": [
         "fleet_size",
-        "initial_pads",
         "empty_mass_kg",
         "latch_mass_kg",
         "mtow_kg",
@@ -484,8 +533,7 @@
     "demand": {
       "type": "object",
       "required": [
-        "deadline_offset_s",
-        "flows"
+        "deadline_offset_s"
       ],
       "additionalProperties": false,
       "properties": {
@@ -515,8 +563,46 @@
               }
             }
           }
+        },
+        "rate_per_pad_per_h": {
+          "$ref": "common.schema.json#/$defs/q_per_h_nonneg"
+        },
+        "hub_weight": {
+          "$ref": "common.schema.json#/$defs/q_factor"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "flows"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "rate_per_pad_per_h"
+                ]
+              },
+              {
+                "required": [
+                  "hub_weight"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "rate_per_pad_per_h",
+            "hub_weight"
+          ],
+          "not": {
+            "required": [
+              "flows"
+            ]
+          }
+        }
+      ]
     },
     "truck": {
       "type": "object",
@@ -580,6 +666,30 @@
         }
       }
     },
+    "costs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "truck_per_m",
+        "truck_per_s",
+        "drone_per_s",
+        "energy_per_j"
+      ],
+      "properties": {
+        "truck_per_m": {
+          "$ref": "common.schema.json#/$defs/q_cost_per_m"
+        },
+        "truck_per_s": {
+          "$ref": "common.schema.json#/$defs/q_cost_per_s"
+        },
+        "drone_per_s": {
+          "$ref": "common.schema.json#/$defs/q_cost_per_s"
+        },
+        "energy_per_j": {
+          "$ref": "common.schema.json#/$defs/q_cost_per_j"
+        }
+      }
+    },
     "faults": {
       "type": "array",
       "items": {
@@ -623,8 +733,6 @@
     "required": [
       "sim",
       "geo",
-      "pads",
-      "lanes",
       "drone",
       "payload",
       "charging",
@@ -634,7 +742,40 @@
       "demand",
       "truck",
       "metrics",
-      "faults"
+      "faults",
+      "costs"
+    ],
+    "oneOf": [
+      {
+        "required": [
+          "pads",
+          "lanes"
+        ],
+        "not": {
+          "required": [
+            "synthetic_network"
+          ]
+        }
+      },
+      {
+        "required": [
+          "synthetic_network"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "pads"
+              ]
+            },
+            {
+              "required": [
+                "lanes"
+              ]
+            }
+          ]
+        }
+      }
     ]
   },
   "else": {
