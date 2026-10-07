@@ -6,8 +6,8 @@ Usage: flightlog.py validate <run_dir> [<run_dir> ...]   exit 1 if any run fails
 
 Checks: spec 9.0 headers and record sizes; monotonic sample and event timestamps; the drone and
 pad state sequences equal the spec's normal visit (tools/expected.py); handshake messages
-appear once each, in the spec's order, with non-decreasing send times and per-sender sequence
-numbers; every state has a duration; the run ended COMPLETE; the lane record matches the
+appear once each, in the spec's order (send order: send time, then per-sender sequence
+number), with gap-free per-sender sequence numbers; every state has a duration; the run ended COMPLETE; the lane record matches the
 transitions that bound it."""
 
 import json
@@ -98,6 +98,36 @@ def pad_roles(events: list[dict]) -> dict[str, int]:
     return {"A": a, "B": b}
 
 
+def sender_of(m: dict):
+    """Spec 4.1 numbers messages per sender; each pad controller is its own sender."""
+    return (m["sender"], m["pad_id"]) if m["sender"] == "PAD" else (m["sender"], None)
+
+
+def send_order(msgs: list[dict]) -> list[dict]:
+    """Messages in the order they were sent: by send time, then, for one sender, by sequence
+    number. The logger's receive order is not that order: DDS delivers different topics
+    independently, so two messages a pad sends in one sim tick can arrive swapped. Messages of
+    different senders sent in the same tick keep their receive order, which follows causality
+    (a reply is received after its request)."""
+    indexed = list(enumerate(msgs))
+    indexed.sort(key=lambda im: (im[1]["t_us"], im[0]))
+    out = [m for _, m in indexed]
+    i = 0
+    while i < len(out):
+        j = i
+        while j < len(out) and out[j]["t_us"] == out[i]["t_us"]:
+            j += 1
+        group = out[i:j]
+        for key in {sender_of(m) for m in group}:
+            slots = [k for k, m in enumerate(group) if sender_of(m) == key]
+            ordered = sorted((group[k] for k in slots), key=lambda m: m["seq"])
+            for k, m in zip(slots, ordered):
+                group[k] = m
+        out[i:j] = group
+        i = j
+    return out
+
+
 def check(run: Path) -> list[str]:
     problems: list[str] = []
 
@@ -129,7 +159,7 @@ def check(run: Path) -> list[str]:
     need(seq("VISIT", roles["B"]) == expected.VISIT_B, f"pad B visit {seq('VISIT', roles['B'])}")
     need(seq("DRONE") == expected.DRONE, f"drone sequence {seq('DRONE')}")
 
-    msgs = [e for e in events if e["type"] == "msg"]
+    msgs = send_order([e for e in events if e["type"] == "msg"])
     got = [(m["sender"], m["name"]) for m in msgs]
     want = [(s, n) for s, n, _, _ in expected.MESSAGES]
     need(got == want, f"messages {got}")
@@ -141,9 +171,6 @@ def check(run: Path) -> list[str]:
                 need(m["code"] == code, f"{name} code {m['code']!r}, expected {code}")
         sent = [m["t_us"] for m in msgs]
         need(all(a <= b for a, b in zip(sent, sent[1:])), "message send times out of spec order")
-    # Spec 4.1: numbered per sender; each pad controller is its own sender.
-    def sender_of(m):
-        return (m["sender"], m["pad_id"]) if m["sender"] == "PAD" else (m["sender"], None)
     for sender in {sender_of(m) for m in msgs}:
         s = [m["seq"] for m in msgs if sender_of(m) == sender]
         need(s == list(range(1, len(s) + 1)), f"{sender} sequence numbers {s}")

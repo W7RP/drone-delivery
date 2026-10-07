@@ -66,6 +66,17 @@ class Files(unittest.TestCase):
         self.assertEqual(int(s["t_us"][0]), 123)
 
 
+class SendOrder(unittest.TestCase):
+    def test_same_tick_messages_of_one_sender_follow_their_sequence(self):
+        # Received swapped (DDS topics are independent), sent in sequence order.
+        def msg(name, sender, pad, seq, t):
+            return {"name": name, "sender": sender, "pad_id": pad, "seq": seq, "t_us": t}
+        received = [msg("LATCH_REPORT", "DRONE", 4, 9, 100), msg("SERVICE_COMPLETE", "PAD", 4, 7, 200),
+                    msg("POD_LATCHED", "PAD", 4, 6, 200), msg("MISSION_REQUEST", "DRONE", 4, 10, 200)]
+        names = [m["name"] for m in flightlog.send_order(received)]
+        self.assertEqual(names, ["LATCH_REPORT", "POD_LATCHED", "SERVICE_COMPLETE", "MISSION_REQUEST"])
+
+
 class ExpectedVisit(unittest.TestCase):
     def chain(self, rows):
         for (_, _, to), (_, frm, _) in zip(rows, rows[1:]):
