@@ -121,3 +121,31 @@ sitl_stop() {
   pkill -KILL -f "^gz sim .*$WORLD_NAME.sdf" 2>/dev/null || true
   SITL_PIDS=()
 }
+
+# ROS 2 side. ROS setup scripts reference unset variables, so relax nounset while sourcing.
+ros_env() {
+  set +u
+  # shellcheck disable=SC1091
+  source /opt/ros/humble/setup.bash
+  # shellcheck disable=SC1091
+  source "$DD_PX4/ros2_ws/install/setup.bash"
+  set -u
+  # The XRCE agent was installed into ~/.local by quad-autonomy-sim's setup (no root).
+  export PATH="$HOME/.local/bin:$PATH"
+  export LD_LIBRARY_PATH="$HOME/.local/lib:${LD_LIBRARY_PATH:-}"
+}
+
+# ros_node <run_dir> <executable> <node name>: start one of our nodes with the run's params.
+ros_node() {
+  local run="$1" exe="$2" name="$3"
+  "$DD_PX4/ros2_ws/install/dd_flight/lib/dd_flight/$exe" --ros-args \
+    -r __node:="$name" --params-file "$run/ros_params.yaml" > "$run/$name.log" 2>&1 &
+  SITL_PIDS+=($!)
+}
+
+ros_bridge() {
+  local run="$1"
+  /opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args \
+    -p config_file:="$run/bridge.yaml" > "$run/bridge.log" 2>&1 &
+  SITL_PIDS+=($!)
+}

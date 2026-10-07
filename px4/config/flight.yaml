@@ -44,8 +44,28 @@ flight:
   # Climb and descent rate limits PX4 is given (MPC_Z_VEL_MAX_UP / _DN).
   climb_mps: 3.0
   descend_mps: 2.0
-  # Arrival tolerance at the holding fix and at waypoints.
+  # Arrival tolerance at the holding fix and at waypoints, and the speed below which the
+  # vehicle counts as settled there.
   arrive_radius_m: 1.0
+  settle_speed_mps: 0.5
+  # Horizontal acceleration of the cruise speed profile.
+  accel_mps2: 2.0
+  # Time PX4 gets to accept offboard and arming, or precision land.
+  engage_timeout_s: 30.0
+  # IN-to-OUT hop speed.
+  hop_speed_mps: 1.5
+
+detector:
+  # Gaussian noise added to every detected marker corner (seeded per run).
+  corner_noise_px: 0.3
+  # The target sent to PX4 is the mean of the last `window` estimates, once `min_detections`
+  # frames have seen the marker.
+  window: 10
+  min_detections: 3
+
+seeded:
+  # Standard deviation of the drone's start offset from A's OUT spot, east and north (seeded).
+  start_offset_sigma_m: 0.10
 
 world:
   # The world is flat: one ground plane at this elevation (spec A54).

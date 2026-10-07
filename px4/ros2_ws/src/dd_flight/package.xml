@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>dd_flight</name>
+  <version>0.4.0</version>
+  <description>SITL flight nodes of drone-delivery Phase 4: marker detector, drone agent, pad controller, fleet-manager stub and flight logger.</description>
+  <maintainer email="jd.arrobas@proton.me">W7RP</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>px4_msgs</depend>
+  <depend>dd_interfaces</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>actuator_msgs</depend>
+  <depend>libopencv-dev</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
