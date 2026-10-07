@@ -75,7 +75,7 @@
   "scenario": "ab_synthetic",
   "seed": 42,
   "shipment_requests_in_window": 50,
-  "source_hash": "5b6bb9e91c19fc4d",
+  "source_hash": "cd943dae32e8e8a2",
   "speedup": 0.6586780528925578,
   "spot_utilization": {
     "in": [

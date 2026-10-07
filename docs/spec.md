@@ -862,15 +862,16 @@ UPPER_SNAKE strings. Pads, lanes and flows reference pads by `name`; pad IDs are
 `meta.status` = STUB files carry only `schema_version`, `meta` and optionally `geo`. The core
 and pipeline refuse to run them.
 
-A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) or as
-`synthetic_network` (8.6), never both, and gives demand either as `demand.flows[]` or as
+A COMPLETE config gives the network in exactly one of three forms: explicitly (`pads[]` and
+`lanes[]`), as `synthetic_network` (8.6), or as `network_files` (the pipeline's pad catalog,
+lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or as
 `demand.rate_per_pad_per_h` with `demand.hub_weight`, never both.
 
 ### 8.2 Keys
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version, "1.2.0". |
+| schema_version | - | Config schema version, "1.3.0". |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -900,6 +901,7 @@ A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) o
 | synthetic_network.initial_empty_pods | count | For every generated pad. |
 | synthetic_network.parking_capacity | count | For every generated pad except a HUB_SPOKE hub. |
 | synthetic_network.hub_parking_capacity | count | HUB_SPOKE hub only. |
+| network_files.dir | - | Directory holding `pads.toml`, `lanes.csr.bin` and `truck_matrix.bin` (8.4), relative to the `scenario.toml`. Pads come from `pads.toml` in the form of `pads[]`; lanes and their lengths from `lanes.csr.bin`. |
 | lanes[].pad_a | - | One end (undirected lane). |
 | lanes[].pad_b | - | Other end. |
 | drone.fleet_size | count | Number of drones. |
@@ -967,9 +969,9 @@ A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) o
 | demand.flows[].rate_per_h | 1/h | Poisson rate of shipment requests. |
 | demand.rate_per_pad_per_h | 1/h | Instead of `demand.flows[]`: every pad's total request rate, split over destinations (8.6). |
 | demand.hub_weight | 1 | Destination weight of a hub relative to 1 for other pads; used with `demand.rate_per_pad_per_h`. |
-| truck.matrix_source | - | SYNTHETIC or FILE (how the pipeline builds the matrix). |
-| truck.synthetic_detour_factor | 1 | Road length / straight length for SYNTHETIC. |
-| truck.synthetic_free_flow_speed_mps | m/s | Road speed for SYNTHETIC. |
+| truck.matrix_source | - | SYNTHETIC (built from pad positions) or FILE (`truck_matrix.bin` of `network_files`). |
+| truck.synthetic_detour_factor | 1 | Road length / straight length. SYNTHETIC only; absent for FILE. |
+| truck.synthetic_free_flow_speed_mps | m/s | Road speed. SYNTHETIC only; absent for FILE. |
 | truck.dispatch_delay_s | s | Request to truck arrival at origin. |
 | truck.load_s | s | Loading at origin. |
 | truck.unload_s | s | Unloading at destination. |
@@ -1003,13 +1005,19 @@ Checked at load by the core and by `scripts/check_spec.py`:
 - R12 Every directed lane passes `dispatch_ok` with the gross payload from `drone.charge_target_soc`.
 - R13 `metrics.hist_max_s` > `metrics.hist_bin_s`.
 - R14 `meta.name` equals the scenario directory name.
-- R15 Phase 1: every quantity has `assumption` = true.
+- R15 Every quantity in a `scenario.toml` has `assumption` = true. In a pipeline pad catalog
+  only the coordinates, which are map data, have `assumption` = false.
 - R16 Every demand flow's route passes `dispatch_ok` with the gross payload from
   `drone.charge_target_soc`; otherwise its orders could never be served.
+- R17 `truck.matrix_source` = FILE requires `network_files`: the matrix is indexed by the pads
+  of its catalog.
 
 For a `synthetic_network` config the core checks R1 to R5, R9, R10, R12 and R16 after
 generation; `scripts/check_spec.py` checks only the rules that do not need the generated
-pads, plus that pad names it references follow the generated `P<index>` pattern.
+pads, plus that pad names it references follow the generated `P<index>` pattern. For a
+`network_files` config the core checks every rule after reading the files, and rejects files
+that break 9.0 or do not match the catalog; `scripts/check_spec.py` checks the catalog against
+the `pads[]` schema and the rules that need no lanes (R1, R4, R5, R9 to R11, R15, R17).
 
 ### 8.4 Scenario directory layout
 
@@ -1132,9 +1140,9 @@ magic `DDTRUCK\0`, version_minor 1, count_a = n_pads, count_b = 0.
 | road_m | f32 | n_pads x n_pads | Row-major road distance in m, same rules. Added in version_minor 1 for the cost baseline (M8). |
 
 SYNTHETIC: `road_m = straight ENU distance * truck.synthetic_detour_factor` and
-`free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`. In phase 2 the core builds this
-matrix in memory from the config; the file form is for the offline pipeline.
-FILE: the pipeline routes over a road network; the output format is identical.
+`free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`, built in memory by the core.
+FILE: the pipeline routes over a road network (A50) and writes this file next to its pad
+catalog; the core reads it for a `network_files` scenario (R17).
 
 ### 9.3 flight_log.bin
 
@@ -1269,8 +1277,8 @@ that:
 - A42 FM judges a parked drone's energy from the soc in its last `DRONE_STATUS`; parked
   charging (A16) is therefore not counted until the drone reports again, which errs on the
   safe side.
-- A43 Phase 2 builds the truck matrix in memory from SYNTHETIC parameters and rejects
-  `truck.matrix_source` = FILE, which needs the offline pipeline.
+- A43 The core builds a SYNTHETIC truck matrix in memory from pad positions; a FILE matrix
+  comes from the pipeline and only with its own pad catalog (R17). Phase 2 rejected FILE.
 - A44 A PC_SILENT report can be a false alarm (lost radio messages). FM therefore treats any
   subsequent message from that PC as proof it is up and, failing that, lifts the suspicion after one
   expected outage (`pad_ops.pc_fault_duration_s`); a PC that is still down is detected again by
@@ -1309,4 +1317,4 @@ that:
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
-| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51. | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. |
+| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. |

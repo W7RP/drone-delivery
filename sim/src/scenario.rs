@@ -5,7 +5,7 @@ use std::path::Path;
 
 use crate::config::{self, Config, ConfigError};
 use crate::flight::EnergyRules;
-use crate::ids::{MatrixSource, PadId};
+use crate::ids::PadId;
 use crate::network::Network;
 use crate::output::Outputs;
 use crate::world::World;
@@ -16,13 +16,14 @@ pub struct Scenario {
 }
 
 impl Scenario {
+    /// A scenario from its text alone; a `network_files` scenario needs `from_toml_in`.
     pub fn from_toml(text: &str) -> Result<Scenario, ConfigError> {
-        let cfg = config::parse(text)?;
-        if cfg.truck.matrix_source == MatrixSource::File {
-            return Err(ConfigError(
-                "truck.matrix_source: FILE needs derived/truck_matrix.bin from the offline pipeline, which phase 2 does not have; use SYNTHETIC".into(),
-            ));
-        }
+        Scenario::from_toml_in(text, None)
+    }
+
+    /// `scenario_dir` resolves `network_files.dir` (spec 8.4).
+    pub fn from_toml_in(text: &str, scenario_dir: Option<&Path>) -> Result<Scenario, ConfigError> {
+        let cfg = config::parse_in(text, scenario_dir)?;
         let net = Network::build(&cfg);
         check_energy_rules(&cfg, &net)?;
         Ok(Scenario { cfg, net })
@@ -31,7 +32,7 @@ impl Scenario {
     pub fn load(path: &Path) -> Result<Scenario, ConfigError> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| ConfigError(format!("{}: {e}", path.display())))?;
-        let scenario = Scenario::from_toml(&text)?;
+        let scenario = Scenario::from_toml_in(&text, path.parent())?;
         let dir_name = path
             .parent()
             .and_then(Path::file_name)

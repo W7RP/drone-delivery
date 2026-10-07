@@ -8,6 +8,7 @@ pub mod flight;
 pub mod fm;
 pub mod ids;
 pub mod metrics;
+pub mod netfile;
 pub mod network;
 pub mod output;
 mod pad;
