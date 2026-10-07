@@ -1,7 +1,7 @@
 # Run outputs are regenerated from configs; never commit them. configs/*/derived/ is committed
 # (spec A51).
 runs/
-calib/
+/calib/
 __pycache__/
 .venv/
 # Pipeline downloads and intermediate files (pipeline/data/raw/manifest.json records them).

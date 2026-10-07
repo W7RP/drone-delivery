@@ -25,6 +25,11 @@ fi
 
 # The package lives in pipeline/; downloaded files stay under pipeline/data/, off sys.path.
 cd "$HERE"
+if [[ "${1:-}" == "calib" ]]; then
+  # Phase 5 flight calibration (pipeline/calib); the scripts import the px4 log reader.
+  shift
+  exec "$VENV/bin/python" -I calib/run.py "$@"
+fi
 if [[ "${1:-}" == "test" ]]; then
   exec "$VENV/bin/python" -m unittest discover -s tests -t . "${@:2}"
 fi
