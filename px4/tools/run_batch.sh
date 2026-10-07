@@ -6,6 +6,7 @@
 # and, only when named, the Phase 5 held-out flights (5 kg, 2x real time, seeds 1 and 2):
 #   heldout_short_<seed>  lane 14, UPMC Oakland to UPMC Magee-Womens, 441 m (shortest legal lane)
 #   heldout_long_<seed>   lane 4, Strip District hub to Edgar Thomson, 12 896 m (longest)
+#   fitlane_<seed>        the fit lane (3) at 5 kg and 2x, to check a SITL change against the fit
 # then validates every run and writes the summary (tools/summarize.py).
 # Usage: tools/run_batch.sh <batch name> [run names...]   (default: all of the above)
 set -uo pipefail
@@ -25,6 +26,7 @@ for name in "${runs[@]}"; do
     speed2_seed1) args=(--payload-kg 5 --seed 1 --speed 2) ;;
     heldout_short_*) args=(--payload-kg 5 --seed "${name##*_}" --speed 2 --lane-id 14) ;;
     heldout_long_*) args=(--payload-kg 5 --seed "${name##*_}" --speed 2 --lane-id 4) ;;
+    fitlane_*) args=(--payload-kg 5 --seed "${name##*_}" --speed 2) ;;
     *) echo "unknown run $name" >&2; exit 2 ;;
   esac
   rm -rf "${batch:?}/$name"
