@@ -50,7 +50,18 @@ Two things only the simulator showed:
   reach the drone as latitude and longitude, as they would on a real vehicle.
 - A 0.4 m marker seen from 8 m was too small to decode reliably.
 
-Fitting the sim's flight model to these logs is the next phase.
+The sim's flight model is now fitted to those logs (`docs/calibration.md`). Phase times move by a
+few seconds, but every visit costs about twice the placeholder energy: the energy here is a
+momentum-theory proxy from the motor commands, since SITL has no power model. On four held-out
+flights, on a 441 m and a 12.9 km lane, the fit predicts time within 1.2% and energy within 5.1%.
+The 12.9 km lane also showed that Gazebo's GPS altitude drifts 13 m from its flat world, so SITL
+now takes height from the barometer.
+
+With the fitted profile and the 900 Wh battery, a drone carrying 5 kg reaches 5.7 km instead of
+21 km. Pittsburgh shrinks to the Strip District and Oakland pads. A 1370 Wh battery gets every
+Phase 3 lane back, but then each recharge holds the OUT spot long enough that the drone becomes
+slower than the truck door to door. The Pittsburgh scenario selects its flight profile in its
+config; the placeholder profile and every result built on it are kept.
 
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
@@ -88,8 +99,11 @@ Every number behind those results is a placeholder.
   log reader and validator, and a sample log.
 - `docs/flight-runs.md`: the fifteen SITL visits: times, energy proxy, landing errors, speed
   factor, memory.
+- `docs/calibration.md`: the flight model fitted to the SITL logs, held-out flights, and what
+  the fit changes for range, lanes, battery and the Pittsburgh week.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
-  `hub_spoke_6`, `mesh_small`, `scale_200` and `parts_logistics_pittsburgh` run; the other
+  `hub_spoke_6`, `mesh_small`, `scale_200` and the three `parts_logistics_pittsburgh`
+  variants (fitted profile, placeholder profile, fitted with a 1370 Wh battery) run; the other
   three presets are still stubs.
 
 ## Running it
@@ -100,11 +114,14 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 ## Layout
 
 ```
-docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md
+docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md,
+            calibration.md, media/ (calibration plots)
 schemas/    common, config, entities, events (JSON Schema)
-configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline)
+configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline);
+            flight_profiles/ (the fitted profile)
 sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
-pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/
+pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/;
+            calib/ (flight model calibration)
 px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/, config/, tools/, samples/
 scripts/    verify.sh, check_spec.py, scale_demand.py
 ```
