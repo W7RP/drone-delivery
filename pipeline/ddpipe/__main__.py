@@ -6,7 +6,10 @@ import sys
 
 import tomllib
 
-from . import constraints, energy, fetch, lanes, osm, pads
+import numpy as np
+
+from . import constraints, energy, fetch, lanes, osm, pads, truck
+from .geo import Enu
 from .params import load
 from .paths import CACHE, PIPELINE, RAW
 from .population import Population
@@ -27,7 +30,14 @@ def build(manifest: dict) -> None:
         template = tomllib.load(f)
     model = energy.FlightModel.from_scenario(template)
     area = sources["area"]
-    lanes.build(pad_list, cons, model, params, Terrain(area), Population(area))
+    lane_list, _, _ = lanes.build(pad_list, cons, model, params, Terrain(area), Population(area))
+    geo = template["geo"]
+    enu = Enu(geo["origin_lat_deg"]["value"], geo["origin_lon_deg"]["value"])
+    graph = truck.build_graph(extract.roads, params)
+    tm = truck.build(pad_list, graph, enu, params)
+    ratios = truck.detour_ratios(pad_list, tm, [(l.a, l.b) for l in lane_list])
+    logging.info("road / straight on lane pairs: median %.2f, p90 %.2f",
+                 np.median(ratios), np.percentile(ratios, 90))
 
 
 def main() -> int:
