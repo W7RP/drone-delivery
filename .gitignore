@@ -15,3 +15,4 @@ px4/ros2_ws/build/
 px4/ros2_ws/install/
 px4/ros2_ws/log/
 px4/ros2_ws/src/external/
+px4/.venv/
