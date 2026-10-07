@@ -61,3 +61,41 @@ induced power is convex in thrust: the ratio grows from 1.0024 to 1.0059.
 Together these give (0.9682 / 0.9509)^1.5 x (1.0059 / 1.0024) = 1.031, and 2.917 x 1.031 = 3.007,
 which accounts for the 2.998. The vehicle is the scaled x500 it was meant to be, and the proxy
 is unchanged.
+
+## 2. Per-phase data
+
+`pipeline/calib/phases.py` cuts every fit log into four phases at the drone's spec transitions.
+It writes one row per run and phase to `pipeline/calib/out/phases.csv`: 15 runs, 60 rows. That
+includes every seed and the 2x run.
+
+The phases are:
+
+- Takeoff: D01 to D02, ground to cruise height.
+- Cruise: the lane, D02 to D03.
+- Approach + landing: D04 to D05. This is a 61 m descent over the granted spot, the marker
+  lock, then precision land to disarm.
+- Hop: IN to OUT, flown empty because the pod was released on IN.
+
+Distances come from ground truth; power and energy from the proxy.
+
+Means per payload (5 kg is the mean of 12 runs):
+
+| Phase | Payload (kg) | Mass (kg) | Duration (s) | Horizontal flown (m) | Vertical flown (m) | Mean power (W) | Energy (kJ) |
+|---|---|---|---|---|---|---|---|
+| takeoff | 0 / 2 / 5 / 10 | 9.6 / 11.6 / 14.6 / 19.6 | 25.9 / 26.4 / 26.8 / 27.3 | 1-2 | 60.7 | 1023 / 1349 / 1896 / 2921 | 26.4 / 35.6 / 50.8 / 79.7 |
+| cruise | 0 / 2 / 5 / 10 | 9.6 / 11.6 / 14.6 / 19.6 | 148.4 / 146.8 / 146.5 / 146.5 | 2094.2 / 2092.7 / 2092.5 / 2092.5 | 1.8 | 1107 / 1479 / 2110 / 3318 | 164.3 / 217.1 / 309.2 / 486.0 |
+| approach + landing | 0 / 2 / 5 / 10 | 9.6 / 11.6 / 14.6 / 19.6 | 46.6 / 49.0 / 49.0 / 49.0 | 4-7 | 60.8 | 1104 / 1471 / 2076 / 3225 | 51.5 / 72.1 / 101.7 / 158.0 |
+| hop | all | 9.6 | 22.5-23.4 | 7.0 | 4.4 | 868-881 | 19.5-20.6 |
+
+**Along-track distance against lane length.** Every cruise flew 2092.4 to 2094.2 m of
+horizontal track for the 2093.4 m lane, so no flight deviates from the lane by more than 0.1%.
+
+- The drone starts on A's OUT spot, 2 m east of A's centre (plus its seeded offset), and the lane
+  ends over B's centre, so the straight line it covers is about 2092.4 m.
+- The 0 kg run flew 1.8 m more, settling at the fix.
+- The mean speed over the whole lane is 14.28 m/s. The plateau is 15.03 m/s, and the rest is the
+  speed-up and slow-down at 2 m/s².
+
+The takeoff and hop means include time on the ground: priming offboard before arming, and the
+2 s PX4 waits after touchdown before it disarms. Those seconds are part of what the sim's
+`drone.takeoff_s` and `drone.hop_s` stand for, so they stay in.
