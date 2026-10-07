@@ -284,6 +284,17 @@
         },
         "reverse_lane_id": {
           "$ref": "common.schema.json#/$defs/lane_id"
+        },
+        "max_terrain_m": {
+          "type": "number",
+          "x-type": "f32",
+          "x-unit": "m"
+        },
+        "ground_risk_per_km2": {
+          "type": "number",
+          "minimum": 0,
+          "x-type": "f32",
+          "x-unit": "1/km2"
         }
       }
     },

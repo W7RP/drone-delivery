@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.2.4. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.3.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -59,7 +59,7 @@ Components (the things that own state and send messages):
 | Fault injector (FI) | Produces `FAULT_START`/`FAULT_END` from `faults[]` and from `pad_ops.pc_fault_rate_per_h`. | fault RNG streams |
 | Remote ops (OPS) | Alert sink only. Receives `Alert` records, takes no action in the sim. | `alerts.jsonl` |
 | Truck baseline (TB) | Pure function evaluated by FM at order creation. | nothing persistent |
-| Offline pipeline | Python. Builds `lanes.csr.bin` and `truck_matrix.bin` from the config before a run. | derived files |
+| Offline pipeline | Python (`pipeline/`). Builds a scenario's pad catalog, `lanes.csr.bin` and `truck_matrix.bin` from public map data before a run. | derived files |
 
 Entities:
 
@@ -184,8 +184,10 @@ failure returns an `ASSIGNED` order to `CREATED`.
 | lane_id | u32 | - | Index in the CSR edge arrays (sorted by from_pad, then to_pad). |
 | from_pad | u16 | - | Implicit in CSR row. |
 | to_pad | u16 | - | |
-| length_m | f32 | m | Straight-line ENU distance between pad positions. |
+| length_m | f32 | m | Straight-line distance between pad positions: ENU distance for explicit and synthetic networks, the great-circle distance from `lanes.csr.bin` for a pipeline network (A47). |
 | reverse_lane_id | u32 | - | The opposite direction of the same config lane. |
+| max_terrain_m | f32 | m | Highest terrain elevation (NAVD88) sampled along the lane (A48); 0 when the network does not come from the pipeline. Carried for routing and risk work; the phase-3 core does not use it. |
+| ground_risk_per_km2 | f32 | 1/km2 | Mean population density sampled along the lane, 0 over water (A48, A49); 0 when the network does not come from the pipeline. Carried for routing and risk work; the phase-3 core does not use it. |
 
 ### 2.7 Flight model
 
@@ -1012,10 +1014,13 @@ pads, plus that pad names it references follow the generated `P<index>` pattern.
 ### 8.4 Scenario directory layout
 
 ```
-configs/<scenario>/scenario.toml           edited by hand, committed
-configs/<scenario>/derived/                written by the offline pipeline, git-ignored
+configs/<scenario>/scenario.toml           edited by hand (or generated from a pipeline template), committed
+configs/<scenario>/derived/                written by the offline pipeline, committed (A51)
+    pads.toml                              pad catalog: a `pads` array in the form of 8.2 pads[]
     lanes.csr.bin                          section 9.1
     truck_matrix.bin                       section 9.2
+    report.json                            every pad and lane the pipeline chose or rejected, and why
+    manifest.json                          source files: URL, retrieval date, license, sha256
 runs/<scenario>/<run_id>/                  written by the core, git-ignored
     metrics.json                           section 7
     alerts.jsonl                           one Alert (2.8) per line, enums as strings
@@ -1026,7 +1031,7 @@ calib/<scenario>/flight_log.bin            PX4 SITL flights, source = PX4_SITL, 
 ```
 
 `run_id` = `seed<sim.seed>_rep<r>`. The core refuses derived files whose `source_hash` does
-not match the current `scenario.toml`. The CLI may be given any output directory; it writes the
+not match the `pads.toml` next to them or whose pad count differs from it. The CLI may be given any output directory; it writes the
 files above into it.
 
 `deliveries.csv` columns: `order_id, kind, status, fail_reason, origin_pad, dest_pad,
@@ -1091,14 +1096,20 @@ Runs once at load, before any check that needs pads, and produces exactly the `p
   | 24 | 8 | u64 | source_hash |
 
 - `source_hash` = FNV-1a 64 (offset basis 0xcbf29ce484222325, prime 0x100000001b3) over the raw
-  bytes of the `scenario.toml` that produced the file; 0 for PX4 calibration logs.
-- Readers reject: wrong magic, different `version_major`, `header_bytes` < 32, file shorter
-  than the layout implies, any NaN or infinity, any value outside the ranges below. A higher
-  `version_minor` is accepted; data starts at `header_bytes`.
+  bytes of the file that defines what the data is indexed by: the `scenario.toml` for files the
+  core writes (`flight_log.bin`, `events.bin`), the `derived/pads.toml` catalog for the
+  pipeline's `lanes.csr.bin` and `truck_matrix.bin` (so every scenario using one catalog shares
+  one network), 0 for PX4 calibration logs.
+- Readers reject: wrong magic, different `version_major`, a `version_minor` below the one that
+  introduced the arrays they read, `header_bytes` < 32, file shorter than the layout implies,
+  bytes beyond the layout when `version_minor` is the one they read, any NaN or infinity, any
+  value outside the ranges below. A higher `version_minor` is accepted; data starts at
+  `header_bytes`.
 
 ### 9.1 lanes.csr.bin
 
-magic `DDLANES\0`, count_a = n_pads, count_b = n_lanes (directed, = 2 x config lanes).
+magic `DDLANES\0`, version_minor 1, count_a = n_pads, count_b = n_lanes (directed, = 2 x
+undirected lanes).
 
 | Array | Type | Length | Meaning |
 |---|---|---|---|
@@ -1106,6 +1117,8 @@ magic `DDLANES\0`, count_a = n_pads, count_b = n_lanes (directed, = 2 x config l
 | to_pad | u16 | n_lanes | Destination pad, < n_pads, != row pad. |
 | length_m | f32 | n_lanes | > 0, equal for a lane and its reverse. |
 | reverse_lane | u32 | n_lanes | `reverse_lane[reverse_lane[i]]` = i, endpoints swapped. |
+| max_terrain_m | f32 | n_lanes | Added in version_minor 1. Highest terrain elevation along the lane, m (2.6). |
+| ground_risk_per_km2 | f32 | n_lanes | Added in version_minor 1. >= 0, people per km2 (2.6). |
 
 Lanes are sorted by (from_pad, to_pad); `lane_id` is the position.
 
@@ -1262,6 +1275,29 @@ that:
   subsequent message from that PC as proof it is up and, failing that, lifts the suspicion after one
   expected outage (`pad_ops.pc_fault_duration_s`); a PC that is still down is detected again by
   the next drone.
+- A45 Pipeline pads stand at a point inside the footprint of a named OSM site (hospital,
+  warehouse, industrial) chosen by the rules in `pipeline/sites.yaml`. Whether that lot or roof
+  is free, strong enough, or available to the operator is not checked.
+- A46 Airspace exclusion zones are the FAA UAS facility-map cells whose LAANC ceiling is below a
+  placeholder cruise altitude (`pipeline/params.yaml`). Elsewhere in controlled airspace,
+  flight is assumed authorised up to the cell ceiling; uncontrolled airspace is open. Temporary
+  flight restrictions and other no-fly areas are not modelled.
+- A47 Pipeline lanes are straight. Length is the great-circle distance on the sphere of section
+  0, stored as the nearest f32 not below it. Candidate lanes are pad pairs within the flight
+  model's longest feasible lane at a 5 kg payload with no diversion leg; the pipeline then
+  drops any lane the R12 energy guard rejects, worst first, until none fails.
+- A48 Lane terrain and ground risk are sampled at least every `lanes.sample_spacing_m` along
+  the path: terrain from the USGS 1 arc-second DEM, nearest pixel; risk as the mean
+  population density of the samples, with samples on OSM water counting 0.
+- A49 Population density is uniform within a 2020 Census block group: the sum of its blocks'
+  population over its land area. TIGER coordinates (NAD83) are used as WGS84.
+- A50 Truck routing uses free-flow speed from `maxspeed`, or a per-class placeholder, with OSM
+  one-way rules and no turn costs, signals or traffic. Each pad joins the road network at the
+  nearest drivable, non-motorway node of the largest strongly connected component by a straight
+  connector at a placeholder speed. Road distance is that of the fastest path.
+- A51 Raw data are one snapshot (the OSM extract changes daily). `derived/` is committed and
+  its `manifest.json` records each source's sha256, so results stay reproducible; a fresh
+  download gives a slightly different network.
 
 ## 11 Amendments
 
@@ -1273,3 +1309,4 @@ that:
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
+| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51. | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. |

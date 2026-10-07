@@ -1,5 +1,5 @@
-# Derived and run outputs are regenerated from configs; never commit them.
-configs/*/derived/
+# Run outputs are regenerated from configs; never commit them. configs/*/derived/ is committed
+# (spec A51).
 runs/
 calib/
 __pycache__/

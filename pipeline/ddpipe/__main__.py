@@ -8,11 +8,12 @@ import tomllib
 
 import numpy as np
 
-from . import constraints, energy, fetch, lanes, osm, pads, truck
+from . import constraints, energy, fetch, lanes, osm, outputs, pads, sanity, truck
 from .geo import Enu
-from .params import load
+from .params import load, q
 from .paths import CACHE, PIPELINE, RAW
 from .population import Population
+from .provenance import pipeline_revision
 from .terrain import Terrain
 
 OSM_FILE = "pennsylvania-latest.osm.pbf"
@@ -25,12 +26,12 @@ def build(manifest: dict) -> None:
     extract = osm.read_cached(RAW / OSM_FILE, manifest["files"]["osm_pennsylvania"]["sha256"],
                               CACHE, sources["area"], pads.site_keys(sites_cfg))
     cons = constraints.build(params, extract.water)
-    pad_list, _ = pads.select(sites_cfg, extract.sites, cons)
+    pad_list, pad_rejections = pads.select(sites_cfg, extract.sites, cons)
     with open(PIPELINE / "scenario.toml.in", "rb") as f:
         template = tomllib.load(f)
     model = energy.FlightModel.from_scenario(template)
     area = sources["area"]
-    lane_list, _, _ = lanes.build(pad_list, cons, model, params, Terrain(area), Population(area))
+    lane_list, lane_rejections, lane_range_m = lanes.build(pad_list, cons, model, params, Terrain(area), Population(area))
     geo = template["geo"]
     enu = Enu(geo["origin_lat_deg"]["value"], geo["origin_lon_deg"]["value"])
     graph = truck.build_graph(extract.roads, params)
@@ -38,6 +39,13 @@ def build(manifest: dict) -> None:
     ratios = truck.detour_ratios(pad_list, tm, [(l.a, l.b) for l in lane_list])
     logging.info("road / straight on lane pairs: median %.2f, p90 %.2f",
                  np.median(ratios), np.percentile(ratios, 90))
+    revision = pipeline_revision()
+    doc = outputs.report(pad_list, pad_rejections, lane_list, lane_rejections, lane_range_m,
+                         q(params["lanes"]["payload_kg"], "kg"), len(cons.cells), tm, graph,
+                         ratios, revision)
+    outputs.write_derived(pad_list, sites_cfg["pad_defaults"], lane_list, tm, doc, manifest,
+                          revision)
+    sanity.check(params, extract.water)
 
 
 def main() -> int:

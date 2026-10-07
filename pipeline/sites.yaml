@@ -2,7 +2,7 @@
 # approximate search centre. The pipeline takes the largest named OSM site footprints that match
 # the cluster's tags within the search radius, skips any whose pad point is in water or an
 # exclusion zone, and keeps pads at least min_separation_m apart. Final coordinates come from
-# OSM, never from this file. Whether a lot or roof is actually available is not checked (A47).
+# OSM, never from this file. Whether a lot or roof is actually available is not checked (spec A45).
 
 min_site_area_m2: { value: 2000.0, unit: "m2", assumption: true }
 min_separation_m: { value: 400.0, unit: "m", assumption: true }

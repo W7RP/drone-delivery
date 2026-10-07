@@ -15,6 +15,9 @@ from .params import q
 log = logging.getLogger(__name__)
 
 MAX_NAME_LEN = 32
+# Pad coordinates are rounded once, here, to 1e-7 deg (about 1 cm), so every later step and the
+# sim compute from exactly the numbers written to pads.toml.
+COORD_DECIMALS = 7
 
 
 @dataclass
@@ -110,7 +113,8 @@ def select(sites_cfg: dict, sites: list[Site], constraints: Constraints):
             pads.append(Pad(
                 name=name, osm_name=s.name, osm_key=key, cluster=cluster["name"],
                 role=cluster["role"], is_hub=bool(cluster.get("hub")) and picked == 0,
-                lat_deg=point.y, lon_deg=point.x, site_area_m2=area,
+                lat_deg=round(point.y, COORD_DECIMALS), lon_deg=round(point.x, COORD_DECIMALS),
+                site_area_m2=area,
             ))
             picked += 1
         if picked < cluster["pads"]:

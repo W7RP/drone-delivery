@@ -1,7 +1,7 @@
 """Step 3: lanes between pads. Candidates are all pad pairs within the drone's range at the
 lane payload; a lane is rejected if its straight path crosses an airspace exclusion zone or if
 the sim's dispatch guard (R12) would refuse it. Kept lanes get length, highest terrain and a
-ground-risk score along the path (sampling method in spec section 10, A49)."""
+ground-risk score along the path (sampling method in spec A48)."""
 
 import logging
 from dataclasses import dataclass

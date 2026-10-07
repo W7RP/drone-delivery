@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Offline data pipeline, one command: Python environment, fetch (or reuse the cache), build the
-# Pittsburgh network files and scenario, sanity-check them. Arguments go to `python -m ddpipe`.
+# Pittsburgh network files and scenario, sanity-check them. Arguments go to `python -m ddpipe`;
+# `run.sh test` runs the pipeline's unit tests instead.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,4 +25,7 @@ fi
 
 # The package lives in pipeline/; downloaded files stay under pipeline/data/, off sys.path.
 cd "$HERE"
+if [[ "${1:-}" == "test" ]]; then
+  exec "$VENV/bin/python" -m unittest discover -s tests -t . "${@:2}"
+fi
 exec "$VENV/bin/python" -m ddpipe "$@"
