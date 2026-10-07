@@ -134,3 +134,73 @@ table is in `out/residuals_placeholder.json`.
 **Energy.** The proxy is about twice the placeholder in every phase. The placeholder's 1000 W
 cruise and 1200 W hover at 14.6 kg compare with a measured 2110 W and about 2080 W. The ratio is
 nearly the same at every payload: its mass^1.5 shape is right and its scale is not.
+
+## 4. The fit
+
+`pipeline/run.sh calib` runs audit, phases, residuals and fit, in that order. The fit
+(`pipeline/calib/fit.py`) uses the 15 Phase 4 runs: payload 0, 2, 5 and 10 kg, ten seeds at
+5 kg, and the 2x run. It writes `pipeline/calib/fitted_params.json` and `pipeline/calib/out/fit.json`.
+
+The fit is deterministic: the bootstrap seed is fixed and the inputs are sorted. Two
+consecutive runs gave byte-identical outputs (sha256).
+
+**Model.** It is the core's own (spec 2.7, `VisitEstimate`):
+
+```
+visit time   = takeoff_s + L / cruise_speed_mps + approach_s + hop_s
+cruise power = cruise_power_ref_w * (m / power_ref_mass_kg)^1.5     the lane
+hover power  = hover_power_ref_w  * (m / power_ref_mass_kg)^1.5     takeoff, approach, hop (empty)
+```
+
+**Parameters.** Uncertainty is the standard deviation over a 2000-draw bootstrap over runs. All
+values are flagged `assumption = true` with source px4-sitl-proxy.
+
+| Parameter | Placeholder | Fitted | Bootstrap std | How |
+|---|---|---|---|---|
+| `cruise_speed_mps` | 15.0 | 15.033 | < 0.001 | median ground speed over the middle half of the lane |
+| `takeoff_s` | 30 | 34.18 | 0.07 | takeoff (26.7 s) plus the lane's speed-up and slow-down (7.44 s) |
+| `approach_s` | 45 | 48.85 | 0.16 | D04 to D05 |
+| `hop_s` | 20 | 22.63 | 0.15 | IN to OUT |
+| `cruise_power_ref_w` | 1000 | 2107.9 | 3.2 | least squares, cruise class |
+| `hover_power_ref_w` | 1200 | 1830.5 | 2.0 | least squares, hover class |
+| `power_ref_mass_kg` | 14.6 | 14.6 | - | kept |
+
+**Choices the data forced.**
+
+- *Speed and lane overhead.* One lane length cannot separate a cruise speed from a constant
+  overhead, so the speed is measured directly. The overhead is put into `takeoff_s` because the
+  core times a lane as exactly L / v. Its energy is then charged at hover power, which is within
+  13% of cruise power.
+- *Payload dependence of times.* The regression slope of each duration on payload:
+
+  | Phase | Slope (s/kg) | p | Effect from 0 to 10 kg |
+  |---|---|---|---|
+  | Takeoff | 0.144 | < 0.001 | 1.4 s |
+  | Lane | -0.174 | 0.003 | -1.7 s; the 0 kg run settled longer at the fix |
+  | Approach | 0.198 | 0.009 | 2.0 s |
+  | Hop | 0.024 | 0.77 | 0.2 s |
+
+  Three are significant at 5%. But 0, 2 and 10 kg have one run each and the 5 kg repeats barely
+  vary, so small effects test significant. Each is under 1% of a 245 s visit and below the 5%
+  time target, and the spec has no payload-dependent timing key. The times stay constant (spec
+  A62).
+- *Residuals.* The cruise class fits within 1.6% at every payload. The hover class misses by up
+  to 14% per phase: approach +12% (the 61 m descent and precision land run at near-cruise power),
+  hop -12% (ground idle before and after it), takeoff +3%.
+
+  These residuals vary by phase, not by mass or speed, so a drag term cannot fix them, and none
+  is added. The spec has one hover power per drone; a per-phase factor would need a spec change
+  and is not made (A63). At visit level the phases offset: see the cross-validation below.
+
+**Leave-one-payload-out cross-validation.** Fit without one payload, then predict its visits
+with the core's model.
+
+| Held-out payload | Time error | Energy error |
+|---|---|---|
+| 0 kg | +0.5% | -0.9% |
+| 2 kg | -0.1% | -2.1% |
+| 5 kg (12 runs) | -0.2% to +0.5% | -2.8% to -3.2% |
+| 10 kg | -0.6% | -4.0% |
+
+Worst cases: time 0.6% and energy 4.0%, against the 5% and 15% targets. Energy is predicted
+low, because the approach's under-prediction outweighs the hop's over-prediction.

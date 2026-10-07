@@ -46,3 +46,25 @@ def sim_flight_model(lane_m: float, payload_kg: float, config: Path = PITTSBURGH
                           repr(payload_kg), "--config", str(config)],
                          capture_output=True, text=True, check=True).stdout
     return json.loads(out)
+
+# The flight-model keys a profile sets (spec 2.7 and the drone timing keys of 8.2).
+PROFILE_KEYS = {"cruise_speed_mps": "m/s", "cruise_power_ref_w": "W", "hover_power_ref_w": "W",
+                "power_ref_mass_kg": "kg", "takeoff_s": "s", "approach_s": "s", "hop_s": "s"}
+
+
+def scenario_with(values: dict, tag: str) -> Path:
+    """A copy of the Pittsburgh scenario with the given drone flight-model values, for
+    `sim flight-model`: out/models/<tag>/scenario.toml, network files by absolute path."""
+    import re
+    text = PITTSBURGH.read_text()
+    for key, value in values.items():
+        unit = PROFILE_KEYS[key]
+        text, n = re.subn(rf"^{key} = \{{ value = [^,]+, unit = \"{re.escape(unit)}\"",
+                          f'{key} = {{ value = {float(value)!r}, unit = "{unit}"', text, flags=re.M)
+        if n != 1:
+            raise ValueError(f"{key} not found once in {PITTSBURGH}")
+    text = text.replace('dir = "derived"', f'dir = "{PITTSBURGH.parent / "derived"}"')
+    path = OUT / "models" / tag / "scenario.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return path
