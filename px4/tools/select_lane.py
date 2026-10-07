@@ -21,7 +21,9 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
-SCENARIO = REPO / "configs" / "parts_logistics_pittsburgh"
+# Phase 3's catalog and flight values: the placeholder variant keeps them byte-identical, while
+# the fitted variant's network drops pads and renumbers its lanes (spec A65).
+SCENARIO = REPO / "configs" / "parts_logistics_pittsburgh_placeholder"
 DERIVED = SCENARIO / "derived"
 PIPELINE_PARAMS = REPO / "pipeline" / "params.yaml"
 OUT = REPO / "px4" / "config" / "lane.json"
@@ -104,7 +106,7 @@ def main() -> int:
         "cruise_alt_m": q(params["airspace"]["cruise_altitude_agl_ft"]) * M_PER_FT,
         "sources": {
             "pads.toml_sha256": hashlib.sha256(catalog_bytes).hexdigest(),
-            "scenario": "configs/parts_logistics_pittsburgh/scenario.toml",
+            "scenario": str(SCENARIO.relative_to(REPO) / "scenario.toml"),
             "cruise_altitude": "pipeline/params.yaml airspace.cruise_altitude_agl_ft",
         },
     }

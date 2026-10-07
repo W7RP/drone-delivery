@@ -51,7 +51,7 @@
  "cruise_alt_m": 60.96,
  "sources": {
   "pads.toml_sha256": "6ba8f5b97aab442e32dbe29b20367aec44285158eaefb9cb6d5795b6458a67dc",
-  "scenario": "configs/parts_logistics_pittsburgh/scenario.toml",
+  "scenario": "configs/parts_logistics_pittsburgh_placeholder/scenario.toml",
   "cruise_altitude": "pipeline/params.yaml airspace.cruise_altitude_agl_ft"
  }
 }
