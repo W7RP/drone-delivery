@@ -47,6 +47,50 @@ impl FlightModel {
     }
 }
 
+/// Time and energy of one flight phase.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PhaseEstimate {
+    pub time_s: f64,
+    pub energy_j: f64,
+}
+
+/// The flight phases of a normal delivery visit as the core times and charges them (spec 2.7,
+/// 4.4): takeoff (D01 to D02) and approach (D04 to D05) at hover power with the pod, the lane at
+/// cruise, and the IN-to-OUT hop at hover power without it (the pod was released on IN).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VisitEstimate {
+    pub takeoff: PhaseEstimate,
+    pub cruise: PhaseEstimate,
+    pub approach: PhaseEstimate,
+    pub hop: PhaseEstimate,
+}
+
+impl VisitEstimate {
+    pub fn new(cfg: &Config, lane_m: f64, payload_kg: f64) -> Self {
+        let model = FlightModel::from_config(cfg);
+        let d = &cfg.drone;
+        let hover = |seconds: f64, payload: f64| PhaseEstimate {
+            time_s: seconds,
+            energy_j: model.hover_power_w(payload) * seconds,
+        };
+        let (time_s, energy_j) = model.segment(lane_m, payload_kg);
+        Self {
+            takeoff: hover(d.takeoff_s, payload_kg),
+            cruise: PhaseEstimate { time_s, energy_j },
+            approach: hover(d.approach_s, payload_kg),
+            hop: hover(d.hop_s, 0.0),
+        }
+    }
+
+    pub fn total(&self) -> PhaseEstimate {
+        let all = [self.takeoff, self.cruise, self.approach, self.hop];
+        PhaseEstimate {
+            time_s: all.iter().map(|p| p.time_s).sum(),
+            energy_j: all.iter().map(|p| p.energy_j).sum(),
+        }
+    }
+}
+
 /// Derived durations of spec 3.7 and 6 plus the battery limits the energy guards use.
 #[derive(Debug, Clone, Copy)]
 pub struct EnergyRules {

@@ -99,3 +99,38 @@ horizontal track for the 2093.4 m lane, so no flight deviates from the lane by m
 The takeoff and hop means include time on the ground: priming offboard before arming, and the
 2 s PX4 waits after touchdown before it disarms. Those seconds are part of what the sim's
 `drone.takeoff_s` and `drone.hop_s` stand for, so they stay in.
+
+## 3. The placeholder model against the logs
+
+`sim flight-model --lane-m L --payload-kg P [--config <scenario.toml>]` prints the core's own
+time and energy for a visit's flight phases (`VisitEstimate` in `sim/src/flight.rs`):
+
+- Takeoff and approach take `drone.takeoff_s` and `drone.approach_s` at hover power with the pod.
+- The lane is flown by the flight model.
+- The hop takes `drone.hop_s` at hover power, empty.
+
+The calibration scripts call it, so nothing in Python reimplements the model.
+
+`pipeline/calib/residuals.py` sets the placeholder profile, the Pittsburgh scenario as of
+Phase 4, against the measured means. The residual is (measured - predicted) / measured; the full
+table is in `out/residuals_placeholder.json`.
+
+| Payload (kg) | Visit time predicted / measured (s) | Time residual | Visit energy predicted / measured (kJ) | Energy residual |
+|---|---|---|---|---|
+| 0 | 234.6 / 243.8 | +3.8% | 135.2 / 262.1 | +48.4% |
+| 2 | 234.6 / 245.2 | +4.3% | 175.4 / 344.9 | +49.1% |
+| 5 | 234.6 / 244.8 | +4.2% | 242.4 / 481.2 | +49.6% |
+| 10 | 234.6 / 246.2 | +4.7% | 369.9 / 744.4 | +50.3% |
+
+**Time.** The placeholder's visit time is already within 5%, but only because its errors cancel:
+
+| Phase | Placeholder | Measured |
+|---|---|---|
+| Takeoff | 30 s | 26-27 s |
+| Hop | 20 s | 22.5-23.4 s |
+| Approach | 45 s | 49 s |
+| Lane | 139.6 s (L / 15 m/s) | 146.5 s (with the speed-up and slow-down) |
+
+**Energy.** The proxy is about twice the placeholder in every phase. The placeholder's 1000 W
+cruise and 1200 W hover at 14.6 kg compare with a measured 2110 W and about 2080 W. The ratio is
+nearly the same at every payload: its mass^1.5 shape is right and its scale is not.

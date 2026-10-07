@@ -31,3 +31,18 @@ def run_meta(run: Path) -> dict:
     meta.update(json.loads((run / "vehicle.json").read_text()))
     meta["name"] = run.name
     return meta
+
+SIM = REPO / "sim" / "target" / "release" / "sim"
+PITTSBURGH = REPO / "configs" / "parts_logistics_pittsburgh" / "scenario.toml"
+PHASE_KEYS = {"takeoff": "takeoff", "cruise": "cruise", "approach_landing": "approach", "hop": "hop"}
+
+
+def sim_flight_model(lane_m: float, payload_kg: float, config: Path = PITTSBURGH) -> dict:
+    """The core's own per-phase estimate (`sim flight-model`), so nothing here reimplements it."""
+    import subprocess
+    if not SIM.exists():
+        raise RuntimeError(f"{SIM} missing: cd sim && cargo build --release")
+    out = subprocess.run([str(SIM), "flight-model", "--lane-m", repr(lane_m), "--payload-kg",
+                          repr(payload_kg), "--config", str(config)],
+                         capture_output=True, text=True, check=True).stdout
+    return json.loads(out)

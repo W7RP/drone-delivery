@@ -76,3 +76,32 @@ fn scale_fleet_keeps_moving_without_forced_landings() {
     assert_eq!(r.summary["alerts"]["DRONE_GROUNDED"], 0);
     assert_eq!(r.summary["alerts"]["NO_ALTERNATE"], 0);
 }
+
+/// `VisitEstimate` is spec 2.7 applied to one visit: hover-priced takeoff, approach and empty
+/// hop around a cruise lane, all from the config. Worked by hand for the A-B example at 5 kg,
+/// where the total mass equals `drone.power_ref_mass_kg` (k = 1).
+#[test]
+fn visit_estimate_follows_the_flight_model() {
+    let s = drone_sim::scenario::Scenario::from_toml(&toml::to_string(&common::example()).unwrap())
+        .unwrap();
+    let d = &s.cfg.drone;
+    let v = drone_sim::flight::VisitEstimate::new(&s.cfg, 3000.0, 5.0);
+    let close = |a: f64, b: f64| (a - b).abs() < 1e-6 * b.max(1.0);
+    assert!(close(v.cruise.time_s, 3000.0 / d.cruise_speed_mps));
+    assert!(close(
+        v.cruise.energy_j,
+        d.cruise_power_ref_w * 3000.0 / d.cruise_speed_mps
+    ));
+    assert!(close(v.takeoff.energy_j, d.hover_power_ref_w * d.takeoff_s));
+    assert!(close(v.approach.time_s, d.approach_s));
+    // The hop is flown empty: lighter than the reference mass, so cheaper per second.
+    let k_empty = ((d.empty_mass_kg + d.latch_mass_kg) / d.power_ref_mass_kg).powf(1.5);
+    assert!(close(
+        v.hop.energy_j,
+        d.hover_power_ref_w * k_empty * d.hop_s
+    ));
+    assert!(close(
+        v.total().time_s,
+        d.takeoff_s + 3000.0 / d.cruise_speed_mps + d.approach_s + d.hop_s
+    ));
+}
