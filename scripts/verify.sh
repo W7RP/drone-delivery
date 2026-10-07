@@ -2,9 +2,11 @@
 # Whole verification suite; exits non-zero on the first failure.
 #  1. Spec, schemas and configs agree (check_spec.py, via uv; pinned deps in uv's cache only).
 #  2. Offline pipeline unit tests (pipeline/run.sh test; creates pipeline/.venv on first use).
-#  3. Rust core: formatting, clippy with warnings as errors, all tests (debug build, so the
+#  3. PX4 phase offline checks (log reader tests, node unit tests, the committed sample log).
+#     Skip with VERIFY_SKIP_PX4=1.
+#  4. Rust core: formatting, clippy with warnings as errors, all tests (debug build, so the
 #     invariants run after every event). Includes loading the committed Pittsburgh network files.
-#  4. Release budget runs (spec A39: 60 s wall, 200 MB peak RSS each): the 200-drone 7-day scale
+#  5. Release budget runs (spec A39: 60 s wall, 200 MB peak RSS each): the 200-drone 7-day scale
 #     case, the 7-day Pittsburgh scenario, and Pittsburgh at three times its demand, which must
 #     turn requests away at the backlog cap instead of queueing them without limit.
 #     Skip with VERIFY_SKIP_SCALE=1.
@@ -17,6 +19,25 @@ uv run --quiet scripts/check_spec.py
 
 echo "== pipeline unit tests"
 pipeline/run.sh test 2>&1 | tail -n 3
+
+if [ "${VERIFY_SKIP_PX4:-0}" != "1" ]; then
+  # Offline checks of the PX4 phase (no simulator): log reader tests, the flight nodes' unit
+  # tests, and the committed sample flight log against the validator. Needs ROS 2 Humble and a
+  # built px4/ros2_ws (px4/setup_ws.sh); VERIFY_SKIP_PX4=1 skips them.
+  echo "== px4: log reader tests, node unit tests, sample log"
+  px4/py.sh tests/test_flightlog.py 2>&1 | tail -n 1
+  (
+    set +u
+    source /opt/ros/humble/setup.bash
+    source px4/ros2_ws/install/setup.bash
+    set -u
+    cd px4/ros2_ws
+    colcon test --packages-select dd_flight --event-handlers console_direct- > /dev/null
+    colcon test-result --all | tail -n 1
+    colcon test-result > /dev/null
+  )
+  px4/py.sh tools/flightlog.py validate px4/samples/*/
+fi
 
 echo "== rust: fmt, clippy, tests"
 (cd sim && cargo fmt --check && cargo clippy --quiet --all-targets -- -D warnings && cargo test --quiet)
