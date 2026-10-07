@@ -1,0 +1,53 @@
+# Phase 4 SITL placeholders. Every number here is an assumption (spec A01), not a measured
+# figure; docs/flight-runs.md lists them. The lane, cruise speed and altitude, masses and pad
+# timings come from config/lane.json (generated from the scenario), not from this file.
+
+pads:
+  # The sim config has no IN-to-OUT distance (only drone.hop_s); spots sit this far apart,
+  # IN west and OUT east of the pad position.
+  spot_separation_m: 4.0
+  slab_side_m: 1.6
+  # ArUco DICT_4X4_50 IDs per spot.
+  marker_ids: {A_IN: 1, A_OUT: 2, B_IN: 3, B_OUT: 4}
+  # Black-square side of a marker; a white quiet zone of one cell surrounds it.
+  marker_side_m: 0.40
+  # Markers sit north of their spot so a pod waiting on OUT never covers one. The landing
+  # target is the spot centre, i.e. marker centre minus this offset.
+  marker_offset_m: [0.0, 0.8]
+  # Pod presence sensor on IN: a released pod counts as on the spot within this radius.
+  in_pod_sensor_radius_m: 0.5
+  # Latch funnel: the latch closes on a pod whose centre is within this distance of the latch.
+  latch_capture_radius_m: 0.15
+
+vehicle:
+  # Thrust-to-weight at the scenario's MTOW (drone.mtow_kg); sets the motor constant.
+  thrust_to_weight_at_mtow: 2.0
+  camera:
+    width: 320
+    height: 240
+    rate_hz: 10
+    horizontal_fov_rad: 1.2
+    # Forward of the body centre so the pod under the body stays out of the middle of the view.
+    mount_m: [0.15, 0.0, -0.03]
+  pod:
+    size_m: [0.20, 0.16, 0.10]
+    # Gap between the pod's underside and the bottom of the skids while carried.
+    carry_clearance_m: 0.013
+  # Payload 0 flies a pod of this mass so every run has the same visit sequence.
+  min_pod_mass_kg: 0.001
+
+flight:
+  # Precision landing starts from this height above the granted spot (PX4 search altitude).
+  approach_alt_m: 8.0
+  # IN-to-OUT hop height.
+  hop_alt_m: 2.5
+  # Climb and descent rate limits PX4 is given (MPC_Z_VEL_MAX_UP / _DN).
+  climb_mps: 3.0
+  descend_mps: 2.0
+  # Arrival tolerance at the holding fix and at waypoints.
+  arrive_radius_m: 1.0
+
+world:
+  # The world is flat: one ground plane at this elevation (spec A54).
+  elevation_m: 0.0
+  ground_side_m: 6000.0

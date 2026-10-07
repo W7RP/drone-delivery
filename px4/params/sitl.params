@@ -1,0 +1,36 @@
+# PX4 parameters for the Phase 4 SITL flights, "NAME VALUE" per line, applied after boot by
+# lib/sitl.sh. Only what this phase relies on, each with its reason. Values are placeholders
+# except where the reason says they follow the simulator.
+
+# No ground station in SITL; with data-link loss enabled PX4 refuses to arm.
+NAV_DLL_ACT 0
+# No RC in SITL: PX4 must not require or fail over on it.
+COM_RC_IN_MODE 4
+NAV_RCL_ACT 0
+# Offboard: leave offboard after 1 s without setpoints (nodes stream at 20 Hz), then hold.
+COM_OF_LOSS_T 1.0
+COM_OBL_RC_ACT 5
+# Disarm 2 s after a landing; the drone agent waits for that before reporting LANDED.
+COM_DISARM_LAND 2.0
+# uXRCE-DDS: domain 0, timesync off (it re-maps sim time to wall time with steps in SITL).
+UXRCE_DDS_DOM_ID 0
+UXRCE_DDS_SYNCT 0
+# PX4's simulated GPS has no latency; the hardware default of 110 ms puts EKF2 ahead of truth.
+EKF2_GPS_DELAY 0
+# Cruise at the scenario's 15 m/s needs a higher limit than the 12 m/s default.
+MPC_XY_VEL_MAX 16.0
+# Climb and descent limits (config/flight.yaml flight.climb_mps / descend_mps).
+MPC_Z_VEL_MAX_UP 3.0
+MPC_Z_VEL_MAX_DN 2.0
+MPC_Z_V_AUTO_UP 3.0
+MPC_Z_V_AUTO_DN 2.0
+MPC_LAND_SPEED 0.6
+# Precision landing (navigator precland) from the MAVLink LANDING_TARGET the detector sends:
+# search height = flight.approach_alt_m, horizontal acceptance before descending, final
+# approach height, and how long a target estimate stays valid.
+PLD_SRCH_ALT 8.0
+PLD_SRCH_TOUT 20.0
+PLD_HACC_RAD 0.1
+PLD_FAPPR_ALT 0.6
+PLD_BTOUT 3.0
+PLD_MAX_SRCH 0
