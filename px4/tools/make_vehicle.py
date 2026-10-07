@@ -207,6 +207,13 @@ def write(path: Path, text: str) -> None:
 """)
 
 
+def run_file(run: Path, name: str) -> Path:
+    """A run flown on its own lane keeps lane.json and scene.json in its directory; otherwise
+    the default lane's files in px4/config apply."""
+    own = run / name
+    return own if own.exists() else PX4 / "config" / name
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, required=True)
@@ -214,7 +221,7 @@ def main() -> int:
     ap.add_argument("--latch-kg", type=float, default=None)
     ap.add_argument("--pods", type=int, default=2, help="0 for a vehicle without pods")
     args = ap.parse_args()
-    lane = json.loads((PX4 / "config" / "lane.json").read_text())
+    lane = json.loads(run_file(args.out, "lane.json").read_text())
     cfg = yaml.safe_load((PX4 / "config" / "flight.yaml").read_text())
     latch = lane["drone"]["latch_mass_kg"] if args.latch_kg is None else args.latch_kg
     pod_kg = max(args.payload_kg, cfg["vehicle"]["min_pod_mass_kg"])
@@ -222,7 +229,7 @@ def main() -> int:
     write(args.out / "models" / "dd_quad" / "model.sdf", drone_sdf(lane, cfg, latch, pods))
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
-    scene = json.loads((PX4 / "config" / "scene.json").read_text())
+    scene = json.loads(run_file(args.out, "scene.json").read_text())
     slab = scene["slab_top_m"]
     a_out = scene["spots"]["A_OUT"]["enu_m"]
     b_out = scene["spots"]["B_OUT"]["enu_m"]

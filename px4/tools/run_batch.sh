@@ -3,6 +3,9 @@
 #   payload_<kg>   payload 0, 2, 5 and 10 kg, seed 100
 #   repeat_<n>     5 kg, seeds 1..10
 #   speed2_seed1   5 kg, seed 1, at 2x real time (compare with repeat_1)
+# and, only when named, the Phase 5 held-out flights (5 kg, 2x real time, seeds 1 and 2):
+#   heldout_short_<seed>  lane 14, UPMC Oakland to UPMC Magee-Womens, 441 m (shortest legal lane)
+#   heldout_long_<seed>   lane 4, Strip District hub to Edgar Thomson, 12 896 m (longest)
 # then validates every run and writes the summary (tools/summarize.py).
 # Usage: tools/run_batch.sh <batch name> [run names...]   (default: all of the above)
 set -uo pipefail
@@ -20,10 +23,14 @@ for name in "${runs[@]}"; do
     payload_*) args=(--payload-kg "${name#payload_}" --seed 100) ;;
     repeat_*) args=(--payload-kg 5 --seed "${name#repeat_}") ;;
     speed2_seed1) args=(--payload-kg 5 --seed 1 --speed 2) ;;
+    heldout_short_*) args=(--payload-kg 5 --seed "${name##*_}" --speed 2 --lane-id 14) ;;
+    heldout_long_*) args=(--payload-kg 5 --seed "${name##*_}" --speed 2 --lane-id 4) ;;
     *) echo "unknown run $name" >&2; exit 2 ;;
   esac
   rm -rf "${batch:?}/$name"
   "$HERE/run_flight.sh" "${args[@]}" --out "$batch/$name" 2>&1 | grep -v "Segmentation fault\|Killed" | tail -1
 done
 "$HERE/py.sh" tools/flightlog.py validate "$batch"/*/ | tee "$batch/validation.txt"
-"$HERE/py.sh" tools/summarize.py "$batch"
+if ls "$batch"/repeat_* > /dev/null 2>&1; then
+  "$HERE/py.sh" tools/summarize.py "$batch"
+fi
