@@ -8,3 +8,10 @@ __pycache__/
 pipeline/data/
 # Rust build output.
 target/
+
+# Phase 4 SITL flight runs (raw logs) and the PX4/ROS build tree.
+px4/runs/
+px4/ros2_ws/build/
+px4/ros2_ws/install/
+px4/ros2_ws/log/
+px4/ros2_ws/src/external/
