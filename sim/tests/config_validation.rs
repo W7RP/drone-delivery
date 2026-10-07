@@ -76,7 +76,7 @@ fn out_of_range_values_are_rejected() {
 fn stub_and_wrong_version_are_rejected() {
     let stub = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../configs/parts_logistics/scenario.toml"
+        "/../configs/hospital_lab/scenario.toml"
     ))
     .unwrap();
     let e = Scenario::from_toml(&stub).err().unwrap().0;

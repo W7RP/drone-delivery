@@ -335,3 +335,40 @@ fn a_synthetic_truck_matrix_still_works_with_file_lanes() {
     assert!(s.net.truck_s(0, 1) > 0.0);
     assert_eq!(s.net.lane_len_m[0], LANE_AB_M);
 }
+
+const PITTSBURGH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../configs/parts_logistics_pittsburgh/scenario.toml"
+);
+
+/// The committed pipeline output loads under every reader rule and R1 to R17, matches the
+/// pipeline's own report, and runs a simulated day.
+#[test]
+fn the_pittsburgh_network_files_load_and_run() {
+    let s = Scenario::load(Path::new(PITTSBURGH)).expect("Pittsburgh scenario loads");
+    let report_path = Path::new(PITTSBURGH).with_file_name("derived/report.json");
+    let report: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(report_path).unwrap()).unwrap();
+    let pads = report["pads"].as_array().unwrap();
+    assert_eq!(s.cfg.pads.len(), pads.len());
+    for (cfg_pad, rep) in s.cfg.pads.iter().zip(pads) {
+        assert_eq!(cfg_pad.name, rep["name"].as_str().unwrap());
+        assert_eq!(cfg_pad.is_hub, rep["is_hub"].as_bool().unwrap());
+    }
+    assert_eq!(
+        s.net.lane_to.len(),
+        2 * report["lanes"].as_array().unwrap().len()
+    );
+    let files = s.cfg.network_files.as_ref().expect("network_files");
+    assert!(files.truck.is_some(), "FILE truck matrix");
+    assert_eq!(
+        s.cfg.flows.len(),
+        report["scenario"]["flows"].as_array().unwrap().len()
+    );
+
+    let mut s = s;
+    s.cfg.duration_ms = 86_400_000;
+    let mut world = s.into_world(0, Outputs::in_memory(0));
+    let summary = world.run().expect("in-memory run");
+    assert!(summary["deliveries_in_window"].as_u64().unwrap() > 50);
+}
