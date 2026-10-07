@@ -1,0 +1,51 @@
+# Public data the pipeline downloads into data/raw/. No source needs an account, key or payment.
+# Each file is fetched once; later runs reuse it after checking its sha256 against
+# data/raw/manifest.json, so a rebuild works offline.
+
+# Allegheny County (about 40.19..40.67 N, 80.36..79.69 W) plus roughly 5 km of margin, so roads
+# and water just over the county line are present.
+area:
+  south_deg: 40.14
+  west_deg: -80.42
+  north_deg: 40.72
+  east_deg: -79.63
+
+sources:
+  - name: osm_pennsylvania
+    file: pennsylvania-latest.osm.pbf
+    url: https://download.geofabrik.de/north-america/us/pennsylvania-latest.osm.pbf
+    license: ODbL 1.0, (c) OpenStreetMap contributors
+    use: drive network, water polygons, site features (hospital, industrial, warehouse)
+
+  - name: dem_n41w080
+    file: USGS_1_n41w080.tif
+    url: https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n41w080/USGS_1_n41w080.tif
+    license: Public domain (USGS 3DEP)
+    use: terrain elevation, 1 arc-second, 40..41 N, 80..79 W
+
+  - name: dem_n41w081
+    file: USGS_1_n41w081.tif
+    url: https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n41w081/USGS_1_n41w081.tif
+    license: Public domain (USGS 3DEP)
+    use: terrain elevation, 1 arc-second, 40..41 N, 81..80 W
+
+  - name: census_block_groups_pa
+    file: tl_2020_42_bg.zip
+    url: https://www2.census.gov/geo/tiger/TIGER2020/BG/tl_2020_42_bg.zip
+    license: Public domain (US Census Bureau TIGER/Line 2020)
+    use: block group polygons and land area
+
+  # 2020 Census blocks with their population (POP20). The Census data API now requires a key,
+  # so block group population is the sum of its blocks (GEOID20[:12] is the block group GEOID).
+  - name: census_blocks_pa
+    file: tl_2020_42_tabblock20.zip
+    url: https://www2.census.gov/geo/tiger/TIGER2020/TABBLOCK20/tl_2020_42_tabblock20.zip
+    license: Public domain (US Census Bureau TIGER/Line 2020)
+    use: population per block (POP20), summed to block groups
+
+  # FAA Aeronautical Data Delivery Service, Class Airspace, every shape intersecting the area.
+  - name: faa_class_airspace
+    file: faa_class_airspace.geojson
+    url: https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Class_Airspace/FeatureServer/0/query?where=1%3D1&geometry=-80.42%2C40.14%2C-79.63%2C40.72&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson
+    license: Public domain (FAA open data)
+    use: airspace exclusion zones
