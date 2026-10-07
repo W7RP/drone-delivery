@@ -2,15 +2,23 @@
 masses) with a downward camera, plus the two pods (step 4). Output: <out>/models/dd_quad/ and
 <out>/models/dd_pod_<n>/, which tools/flight.sh puts first on GZ_SIM_RESOURCE_PATH.
 
-Scaling (spec A55): PX4's x500_base body (2.0 kg plus rotors) gets a fixed ballast link that
-brings it to drone.empty_mass_kg, and a latch link of drone.latch_mass_kg. The motor constant
-is raised so the four motors give thrust_to_weight_at_mtow times the weight at drone.mtow_kg,
-and roll/pitch/yaw inertia rises by the same factor. Control authority per unit command is then
-the x500's, so PX4's stock x500 airframe (4001) and its gains fly it unchanged."""
+Scaling (spec A55): the body is PX4's x500_base (read from the PX4 tree, not changed there)
+with its base_link mass raised so the airframe weighs drone.empty_mass_kg, plus a latch link of
+drone.latch_mass_kg. The motor constant is raised so the four motors give
+thrust_to_weight_at_mtow times the weight at drone.mtow_kg, and the body inertia rises by the
+same factor. Control authority per unit command is then the x500's, so PX4's stock x500
+airframe (4001) and its gains fly it unchanged.
+
+Collision masks (A55): the drone's collisions use bit 0 and the pods' bit 1, so drone and pods
+never touch (a latch funnel guides the pod), while ground and slabs (default mask) collide with
+both. The x500's collisions are tagged here, which is why the body is copied rather than
+included."""
 
 import argparse
 import json
+import os
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import yaml
@@ -25,16 +33,19 @@ X500_MOTOR_CONSTANT = 8.54858e-06
 X500_MAX_ROT_VELOCITY = 1000.0
 X500_ROTOR_DRAG = 8.06428e-05
 X500_ROLLING_MOMENT = 1e-06
-# Bottom of the x500 skids below base_link, and the body's collision bottom.
+X500_BASE_SDF = Path(os.environ.get("PX4_DIR", Path.home() / "PX4-Autopilot")) / \
+    "Tools/simulation/gz/models/x500_base/model.sdf"
+# base_link height above the model origin when standing (x500_base model pose), and the skid
+# bottom below base_link.
+BASE_HEIGHT_M = 0.24
 SKID_BOTTOM_Z = -0.2270
 CAMERA_KG = 0.01
 LATCH_Z = -0.08
 MOTORS = (("rotor_0_joint", "rotor_0", "ccw"), ("rotor_1_joint", "rotor_1", "ccw"),
           ("rotor_2_joint", "rotor_2", "cw"), ("rotor_3_joint", "rotor_3", "cw"))
-# Collision bitmasks: pods and the drone do not collide with each other (latch funnel, A55);
-# both collide with the ground and slabs (default mask 0xffff).
-DRONE_MASK = "0x01"
-POD_MASK = "0x02"
+# Collision bitmasks (decimal; SDF reads them as unsigned integers).
+DRONE_MASK = 1
+POD_MASK = 2
 
 
 def thrust_scale(lane: dict, cfg: dict) -> float:
@@ -62,10 +73,42 @@ def motor_plugin(n: int, joint: str, link: str, turning: str, s: float) -> str:
     </plugin>"""
 
 
+def x500_body(empty_kg: float, s: float) -> str:
+    """PX4's x500_base links, joints and sensors as SDF text, with base_link carrying the whole
+    airframe mass and the scaled inertia, every collision tagged with DRONE_MASK, and the model
+    pose folded into base_link so the model origin is on the ground."""
+    root = ET.parse(X500_BASE_SDF).getroot()
+    model = root.find("model")
+    pose = model.find("pose")
+    model.remove(pose)
+    for link in model.findall("link"):
+        lp = link.find("pose")
+        if lp is None:
+            lp = ET.SubElement(link, "pose")
+            lp.text = "0 0 0 0 0 0"
+        x, y, z, *rest = (float(v) for v in lp.text.split())
+        lp.text = " ".join(str(v) for v in (x, y, z + BASE_HEIGHT_M, *rest))
+        for col in link.iter("collision"):
+            surface = col.find("surface")
+            if surface is None:
+                surface = ET.SubElement(col, "surface")
+            contact = surface.find("contact")
+            if contact is None:
+                contact = ET.SubElement(surface, "contact")
+            ET.SubElement(contact, "collide_bitmask").text = str(DRONE_MASK)
+    base = next(l for l in model.findall("link") if l.get("name") == "base_link")
+    inertial = base.find("inertial")
+    inertial.find("mass").text = f"{empty_kg - 4 * X500_ROTOR_KG - CAMERA_KG:.4f}"
+    inertia = inertial.find("inertia")
+    for tag, value in zip(("ixx", "iyy", "izz"), X500_I):
+        inertia.find(tag).text = f"{value * s:.6f}"
+    return "".join(ET.tostring(child, encoding="unicode") for child in model
+                   if child.tag in ("link", "joint"))
+
+
 def drone_sdf(lane: dict, cfg: dict, latch_kg: float, pods: list[str]) -> str:
     s = thrust_scale(lane, cfg)
-    ballast_kg = lane["drone"]["empty_mass_kg"] - X500_BODY_KG - 4 * X500_ROTOR_KG - CAMERA_KG
-    ixx, iyy, izz = ((s - 1) * i for i in X500_I)
+    empty = lane["drone"]["empty_mass_kg"]
     cam = cfg["vehicle"]["camera"]
     cx, cy, cz = cam["mount_m"]
     motors = "".join(motor_plugin(n, *m, s) for n, m in enumerate(MOTORS))
@@ -79,22 +122,12 @@ def drone_sdf(lane: dict, cfg: dict, latch_kg: float, pods: list[str]) -> str:
       <output_topic>/dd/{pod}/state</output_topic>
     </plugin>""" for pod in pods)
     return f"""<?xml version="1.0"?>
-<!-- Generated by px4/tools/make_vehicle.py; do not edit. x500 scaled to the scenario drone:
-     thrust and inertia x{s:.3f}, ballast {ballast_kg:.3f} kg, latch {latch_kg} kg. -->
+<!-- Generated by px4/tools/make_vehicle.py from PX4's x500_base; do not edit. Airframe
+     {empty} kg, thrust and inertia x{s:.3f} the x500's, latch {latch_kg} kg. -->
 <sdf version="1.9">
   <model name="dd_quad">
     <self_collide>false</self_collide>
-    <include merge="true">
-      <uri>model://x500_base</uri>
-    </include>
-    <link name="ballast_link">
-      <pose relative_to="base_link">0 0 0 0 0 0</pose>
-      <inertial>
-        <mass>{ballast_kg:.4f}</mass>
-        <inertia><ixx>{ixx:.6f}</ixx><iyy>{iyy:.6f}</iyy><izz>{izz:.6f}</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
-      </inertial>
-    </link>
-    <joint name="ballast_joint" type="fixed"><parent>base_link</parent><child>ballast_link</child></joint>
+    {x500_body(empty, s)}
     <link name="latch_link">
       <pose relative_to="base_link">0 0 {LATCH_Z} 0 0 0</pose>
       <inertial>
@@ -189,8 +222,19 @@ def main() -> int:
     write(args.out / "models" / "dd_quad" / "model.sdf", drone_sdf(lane, cfg, latch, pods))
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
+    scene = json.loads((PX4 / "config" / "scene.json").read_text())
+    slab = scene["slab_top_m"]
+    a_out = scene["spots"]["A_OUT"]["enu_m"]
+    b_out = scene["spots"]["B_OUT"]["enu_m"]
+    sz = cfg["vehicle"]["pod"]["size_m"][2]
+    carry_z = slab + BASE_HEIGHT_M + SKID_BOTTOM_Z + cfg["vehicle"]["pod"]["carry_clearance_m"] + sz / 2
+    # Spawn poses (x, y, z, yaw) for lib/sitl.sh: the drone on A's OUT facing east (along the
+    # spots), pod 1 in the latch, pod 2 waiting on B's OUT.
     info = {"thrust_scale": thrust_scale(lane, cfg), "latch_kg": latch, "pod_kg": pod_kg,
-            "pods": pods, "skid_bottom_z": SKID_BOTTOM_Z}
+            "pods": pods, "skid_bottom_z": SKID_BOTTOM_Z, "base_height_m": BASE_HEIGHT_M,
+            "spawn": {"dd_quad": [*a_out, slab, 0.0],
+                      "dd_pod_1": [*a_out, carry_z, 0.0],
+                      "dd_pod_2": [*b_out, slab + sz / 2, 0.0]}}
     (args.out / "vehicle.json").write_text(json.dumps(info, indent=1) + "\n")
     print(json.dumps(info))
     return 0

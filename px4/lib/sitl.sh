@@ -98,6 +98,21 @@ sitl_start_px4() {
   sitl_log "PX4 ready, ${#params[@]} parameters applied"
 }
 
+# sitl_spawn_scene <run_dir>: drone, then pod 2 (detached at once: a detachable joint starts
+# attached, and pod 2 waits on B's OUT), then pod 1, whose joint forms in the carry pose.
+sitl_spawn_scene() {
+  local run="$1" spec name
+  for name in dd_quad dd_pod_2 dd_pod_1; do
+    spec="$(python3 -c "import json,sys; print(*json.load(open(sys.argv[1]))['spawn'][sys.argv[2]])" "$run/vehicle.json" "$name")"
+    # shellcheck disable=SC2086
+    sitl_spawn "$name" "$run/models/$name/model.sdf" $spec || { sitl_log "could not spawn $name"; return 1; }
+    if [[ "$name" == dd_pod_2 ]]; then
+      gz topic -t /dd/dd_pod_2/detach -m gz.msgs.Empty -p ' '
+    fi
+  done
+  sitl_log "spawned dd_quad, dd_pod_2 (detached), dd_pod_1 (latched)"
+}
+
 sitl_stop() {
   local pid
   for pid in "${SITL_PIDS[@]}"; do kill -INT "$pid" 2>/dev/null || true; done
