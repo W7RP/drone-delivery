@@ -205,6 +205,61 @@ with the core's model.
 Worst cases: time 0.6% and energy 4.0%, against the 5% and 15% targets. Energy is predicted
 low, because the approach's under-prediction outweighs the hop's over-prediction.
 
+## 5. Held-out flights
+
+The fit was committed (`11513f2`) before any of these flights were flown, and they were not
+used to refit. All four were flown at 5 kg and 2x speed, on the shortest and longest lanes of
+Phase 3's catalog, two seeds each (`px4/tools/run_batch.sh heldout ...`). The prediction is
+`sim flight-model` with the committed parameters. The summaries are in
+`pipeline/calib/out/heldout.json`; the raw logs are git-ignored.
+
+| Flight | Lane | Length (m) | Flown along track (m) | Time, measured / predicted (s) | Error | Energy, measured / predicted (kJ) | Error |
+|---|---|---|---|---|---|---|---|
+| heldout_short_1 | 14, UPMC Oakland to Magee | 441.3 | 442.4 | 133.4 / 135.0 | +1.2% | 248.4 / 235.9 | -5.0% |
+| heldout_short_2 | 14 | 441.3 | 442.2 | 134.1 / 135.0 | +0.7% | 248.7 / 235.9 | -5.1% |
+| heldout_long_1 | 4, hub to Edgar Thomson | 12895.6 | 12890.9 | 965.0 / 963.5 | -0.2% | 1988.3 / 1982.2 | -0.3% |
+| heldout_long_2 | 4 | 12895.6 | 12890.7 | 965.2 / 963.5 | -0.2% | 1990.5 / 1982.2 | -0.4% |
+
+Worst cases: time 1.2% and energy 5.1%, within the 5% and 15% targets. All four pass the
+Phase 4 validator.
+
+![Predicted against measured visit time and energy](media/calibration_pred_vs_meas.png)
+
+- *Short lane.* Energy is under-predicted by 5%, about the same as the 5 kg fit flights in
+  cross-validation (-3%). The per-phase split is worse than the visit total. The fit puts the lane's 7.4 s of
+  speed-up and slow-down into `takeoff_s` (A64), so the model's takeoff is 28% too long and
+  its 37 s cruise 21% too short. The two cancel in the visit.
+- *Long lane.* Within 0.4%. Cruise is 90% of the visit, and the cruise class fits within 1.6%.
+- *Battery.* The long lane used 1988 kJ, which PX4's simulated battery cannot reflect: it
+  drains with time and stops at 50% (Phase 4). No low-battery failsafe triggered, so the SITL
+  battery was not changed.
+
+![Per-phase energy residuals](media/calibration_residuals.png)
+
+**First attempt on the long lane.** The first held-out flight on lane 4 hung over B and timed
+out. PX4 read 13 m of height while the drone sat on the pad. The cause was GPS height over a
+flat world: Gazebo's GPS reports WGS84 altitude, which rises 13 m above the flat plane at
+12.9 km. The drone never reached the 6 m marker search height, so it never found the marker. SITL
+now takes height from the barometer (spec A67). On the reflown lane, estimated and true height
+agreed within 0.12 m in cruise and on approach. All four flights above were flown with that
+setting.
+
+**Fit lane after the change.** One 5 kg flight on the fit lane at 2x checks that the change did
+not shift what was fitted:
+
+| Measure | Fit flights at 5 kg (12) | fitlane_1 (baro height) |
+|---|---|---|
+| Visit time (s) | 243.8 to 245.6 | 247.0 (+0.9% on their mean) |
+| Visit energy (kJ) | 480.2 to 482.3 | 486.2 (+1.0%) |
+| Approach + landing (s) | 48.9 to 49.2 | 50.3 |
+| Cruise (s) | 146.5 | 146.5 |
+| Along track (m) | 2092.4 to 2094.2 | 2092.6 |
+
+The difference is almost all in the approach and landing. With GPS height, the old flights read
+0.34 m high at B, so the final descent started 0.34 m lower than now. At the 0.6 m/s landing
+speed that is about 0.6 s of the 1.1 s. This is one flight, so the rest may be noise. It is
+1% of the visit, well inside the targets, and the fit is left as committed.
+
 ## 6. Wiring the fit into the sim
 
 `pipeline/run.sh calib profile` writes the fit to `configs/flight_profiles/px4_sitl_proxy.toml`.

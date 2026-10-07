@@ -62,12 +62,16 @@ def phase_rows(run: Path) -> list[dict]:
     return rows
 
 
-def lane_length_m(run: Path) -> float:
-    """The catalog length of the lane the run flew: its own lane.json (runs flown on any lane),
-    else the default lane of px4/config (the Phase 4 runs, all on lane 3)."""
+def lane_record(run: Path) -> dict:
+    """The lane the run flew: its own lane.json (runs flown on any lane), else the default lane
+    of px4/config (the Phase 4 runs, all on lane 3)."""
     own = run / "lane.json"
     path = own if own.exists() else REPO / "px4" / "config" / "lane.json"
-    return json.loads(path.read_text())["length_m"]
+    return json.loads(path.read_text())
+
+
+def lane_length_m(run: Path) -> float:
+    return lane_record(run)["length_m"]
 
 
 def main() -> None:

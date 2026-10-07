@@ -99,7 +99,8 @@ sim/target/release/sim flight-model --lane-m 2093.4 --payload-kg 5
 `configs/flight_profiles/px4_sitl_proxy.toml` and the plots in `docs/media/`. The fit is seeded
 and reruns byte-identically. The held-out flights are
 `px4/tools/run_batch.sh heldout heldout_short_1 heldout_short_2 heldout_long_1 heldout_long_2`
-(5 kg, 2x speed). `run_flight.sh --lane-id N` flies any directed lane of the Pittsburgh catalog.
+(5 kg, 2x speed), and `px4/tools/run_batch.sh fitlane fitlane_1` checks a SITL change against
+the fit lane. `run_flight.sh --lane-id N` flies any directed lane of the Pittsburgh catalog.
 `docs/calibration.md` has the results.
 
 ## Test and verify
