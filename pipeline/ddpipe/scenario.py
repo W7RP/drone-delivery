@@ -1,4 +1,4 @@
-"""Step 7: write configs/parts_logistics_pittsburgh/scenario.toml from scenario.toml.in. Demand
+"""Step 7: write a variant's scenario.toml (ddpipe/variants.py) from scenario.toml.in. Demand
 runs from each warehouse pad to every other pad the drone can reach under the sim's R16 energy
 guard; flows it cannot serve are logged and left out. Fleet size follows one rule (A52):
 offered drone-hours per hour over a target utilisation, rounded up."""
@@ -6,9 +6,9 @@ offered drone-hours per hour over a target utilisation, rounded up."""
 import logging
 import math
 
-from . import energy
+from . import energy, variants
 from .params import q
-from .paths import PIPELINE, SCENARIO_DIR
+from .paths import PIPELINE
 
 log = logging.getLogger(__name__)
 
@@ -74,13 +74,14 @@ def _quantity(value, unit: str) -> str:
     return f'{{ value = {value!r}, unit = "{unit}", assumption = true }}'
 
 
-def write(pads, lane_list, cfg: dict, model: energy.FlightModel, params: dict) -> dict:
+def write(pads, lane_list, cfg: dict, model: energy.FlightModel, params: dict,
+          variant: variants.Variant) -> dict:
     flow_list, rejected, route = flows(pads, lane_list, cfg, model, params)
     fleet, offered = fleet_size(flow_list, route, cfg, model, params)
     target = q(params["demand"]["target_utilisation"], "1")
     log.info("fleet size %d: %.3f offered drone-hours per hour / target utilisation %.2f",
              fleet, offered, target)
-    text = TEMPLATE.read_text()
+    text = variants.text(TEMPLATE.read_text(), variant)
     if text.count(FLEET_MARKER) != 1 or text.count(FLOWS_MARKER) != 1:
         raise ValueError(f"{TEMPLATE.name}: each @ marker must appear exactly once")
     text = text.replace(FLEET_MARKER, (
@@ -95,11 +96,12 @@ def write(pads, lane_list, cfg: dict, model: energy.FlightModel, params: dict) -
         lines += ["", "[[demand.flows]]", f'origin = "{pads[o].name}"',
                   f'destination = "{pads[d].name}"', f"rate_per_h = {_quantity(round(r, 6), '1/h')}"]
     text = text.replace(FLOWS_MARKER, "\n".join(lines) + "\n")
-    path = SCENARIO_DIR / "scenario.toml"
+    variant.scenario_dir.mkdir(parents=True, exist_ok=True)
+    path = variant.scenario_dir / "scenario.toml"
     tmp = path.with_suffix(".toml.part")
     tmp.write_text(text)
     tmp.rename(path)
-    log.info("scenario: %s, %d flows, %d left out, fleet %d", path.name, len(flow_list),
+    log.info("scenario %s: %d flows, %d left out, fleet %d", variant.name, len(flow_list),
              len(rejected), fleet)
     return {"fleet_size": fleet, "offered_drone_hours_per_hour": round(offered, 4),
             "flows": [{"origin": pads[o].name, "destination": pads[d].name,

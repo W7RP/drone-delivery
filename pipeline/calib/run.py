@@ -1,5 +1,5 @@
 """One command for the Phase 5 calibration: `pipeline/run.sh calib [step ...]`.
-Steps run in order: audit, phases, residuals, fit (default: all of them). Each writes into
+Steps run in order: audit, phases, residuals, fit, profile (default: all of them). Each writes into
 pipeline/calib/out/."""
 
 import runpy
@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-STEPS = ["audit", "phases", "residuals", "fit"]
+STEPS = ["audit", "phases", "residuals", "fit", "profile"]
 
 
 def main() -> int:

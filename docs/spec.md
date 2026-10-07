@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.4.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.5.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -224,6 +224,10 @@ time_s         = length_m / drone.cruise_speed_mps
 energy_j       = drone.cruise_power_ref_w * k * time_s
 hover_power_w  = drone.hover_power_ref_w * k
 ```
+
+A scenario can replace the coefficients and the drone's phase times with a fitted flight
+profile (8.7) without changing this signature; Phase 5 fits one to PX4 SITL flights
+(`docs/calibration.md`).
 
 The latch mass is always carried, so it reduces both payload margin
 (`drone.mtow_kg - drone.empty_mass_kg - drone.latch_mass_kg`) and range. A multi-lane route is
@@ -876,7 +880,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version, "1.3.0". |
+| schema_version | - | Config schema version: "1.5.0", or "1.3.0" for a file that does not use `flight_profile` (1.5.0 only added it). |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -906,6 +910,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | synthetic_network.initial_empty_pods | count | For every generated pad. |
 | synthetic_network.parking_capacity | count | For every generated pad except a HUB_SPOKE hub. |
 | synthetic_network.hub_parking_capacity | count | HUB_SPOKE hub only. |
+| flight_profile.file | - | Optional. A flight profile (8.7) relative to the `scenario.toml`; its values replace the drone section's flight-model keys. Absent: the drone section's own values (the placeholder profile). |
 | network_files.dir | - | Directory holding `pads.toml`, `lanes.csr.bin` and `truck_matrix.bin` (8.4), relative to the `scenario.toml`. Pads come from `pads.toml` in the form of `pads[]`; lanes and their lengths from `lanes.csr.bin`. |
 | lanes[].pad_a | - | One end (undirected lane). |
 | lanes[].pad_b | - | Other end. |
@@ -1091,6 +1096,24 @@ Runs once at load, before any check that needs pads, and produces exactly the `p
   total rate.
 - `drone.initial_pads` absent: drone i goes to the next pad in a round-robin over pad IDs that
   still has fewer than `slots(p)` drones.
+
+### 8.7 Flight profiles
+
+A flight profile is a TOML file in `configs/flight_profiles/`, validated against
+`schemas/flight_profile.schema.json`. It has three parts:
+
+- `name`;
+- `source`, which says where the values came from (`px4-sitl-proxy` for the Phase 5 fit);
+- a `drone` table setting exactly these quantities, with the units of 8.2: `cruise_speed_mps`,
+  `cruise_power_ref_w`, `hover_power_ref_w`, `power_ref_mass_kg`, `takeoff_s`, `approach_s`,
+  `hop_s`.
+
+A scenario selects one with `flight_profile.file`, which needs schema version 1.5.0. Its values
+replace the same keys of the drone section at load; every other key keeps the scenario's value.
+The drone section therefore remains the scenario's placeholder profile, and a scenario without
+`flight_profile` is unchanged. Every profile value is a placeholder (R15). The core reports the
+profile's name and source on the loaded config; `sim flight-model` prints the per-phase time and
+energy a config's model gives.
 
 ## 9 Binary data contracts
 
@@ -1386,6 +1409,23 @@ that:
   PX4's local frame with PX4's own projection (a sphere of 6 371 km). Commanding in world ENU
   instead put the drone 4.9 m east and 1.0 m north of B after the 2 km lane, over the wrong
   spot: the two frames differ in scale by 0.26% east and 0.12% north at this latitude.
+- A62 The fitted phase times (`takeoff_s`, `approach_s`, `hop_s`) and lane speed do not depend
+  on payload. Regression slopes on payload tested significant at 5% for takeoff, lane and
+  approach, but only because 0, 2 and 10 kg had one SITL run each. The effects were 1.4 to 2 s
+  across 10 kg, under 1% of a visit, and the spec has no payload-dependent timing key.
+- A63 One hover power serves takeoff, approach, go-around, hop and hold. Fitted to SITL, it
+  under-states the approach (61 m descent and precision land) by about 12% and over-states the
+  hop (ground idle around it) by about 12%. A per-phase factor would need a new key; at visit
+  level the errors largely offset (4% or less in cross-validation).
+- A64 The Phase 5 profile (`px4_sitl_proxy`) is fitted to the energy proxy of A57, so its powers
+  are placeholders like any other. It folds the lane's speed-up and slow-down into `takeoff_s`,
+  because the core times a lane as length over speed. It sets no go-around or battery value:
+  SITL flew no go-arounds, and battery capacity is a design choice, not a measurement.
+- A65 The pipeline builds one scenario per variant (`pipeline/params.yaml` `scenarios`), each
+  with its own flight model. When a variant's model cannot connect every pad cluster, the
+  scenario keeps the pads its lanes connect to the hub. The others are left out and named in
+  `derived/report.json`. The core needs a connected lane graph (R3), and orders to an
+  unreachable pad could never be served.
 
 ## 11 Amendments
 
@@ -1399,3 +1439,4 @@ that:
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
+| 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A65. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |

@@ -4,7 +4,7 @@
 # come from public data through the pipeline (derived/); every number below is a placeholder
 # (assumption = true), not real data.
 
-schema_version = "1.3.0"
+schema_version = "1.5.0"
 
 # No scheduled faults; random pad-controller faults still follow pad_ops.pc_fault_rate_per_h.
 faults = []
@@ -31,6 +31,8 @@ origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }
 # (derived/truck_matrix.bin), relative to this file.
 [network_files]
 dir = "derived"
+
+# @flight_profile: written by the pipeline when the scenario selects a profile.
 
 [drone]
 # @fleet_size: written by the pipeline (scenario.py).

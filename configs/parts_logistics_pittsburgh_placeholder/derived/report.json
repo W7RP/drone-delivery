@@ -1,0 +1,466 @@
+{
+ "airspace_exclusion_cells": 255,
+ "lane_payload_kg": 5.0,
+ "lane_range_m": 21060.0,
+ "lane_rejections": [
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 19668.6,
+   "reason": "crosses 13 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "Old_Koppers_Area",
+   "length_m": 18576.3,
+   "reason": "crosses 13 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 19591.5,
+   "reason": "crosses 12 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "Old_Koppers_Area",
+   "length_m": 18513.2,
+   "reason": "crosses 13 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 17520.1,
+   "reason": "crosses 11 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "Old_Koppers_Area",
+   "length_m": 16457.6,
+   "reason": "crosses 12 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "UPMC_Magee_Womens_Hospital",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 17106.7,
+   "reason": "crosses 11 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "UPMC_Magee_Womens_Hospital",
+   "b": "Old_Koppers_Area",
+   "length_m": 16039.7,
+   "reason": "crosses 12 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "VA_Pittsburgh_Healthcare_System",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 18077.9,
+   "reason": "crosses 10 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "VA_Pittsburgh_Healthcare_System",
+   "b": "Old_Koppers_Area",
+   "length_m": 17022.5,
+   "reason": "crosses 12 exclusion cell(s) of AGC (lowest ceiling 0 ft)"
+  },
+  {
+   "a": "Josh_Steel",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "length_m": 11314.8,
+   "reason": "crosses 2 exclusion cell(s) of AGC (lowest ceiling 100 ft)"
+  },
+  {
+   "a": "Josh_Steel",
+   "b": "Old_Koppers_Area",
+   "length_m": 10598.1,
+   "reason": "crosses 3 exclusion cell(s) of AGC (lowest ceiling 100 ft)"
+  }
+ ],
+ "lanes": [
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "Achieva_Mailing_Service",
+   "ground_risk_per_km2": 1159.7,
+   "length_m": 580.2,
+   "max_terrain_m": 224.8
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "UPMC_Oakland",
+   "ground_risk_per_km2": 2384.9,
+   "length_m": 2408.4,
+   "max_terrain_m": 344.4
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "UPMC_Magee_Womens_Hospital",
+   "ground_risk_per_km2": 2800.5,
+   "length_m": 2719.5,
+   "max_terrain_m": 345.5
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "VA_Pittsburgh_Healthcare_System",
+   "ground_risk_per_km2": 1801.5,
+   "length_m": 2093.4,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "Mon_Valley_Works_Edgar_Thomson_P",
+   "ground_risk_per_km2": 1906.8,
+   "length_m": 12895.6,
+   "max_terrain_m": 350.9
+  },
+  {
+   "a": "Consumer_Fresh_Produce",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 2022.3,
+   "length_m": 11138.8,
+   "max_terrain_m": 350.9
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "UPMC_Oakland",
+   "ground_risk_per_km2": 2510.6,
+   "length_m": 2141.5,
+   "max_terrain_m": 349.8
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "UPMC_Magee_Womens_Hospital",
+   "ground_risk_per_km2": 2672.2,
+   "length_m": 2512.8,
+   "max_terrain_m": 349.6
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "VA_Pittsburgh_Healthcare_System",
+   "ground_risk_per_km2": 1967.9,
+   "length_m": 1715.3,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "Mon_Valley_Works_Edgar_Thomson_P",
+   "ground_risk_per_km2": 2173.1,
+   "length_m": 12545.8,
+   "max_terrain_m": 358.9
+  },
+  {
+   "a": "Achieva_Mailing_Service",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 2192.6,
+   "length_m": 10794.8,
+   "max_terrain_m": 358.8
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "UPMC_Magee_Womens_Hospital",
+   "ground_risk_per_km2": 5634.9,
+   "length_m": 441.3,
+   "max_terrain_m": 309.7
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "VA_Pittsburgh_Healthcare_System",
+   "ground_risk_per_km2": 6902.4,
+   "length_m": 607.7,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "Mon_Valley_Works_Edgar_Thomson_P",
+   "ground_risk_per_km2": 1777.7,
+   "length_m": 10495.9,
+   "max_terrain_m": 350.8
+  },
+  {
+   "a": "UPMC_Oakland",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 2068.6,
+   "length_m": 8737.4,
+   "max_terrain_m": 355.4
+  },
+  {
+   "a": "UPMC_Magee_Womens_Hospital",
+   "b": "VA_Pittsburgh_Healthcare_System",
+   "ground_risk_per_km2": 6262.7,
+   "length_m": 1048.5,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "UPMC_Magee_Womens_Hospital",
+   "b": "Mon_Valley_Works_Edgar_Thomson_P",
+   "ground_risk_per_km2": 1764.9,
+   "length_m": 10243.9,
+   "max_terrain_m": 357.3
+  },
+  {
+   "a": "UPMC_Magee_Womens_Hospital",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 2008.8,
+   "length_m": 8483.5,
+   "max_terrain_m": 357.1
+  },
+  {
+   "a": "VA_Pittsburgh_Healthcare_System",
+   "b": "Mon_Valley_Works_Edgar_Thomson_P",
+   "ground_risk_per_km2": 2107.1,
+   "length_m": 10832.2,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "VA_Pittsburgh_Healthcare_System",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 2172.2,
+   "length_m": 9080.2,
+   "max_terrain_m": 355.2
+  },
+  {
+   "a": "Mon_Valley_Works_Edgar_Thomson_P",
+   "b": "Josh_Steel",
+   "ground_risk_per_km2": 794.9,
+   "length_m": 1760.5,
+   "max_terrain_m": 229.2
+  },
+  {
+   "a": "Mon_Valley_Works_Edgar_Thomson_P",
+   "b": "Mon_Valley_Works_Clairton_Plant",
+   "ground_risk_per_km2": 894.3,
+   "length_m": 10593.9,
+   "max_terrain_m": 345.1
+  },
+  {
+   "a": "Mon_Valley_Works_Edgar_Thomson_P",
+   "b": "Old_Koppers_Area",
+   "ground_risk_per_km2": 880.0,
+   "length_m": 10029.9,
+   "max_terrain_m": 377.4
+  },
+  {
+   "a": "Mon_Valley_Works_Clairton_Plant",
+   "b": "Old_Koppers_Area",
+   "ground_risk_per_km2": 298.6,
+   "length_m": 1180.3,
+   "max_terrain_m": 232.5
+  }
+ ],
+ "pad_rejections": [],
+ "pads": [
+  {
+   "cluster": "strip_district",
+   "id": 0,
+   "is_hub": true,
+   "lat_deg": 40.4538893,
+   "lon_deg": -79.9849779,
+   "name": "Consumer_Fresh_Produce",
+   "osm": "w282851316",
+   "osm_name": "Consumer Fresh Produce",
+   "role": "WAREHOUSE",
+   "site_area_m2": 8012.0,
+   "truck_snap_m": 57.9
+  },
+  {
+   "cluster": "strip_district",
+   "id": 1,
+   "is_hub": false,
+   "lat_deg": 40.4557433,
+   "lon_deg": -79.9785678,
+   "name": "Achieva_Mailing_Service",
+   "osm": "w535064127",
+   "osm_name": "Achieva Mailing Service",
+   "role": "WAREHOUSE",
+   "site_area_m2": 4106.0,
+   "truck_snap_m": 24.4
+  },
+  {
+   "cluster": "oakland",
+   "id": 2,
+   "is_hub": false,
+   "lat_deg": 40.4413173,
+   "lon_deg": -79.9618018,
+   "name": "UPMC_Oakland",
+   "osm": "w334630150",
+   "osm_name": "UPMC Oakland",
+   "role": "HOSPITAL_LAB",
+   "site_area_m2": 105383.0,
+   "truck_snap_m": 8.8
+  },
+  {
+   "cluster": "oakland",
+   "id": 3,
+   "is_hub": false,
+   "lat_deg": 40.4373688,
+   "lon_deg": -79.9612807,
+   "name": "UPMC_Magee_Womens_Hospital",
+   "osm": "w330452670",
+   "osm_name": "UPMC Magee-Womens Hospital",
+   "role": "HOSPITAL_LAB",
+   "site_area_m2": 54840.0,
+   "truck_snap_m": 85.7
+  },
+  {
+   "cluster": "oakland",
+   "id": 4,
+   "is_hub": false,
+   "lat_deg": 40.4467786,
+   "lon_deg": -79.9620709,
+   "name": "VA_Pittsburgh_Healthcare_System",
+   "osm": "w552407663",
+   "osm_name": "VA Pittsburgh Healthcare System - University Drive",
+   "role": "HOSPITAL_LAB",
+   "site_area_m2": 54772.0,
+   "truck_snap_m": 32.4
+  },
+  {
+   "cluster": "braddock",
+   "id": 5,
+   "is_hub": false,
+   "lat_deg": 40.3939599,
+   "lon_deg": -79.8545533,
+   "name": "Mon_Valley_Works_Edgar_Thomson_P",
+   "osm": "w301885540",
+   "osm_name": "Mon Valley Works - Edgar Thomson Plant",
+   "role": "INDUSTRIAL",
+   "site_area_m2": 804578.0,
+   "truck_snap_m": 318.6
+  },
+  {
+   "cluster": "braddock",
+   "id": 6,
+   "is_hub": false,
+   "lat_deg": 40.4013169,
+   "lon_deg": -79.8729619,
+   "name": "Josh_Steel",
+   "osm": "w642352504",
+   "osm_name": "Josh Steel",
+   "role": "INDUSTRIAL",
+   "site_area_m2": 31419.0,
+   "truck_snap_m": 122.8
+  },
+  {
+   "cluster": "clairton",
+   "id": 7,
+   "is_hub": false,
+   "lat_deg": 40.2995669,
+   "lon_deg": -79.8715045,
+   "name": "Mon_Valley_Works_Clairton_Plant",
+   "osm": "w308524950",
+   "osm_name": "Mon Valley Works - Clairton Plant",
+   "role": "INDUSTRIAL",
+   "site_area_m2": 1583164.0,
+   "truck_snap_m": 70.2
+  },
+  {
+   "cluster": "clairton",
+   "id": 8,
+   "is_hub": false,
+   "lat_deg": 40.3062718,
+   "lon_deg": -79.8822951,
+   "name": "Old_Koppers_Area",
+   "osm": "w864215006",
+   "osm_name": "Old Koppers Area",
+   "role": "INDUSTRIAL",
+   "site_area_m2": 54123.0,
+   "truck_snap_m": 88.8
+  }
+ ],
+ "pipeline_git": "f5d05e1ab4e9-dirty",
+ "scenario": {
+  "fleet_size": 8,
+  "flows": [
+   {
+    "destination": "UPMC_Oakland",
+    "origin": "Consumer_Fresh_Produce",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "UPMC_Magee_Womens_Hospital",
+    "origin": "Consumer_Fresh_Produce",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "VA_Pittsburgh_Healthcare_System",
+    "origin": "Consumer_Fresh_Produce",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+    "origin": "Consumer_Fresh_Produce",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "Josh_Steel",
+    "origin": "Consumer_Fresh_Produce",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "UPMC_Oakland",
+    "origin": "Achieva_Mailing_Service",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "UPMC_Magee_Womens_Hospital",
+    "origin": "Achieva_Mailing_Service",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "VA_Pittsburgh_Healthcare_System",
+    "origin": "Achieva_Mailing_Service",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+    "origin": "Achieva_Mailing_Service",
+    "rate_per_h": 0.8
+   },
+   {
+    "destination": "Josh_Steel",
+    "origin": "Achieva_Mailing_Service",
+    "rate_per_h": 0.8
+   }
+  ],
+  "flows_left_out": [
+   {
+    "destination": "Mon_Valley_Works_Clairton_Plant",
+    "need_j": 2670650.9,
+    "origin": "Consumer_Fresh_Produce"
+   },
+   {
+    "destination": "Old_Koppers_Area",
+    "need_j": 2633051.0,
+    "origin": "Consumer_Fresh_Produce"
+   },
+   {
+    "destination": "Mon_Valley_Works_Clairton_Plant",
+    "need_j": 2647330.1,
+    "origin": "Achieva_Mailing_Service"
+   },
+   {
+    "destination": "Old_Koppers_Area",
+    "need_j": 2609730.2,
+    "origin": "Achieva_Mailing_Service"
+   }
+  ],
+  "offered_drone_hours_per_hour": 3.5635
+ },
+ "truck": {
+  "max_speed_mps": 31.293,
+  "road_nodes": 843016,
+  "road_over_straight_on_lane_pairs": {
+   "max": 2.14,
+   "median": 1.543,
+   "min": 1.222,
+   "p90": 2.089
+  },
+  "ways_with_class_default_speed": 100671,
+  "ways_with_maxspeed": 13992
+ },
+ "variant": {
+  "drone_overrides": {},
+  "flight_profile": null,
+  "name": "parts_logistics_pittsburgh_placeholder",
+  "pads_left_out": []
+ }
+}

@@ -4,6 +4,7 @@ straight line at the top truck speed, a finite truck matrix, and the spec 9 read
 Raises on the first failed group, after logging every offending item in it."""
 
 import json
+from pathlib import Path
 import logging
 import tomllib
 
@@ -13,7 +14,6 @@ import shapely
 from . import binfmt, constraints
 from .geo import great_circle_m
 from .outputs import LANES_FILE, PADS_FILE, REPORT_FILE, TRUCK_FILE
-from .paths import DERIVED
 from .truck import MAX_PLAUSIBLE_SPEED_MPS
 
 log = logging.getLogger(__name__)
@@ -31,8 +31,8 @@ def _expect(problems: list[str], what: str) -> None:
     log.info("sanity ok: %s", what)
 
 
-def check(params: dict, water_polygons: list) -> None:
-    catalog = (DERIVED / PADS_FILE).read_bytes()
+def check(params: dict, water_polygons: list, derived: Path) -> None:
+    catalog = (derived / PADS_FILE).read_bytes()
     pads = tomllib.loads(catalog.decode())["pads"]
     names = [p["name"] for p in pads]
     lat = np.array([p["lat_deg"]["value"] for p in pads])
@@ -49,8 +49,8 @@ def check(params: dict, water_polygons: list) -> None:
     _expect(problems, "pads clear of water and exclusion zones")
 
     expected_hash = binfmt.fnv1a64(catalog)
-    lanes, lanes_hash = binfmt.read_lanes((DERIVED / LANES_FILE).read_bytes())
-    truck_data = (DERIVED / TRUCK_FILE).read_bytes()
+    lanes, lanes_hash = binfmt.read_lanes((derived / LANES_FILE).read_bytes())
+    truck_data = (derived / TRUCK_FILE).read_bytes()
     problems = []
     for fname, h in ((LANES_FILE, lanes_hash),):
         if h != expected_hash:
@@ -82,7 +82,7 @@ def check(params: dict, water_polygons: list) -> None:
     _expect(problems, "truck matrix finite for every pad pair")
     free_flow, road, _ = binfmt.read_truck(truck_data)
 
-    max_speed = json.loads((DERIVED / REPORT_FILE).read_text())["truck"]["max_speed_mps"]
+    max_speed = json.loads((derived / REPORT_FILE).read_text())["truck"]["max_speed_mps"]
     problems = []
     if not 0 < max_speed <= MAX_PLAUSIBLE_SPEED_MPS:
         problems.append(f"max truck speed {max_speed} m/s implausible")

@@ -68,9 +68,10 @@ def _energy_filter(pads, kept, model, payload_kg, has_charger, rejections):
             f"energy guard (R12): needs {need:.0f} J above reserve, battery gives {usable:.0f} J"))
 
 
-def _connected(n: int, lanes: list[Lane]) -> bool:
+def component(n: int, lanes: list[Lane], root: int) -> list[int]:
+    """Pads reachable from `root` over the lanes, in ID order."""
     route = energy.routes(n, [(l.a, l.b, l.length_m) for l in lanes])
-    return bool(np.all(np.isfinite(route[0])))
+    return [p for p in range(n) if np.isfinite(route[root, p])]
 
 
 def build(pads: list[Pad], cons, model: energy.FlightModel, params: dict, terrain, population):
@@ -101,8 +102,6 @@ def build(pads: list[Pad], cons, model: energy.FlightModel, params: dict, terrai
             kept.append(Lane(i, j, length, 0.0, 0.0))
     has_charger = (lambda p: True) if model.out_contacts else (lambda p: pads[p].is_hub)
     kept = _energy_filter(pads, kept, model, payload_kg, has_charger, rejections)
-    if not _connected(len(pads), kept):
-        raise RuntimeError("lane graph is not connected after rejections (R3)")
     for lane in kept:
         lon, lat = sample_path(pads[lane.a], pads[lane.b], spacing_m)
         lane.max_terrain_m = float(terrain.sample(lon, lat).max())

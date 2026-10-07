@@ -8,7 +8,6 @@ from pathlib import Path
 
 from . import binfmt
 from .params import q
-from .paths import DERIVED
 
 log = logging.getLogger(__name__)
 
@@ -108,9 +107,9 @@ def _write(path: Path, data: bytes) -> None:
     tmp.rename(path)
 
 
-def write_derived(pads, sites_cfg: dict, lane_list, tm, report_doc: dict, manifest: dict,
-                  revision: str) -> dict[str, Path]:
-    DERIVED.mkdir(parents=True, exist_ok=True)
+def write_derived(derived: Path, pads, sites_cfg: dict, lane_list, tm, report_doc: dict,
+                  manifest: dict, revision: str) -> dict[str, Path]:
+    derived.mkdir(parents=True, exist_ok=True)
     catalog = pads_toml(pads, sites_cfg["pad_defaults"], sites_cfg["initial_empty_pods_by_role"]).encode()
     source_hash = binfmt.fnv1a64(catalog)
     files = {
@@ -123,8 +122,8 @@ def write_derived(pads, sites_cfg: dict, lane_list, tm, report_doc: dict, manife
     }
     out = {}
     for name, data in files.items():
-        _write(DERIVED / name, data)
-        out[name] = DERIVED / name
-    log.info("derived: %s (source_hash %016x)", ", ".join(f"{k} {len(v)} B" for k, v in
+        _write(derived / name, data)
+        out[name] = derived / name
+    log.info("%s: %s (source_hash %016x)", derived.parent.name, ", ".join(f"{k} {len(v)} B" for k, v in
                                                           files.items()), source_hash)
     return out
