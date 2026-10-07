@@ -28,8 +28,8 @@ public:
         declare_parameter<double>("arrive_radius_m"), declare_parameter<double>("settle_speed_mps"),
         declare_parameter<double>("engage_timeout_s")})
   {
-    start_enu_ = declare_parameter<std::vector<double>>("start_enu_m");
     spot_enu_ = declare_parameter<std::vector<double>>("spot_enu_m");
+    spot_latlon_ = declare_parameter<std::vector<double>>("spot_latlon_deg");
     marker_ = static_cast<std::uint16_t>(declare_parameter<int>("marker_id"));
     approach_alt_ = declare_parameter<double>("approach_alt_m");
     min_detections_ = static_cast<std::uint32_t>(declare_parameter<int>("min_detections"));
@@ -48,7 +48,7 @@ private:
     if (!px4_.ready()) {
       return;
     }
-    const Vec3 spot = enu_to_ned({spot_enu_[0] - start_enu_[0], spot_enu_[1] - start_enu_[1], 0});
+    const Vec3 spot = px4_.local(spot_latlon_[0], spot_latlon_[1]);
     if (phase_ == 0) {
       const Vec3 p = px4_.position();
       maneuver_.start({{Leg::Kind::kEngage, {p[0], p[1], -approach_alt_}},
@@ -83,7 +83,7 @@ private:
 
   Px4Link px4_;
   Maneuver maneuver_;
-  std::vector<double> start_enu_, spot_enu_;
+  std::vector<double> spot_enu_, spot_latlon_;
   std::uint16_t marker_{};
   double approach_alt_{};
   std::uint32_t min_detections_{}, detections_ = 0;

@@ -10,10 +10,11 @@ pads:
   # ArUco DICT_4X4_50 IDs per spot.
   marker_ids: {A_IN: 1, A_OUT: 2, B_IN: 3, B_OUT: 4}
   # Black-square side of a marker; a white quiet zone of one cell surrounds it.
-  marker_side_m: 0.40
+  # Sized for about 5 px per code cell from the approach height with the camera below.
+  marker_side_m: 0.80
   # Markers sit north of their spot so a pod waiting on OUT never covers one. The landing
   # target is the spot centre, i.e. marker centre minus this offset.
-  marker_offset_m: [0.0, 0.8]
+  marker_offset_m: [0.0, 1.0]
   # Pod presence sensor on IN: a released pod counts as on the spot within this radius.
   in_pod_sensor_radius_m: 0.5
   # Latch funnel: the latch closes on a pod whose centre is within this distance of the latch.
@@ -38,7 +39,7 @@ vehicle:
 
 flight:
   # Precision landing starts from this height above the granted spot (PX4 search altitude).
-  approach_alt_m: 8.0
+  approach_alt_m: 6.0
   # IN-to-OUT hop height.
   hop_alt_m: 2.5
   # Climb and descent rate limits PX4 is given (MPC_Z_VEL_MAX_UP / _DN).
@@ -54,6 +55,8 @@ flight:
   engage_timeout_s: 30.0
   # IN-to-OUT hop speed.
   hop_speed_mps: 1.5
+  # Time over a spot for the detector to lock on its marker before the visit fails.
+  target_timeout_s: 30.0
 
 detector:
   # Gaussian noise added to every detected marker corner (seeded per run).
@@ -62,6 +65,10 @@ detector:
   # frames have seen the marker.
   window: 10
   min_detections: 3
+
+logging:
+  # flight_samples.bin record period (sim time).
+  sample_period_s: 0.05
 
 seeded:
   # Standard deviation of the drone's start offset from A's OUT spot, east and north (seeded).

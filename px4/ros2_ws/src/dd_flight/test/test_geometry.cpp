@@ -69,3 +69,20 @@ TEST(Geometry, InducedPowerFollowsMomentumTheory)
   const double expected = std::pow(10.0, 1.5) / std::sqrt(2 * 1.225 * std::numbers::pi * 0.01);
   EXPECT_NEAR(dd_flight::induced_power_w(500.0, k, 1.225, 0.1), expected, 1e-9);
 }
+
+TEST(Geometry, Px4ProjectionMatchesPx4AtHandWorkedPoints)
+{
+  // At the reference point: the origin.
+  expect_near(dd_flight::px4_project(40.45, -79.98, 40.45, -79.98), {0, 0, 0});
+  // 0.01 deg north on PX4's 6 371 km sphere: 1111.95 m north (R * 0.01 * pi / 180).
+  const Vec3 n = dd_flight::px4_project(40.46, -79.98, 40.45, -79.98);
+  EXPECT_NEAR(n[0], 6371000.0 * 0.01 * std::numbers::pi / 180.0, 1e-3);
+  EXPECT_NEAR(n[1], 0.0, 1e-9);
+  // 0.01 deg east: about R cos(lat) * 0.01 deg east, and a few cm north, because the parallel
+  // curves north of the great circle heading east.
+  const Vec3 e = dd_flight::px4_project(40.45, -79.97, 40.45, -79.98);
+  EXPECT_NEAR(e[1], 6371000.0 * std::cos(40.45 * std::numbers::pi / 180.0) * 0.01 *
+    std::numbers::pi / 180.0, 0.01);
+  EXPECT_GT(e[0], 0.0);
+  EXPECT_LT(e[0], 0.1);
+}

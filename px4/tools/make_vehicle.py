@@ -231,6 +231,7 @@ def main() -> int:
     # Spawn poses (x, y, z, yaw) for lib/sitl.sh: the drone on A's OUT facing east (along the
     # spots), pod 1 in the latch, pod 2 waiting on B's OUT.
     info = {"thrust_scale": thrust_scale(lane, cfg), "latch_kg": latch, "pod_kg": pod_kg,
+            "payload_kg": args.payload_kg,
             "pods": pods, "skid_bottom_z": SKID_BOTTOM_Z, "base_height_m": BASE_HEIGHT_M,
             "spawn": {"dd_quad": [*a_out, slab, 0.0],
                       "dd_pod_1": [*a_out, carry_z, 0.0],

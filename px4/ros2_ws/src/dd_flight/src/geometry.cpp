@@ -1,5 +1,6 @@
 #include "dd_flight/geometry.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 
@@ -31,6 +32,21 @@ Vec3 optical_to_ned(
   const Vec3 body{mount_frd[0] + c[0], mount_frd[1] + c[1], mount_frd[2] + c[2]};
   const Vec3 r = rotate(q_ned_frd, body);
   return {pos_ned[0] + r[0], pos_ned[1] + r[1], pos_ned[2] + r[2]};
+}
+
+Vec3 px4_project(double lat_deg, double lon_deg, double ref_lat_deg, double ref_lon_deg)
+{
+  constexpr double kEarthRadiusM = 6371000.0;
+  const double lat = lat_deg * std::numbers::pi / 180.0, lon = lon_deg * std::numbers::pi / 180.0;
+  const double rlat = ref_lat_deg * std::numbers::pi / 180.0;
+  const double rlon = ref_lon_deg * std::numbers::pi / 180.0;
+  const double cos_d_lon = std::cos(lon - rlon);
+  const double arg = std::clamp(std::sin(rlat) * std::sin(lat) +
+      std::cos(rlat) * std::cos(lat) * cos_d_lon, -1.0, 1.0);
+  const double c = std::acos(arg);
+  const double k = std::abs(c) > 0 ? c / std::sin(c) : 1.0;
+  return {k * (std::cos(rlat) * std::sin(lat) - std::sin(rlat) * std::cos(lat) * cos_d_lon) * kEarthRadiusM,
+    k * std::cos(lat) * std::sin(lon - rlon) * kEarthRadiusM, 0.0};
 }
 
 Vec3 enu_to_ned(const Vec3 & enu)

@@ -28,7 +28,7 @@ MPC_LAND_SPEED 0.6
 # Precision landing (navigator precland) from the MAVLink LANDING_TARGET the detector sends:
 # search height = flight.approach_alt_m, horizontal acceptance before descending, final
 # approach height, and how long a target estimate stays valid.
-PLD_SRCH_ALT 8.0
+PLD_SRCH_ALT 6.0
 PLD_SRCH_TOUT 20.0
 PLD_HACC_RAD 0.1
 PLD_FAPPR_ALT 0.6

@@ -26,6 +26,13 @@ using Quat = std::array<double, 4>;  // w, x, y, z
 [[nodiscard]] Vec3 optical_to_ned(
   const Vec3 & p_optical, const Vec3 & mount_frd, const Quat & q_ned_frd, const Vec3 & pos_ned);
 
+// PX4's local frame from GPS: the azimuthal equidistant projection of PX4's MapProjection
+// (src/lib/geo/geo.cpp, sphere of radius 6 371 000 m) about PX4's reference point. Pads are
+// handed to the drone as latitude/longitude and placed in PX4's frame with this, as on a real
+// vehicle; Gazebo's world ENU differs from it by about 0.26% in scale here (ellipsoid against
+// sphere), 5 m over the 2 km lane (spec A61). Returns north, east, 0.
+[[nodiscard]] Vec3 px4_project(double lat_deg, double lon_deg, double ref_lat_deg, double ref_lon_deg);
+
 // ENU offsets (east, north, up) to NED offsets (north, east, down).
 [[nodiscard]] Vec3 enu_to_ned(const Vec3 & enu);
 

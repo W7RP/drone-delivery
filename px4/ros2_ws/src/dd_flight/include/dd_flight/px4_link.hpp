@@ -46,6 +46,11 @@ public:
         vel_ = {m.vx, m.vy, m.vz};
         heading_ = m.heading;
         pos_valid_ = m.xy_valid && m.z_valid && m.v_xy_valid && m.v_z_valid;
+        if (m.xy_global) {
+          ref_lat_ = m.ref_lat;
+          ref_lon_ = m.ref_lon;
+          have_ref_ = true;
+        }
       });
     land_sub_ = node.create_subscription<VehicleLandDetected>(
       px4_topic<VehicleLandDetected>("/fmu/out/vehicle_land_detected"), qos,
@@ -61,7 +66,12 @@ public:
       px4_topic<VehicleCommand>("/fmu/in/vehicle_command"), 10);
   }
 
-  [[nodiscard]] bool ready() const {return have_status_ && pos_valid_;}
+  [[nodiscard]] bool ready() const {return have_status_ && pos_valid_ && have_ref_;}
+  // A latitude/longitude in PX4's local NED frame (north, east; z left 0).
+  [[nodiscard]] Vec3 local(double lat_deg, double lon_deg) const
+  {
+    return px4_project(lat_deg, lon_deg, ref_lat_, ref_lon_);
+  }
   [[nodiscard]] bool armed() const {return armed_;}
   [[nodiscard]] bool landed() const {return landed_;}
   [[nodiscard]] bool offboard() const
@@ -122,7 +132,8 @@ private:
 
   rclcpp::Node & node_;
   std::uint8_t nav_state_ = 0;
-  bool armed_ = false, landed_ = true, have_status_ = false, pos_valid_ = false;
+  bool armed_ = false, landed_ = true, have_status_ = false, pos_valid_ = false, have_ref_ = false;
+  double ref_lat_ = 0.0, ref_lon_ = 0.0;
   Vec3 pos_{}, vel_{};
   double heading_ = 0.0;
   float soc_ = std::nanf("");

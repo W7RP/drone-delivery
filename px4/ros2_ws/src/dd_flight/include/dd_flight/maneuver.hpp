@@ -4,6 +4,8 @@
 //   Line     fly a horizontal segment at fixed z: a carrot moves along it with a trapezoid speed
 //            profile (cruise speed, accel limit) and its velocity is fed forward, so the vehicle
 //            holds the commanded cruise speed instead of PX4's MPC_XY_VEL_MAX.
+//   Hold     keep streaming a setpoint at a point; never finishes. Ends a leg list that must
+//            leave the vehicle in offboard (holding at a fix, waiting for a marker lock).
 //   Precland hand over to PX4 precision land and wait until landed and disarmed.
 // A leg fails if PX4 leaves the mode the leg needs; the caller then stops commanding.
 #pragma once
@@ -11,6 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <deque>
+#include <limits>
+#include <optional>
 #include <string>
 
 #include "dd_flight/px4_link.hpp"
@@ -20,7 +24,7 @@ namespace dd_flight
 
 struct Leg
 {
-  enum class Kind {kEngage, kVertical, kLine, kPrecland} kind;
+  enum class Kind {kEngage, kVertical, kLine, kHold, kPrecland} kind;
   Vec3 target{};          // NED; Line uses x, y and z; Vertical uses x, y, z.
   double speed_mps = 0;   // Line only.
 };
@@ -51,6 +55,14 @@ public:
 
   [[nodiscard]] Status status() const {return status_;}
   [[nodiscard]] const std::string & failure() const {return failure_;}
+  // Kind of the leg being flown; none when idle, finished or failed.
+  [[nodiscard]] std::optional<Leg::Kind> leg() const
+  {
+    if (status_ != Status::kRunning) {
+      return std::nullopt;
+    }
+    return legs_.front().kind;
+  }
   [[nodiscard]] bool in_precland_leg() const
   {
     return status_ == Status::kRunning && legs_.front().kind == Leg::Kind::kPrecland;
@@ -68,6 +80,10 @@ public:
       case Leg::Kind::kEngage: done = step_engage(leg); break;
       case Leg::Kind::kVertical: done = step_vertical(leg); break;
       case Leg::Kind::kLine: done = step_line(leg, dt); break;
+      case Leg::Kind::kHold:
+        px4_.setpoint(leg.target, {kNan, kNan, kNan}, yaw_);
+        require_offboard();
+        break;
       case Leg::Kind::kPrecland: done = step_precland(); break;
     }
     if (status_ == Status::kFailed) {

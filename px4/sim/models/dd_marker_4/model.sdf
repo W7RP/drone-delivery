@@ -5,7 +5,7 @@
     <static>true</static>
     <link name="link">
       <visual name="marker">
-        <geometry><box><size>0.5333 0.5333 0.005</size></box></geometry>
+        <geometry><box><size>1.0667 1.0667 0.005</size></box></geometry>
         <material>
           <diffuse>1 1 1 1</diffuse>
           <ambient>1 1 1 1</ambient>

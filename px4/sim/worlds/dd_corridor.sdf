@@ -45,7 +45,7 @@
     <include>
       <uri>model://dd_marker_1</uri>
       <name>marker_A_IN</name>
-      <pose>-2.000 0.800 0.0225 0 0 0</pose>
+      <pose>-2.000 1.000 0.0225 0 0 0</pose>
     </include>
     <model name="slab_A_OUT">
       <static>true</static>
@@ -59,7 +59,7 @@
     <include>
       <uri>model://dd_marker_2</uri>
       <name>marker_A_OUT</name>
-      <pose>2.000 0.800 0.0225 0 0 0</pose>
+      <pose>2.000 1.000 0.0225 0 0 0</pose>
     </include>
     <model name="slab_B_IN">
       <static>true</static>
@@ -73,7 +73,7 @@
     <include>
       <uri>model://dd_marker_3</uri>
       <name>marker_B_IN</name>
-      <pose>1936.193 -789.874 0.0225 0 0 0</pose>
+      <pose>1936.193 -789.674 0.0225 0 0 0</pose>
     </include>
     <model name="slab_B_OUT">
       <static>true</static>
@@ -87,7 +87,7 @@
     <include>
       <uri>model://dd_marker_4</uri>
       <name>marker_B_OUT</name>
-      <pose>1940.193 -789.874 0.0225 0 0 0</pose>
+      <pose>1940.193 -789.674 0.0225 0 0 0</pose>
     </include>
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
