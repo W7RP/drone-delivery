@@ -1,0 +1,133 @@
+{
+ "parts_logistics_pittsburgh_placeholder": {
+  "network": {
+   "pads": 9,
+   "lanes": 24,
+   "lanes_gained": [],
+   "lanes_lost": [],
+   "pads_left_out": [],
+   "flows": 10,
+   "fleet_size": 8,
+   "clairton_served": false
+  },
+  "run": {
+   "wall_s": 0.05,
+   "requests": 1373,
+   "rejected": 187,
+   "deliveries_per_h": 6.9,
+   "drone_door_to_door_s": {
+    "mean": 1286.7,
+    "p50": 1140.0,
+    "p95": 2820.0
+   },
+   "truck_door_to_door_s": {
+    "mean": 2263.4,
+    "p50": 2020.0,
+    "p95": 3040.0
+   },
+   "speedup": 1.759,
+   "split_s": {
+    "pod_wait": 515.4,
+    "queue": 118.4,
+    "pad_service": 249.5,
+    "flight": 403.3
+   },
+   "drone_cost_per_delivery": 8.39,
+   "truck_cost_per_delivery": 23.5
+  }
+ },
+ "parts_logistics_pittsburgh": {
+  "network": {
+   "pads": 5,
+   "lanes": 10,
+   "lanes_gained": [],
+   "lanes_lost": [
+    "Achieva_Mailing_Service-Josh_Steel",
+    "Achieva_Mailing_Service-Mon_Valley_Works_Edgar_Thomson_P",
+    "Consumer_Fresh_Produce-Josh_Steel",
+    "Consumer_Fresh_Produce-Mon_Valley_Works_Edgar_Thomson_P",
+    "Josh_Steel-Mon_Valley_Works_Edgar_Thomson_P",
+    "Josh_Steel-UPMC_Magee_Womens_Hospital",
+    "Josh_Steel-UPMC_Oakland",
+    "Josh_Steel-VA_Pittsburgh_Healthcare_System",
+    "Mon_Valley_Works_Clairton_Plant-Mon_Valley_Works_Edgar_Thomson_P",
+    "Mon_Valley_Works_Clairton_Plant-Old_Koppers_Area",
+    "Mon_Valley_Works_Edgar_Thomson_P-Old_Koppers_Area",
+    "Mon_Valley_Works_Edgar_Thomson_P-UPMC_Magee_Womens_Hospital",
+    "Mon_Valley_Works_Edgar_Thomson_P-UPMC_Oakland",
+    "Mon_Valley_Works_Edgar_Thomson_P-VA_Pittsburgh_Healthcare_System"
+   ],
+   "pads_left_out": [
+    "Mon_Valley_Works_Edgar_Thomson_P",
+    "Josh_Steel",
+    "Mon_Valley_Works_Clairton_Plant",
+    "Old_Koppers_Area"
+   ],
+   "flows": 6,
+   "fleet_size": 5,
+   "clairton_served": false
+  },
+  "run": {
+   "wall_s": 0.03,
+   "requests": 1344,
+   "rejected": 313,
+   "deliveries_per_h": 5.89,
+   "drone_door_to_door_s": {
+    "mean": 1263.3,
+    "p50": 1090.0,
+    "p95": 2540.0
+   },
+   "truck_door_to_door_s": {
+    "mean": 1926.8,
+    "p50": 1910.0,
+    "p95": 2140.0
+   },
+   "speedup": 1.525,
+   "split_s": {
+    "pod_wait": 654.7,
+    "queue": 146.9,
+    "pad_service": 313.8,
+    "flight": 147.9
+   },
+   "drone_cost_per_delivery": 6.17,
+   "truck_cost_per_delivery": 15.5
+  }
+ },
+ "parts_logistics_pittsburgh_battery_1370wh": {
+  "network": {
+   "pads": 9,
+   "lanes": 24,
+   "lanes_gained": [],
+   "lanes_lost": [],
+   "pads_left_out": [],
+   "flows": 10,
+   "fleet_size": 10,
+   "clairton_served": false
+  },
+  "run": {
+   "wall_s": 0.03,
+   "requests": 1373,
+   "rejected": 161,
+   "deliveries_per_h": 6.92,
+   "drone_door_to_door_s": {
+    "mean": 10054.9,
+    "p50": 7520.0,
+    "p95": 14400.0
+   },
+   "truck_door_to_door_s": {
+    "mean": 2264.6,
+    "p50": 2020.0,
+    "p95": 3130.0
+   },
+   "speedup": 0.225,
+   "split_s": {
+    "pod_wait": 9018.0,
+    "queue": 129.4,
+    "pad_service": 510.7,
+    "flight": 396.8
+   },
+   "drone_cost_per_delivery": 10.51,
+   "truck_cost_per_delivery": 23.41
+  }
+ }
+}

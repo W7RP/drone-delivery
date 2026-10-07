@@ -1426,6 +1426,11 @@ that:
   scenario keeps the pads its lanes connect to the hub. The others are left out and named in
   `derived/report.json`. The core needs a connected lane graph (R3), and orders to an
   unreachable pad could never be served.
+- A66 `parts_logistics_pittsburgh_battery_1370wh` sizes the battery for the fitted profile's
+  longest legal lane at 5 kg (hub to Edgar Thomson, 12.9 km). The energy guard (R12, R16), with
+  its diversion leg to the destination's nearest pad, needs 1025.3 Wh above reserve; charged to
+  0.95 with a 0.20 reserve, that is 1367.1 Wh, rounded up to 1370 Wh. It is a sizing placeholder,
+  not a real pack, and the pack's mass is unchanged (`drone.empty_mass_kg`).
 - A67 PX4 SITL takes its height from the barometer, not GPS (PX4 parameters EKF2_HGT_REF 0 and
   EKF2_GPS_CTRL 5 in `px4/params/sitl.params`). The Gazebo world is flat, but its GPS reports
   WGS84 altitude, which rises above a flat plane by d²/2R: 0.34 m at the fit lane's 2.1 km, 13 m
@@ -1448,4 +1453,4 @@ that:
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
-| 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A65, A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
+| 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |

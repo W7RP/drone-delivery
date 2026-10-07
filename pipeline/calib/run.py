@@ -1,5 +1,6 @@
 """One command for the Phase 5 calibration: `pipeline/run.sh calib [step ...]`.
-Steps run in order: audit, phases, residuals, fit, profile (default: all of them). Each writes into
+Steps run in order: audit, phases, residuals, fit, profile, consequences, heldout, scenarios, plots (default: all of them; a
+step whose script does not exist is skipped). Each writes into
 pipeline/calib/out/."""
 
 import runpy
@@ -7,7 +8,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-STEPS = ["audit", "phases", "residuals", "fit", "profile"]
+STEPS = ["audit", "phases", "residuals", "fit", "profile", "consequences", "heldout", "scenarios", "plots"]
 
 
 def main() -> int:

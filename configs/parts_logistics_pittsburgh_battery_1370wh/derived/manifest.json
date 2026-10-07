@@ -1,0 +1,65 @@
+{
+ "pipeline_git": "45dba43a932e-dirty",
+ "sources": {
+  "census_block_groups_pa": {
+   "bytes": 24030215,
+   "file": "tl_2020_42_bg.zip",
+   "license": "Public domain (US Census Bureau TIGER/Line 2020)",
+   "pipeline_git": "e940e4dbf9ee-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "787b7bde025444c24bf01de3df4e513c4b5941f26b7180052e6ce48b12335cf3",
+   "url": "https://www2.census.gov/geo/tiger/TIGER2020/BG/tl_2020_42_bg.zip",
+   "use": "block group polygons and land area"
+  },
+  "census_blocks_pa": {
+   "bytes": 409374440,
+   "file": "tl_2020_42_tabblock20.zip",
+   "license": "Public domain (US Census Bureau TIGER/Line 2020)",
+   "pipeline_git": "e940e4dbf9ee-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "16f3cd1f7674fba685e1810ab7f66f523cd185d8ad4a7259632db13b91feef3d",
+   "url": "https://www2.census.gov/geo/tiger/TIGER2020/TABBLOCK20/tl_2020_42_tabblock20.zip",
+   "use": "population per block (POP20), summed to block groups"
+  },
+  "dem_n41w080": {
+   "bytes": 57287925,
+   "file": "USGS_1_n41w080.tif",
+   "license": "Public domain (USGS 3DEP)",
+   "pipeline_git": "e940e4dbf9ee-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "834a025f51cc48622bb05458e1ae62cfbb1f5839b473693081d6bed05248536f",
+   "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n41w080/USGS_1_n41w080.tif",
+   "use": "terrain elevation, 1 arc-second, 40..41 N, 80..79 W"
+  },
+  "dem_n41w081": {
+   "bytes": 57350092,
+   "file": "USGS_1_n41w081.tif",
+   "license": "Public domain (USGS 3DEP)",
+   "pipeline_git": "e940e4dbf9ee-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "ce9f2f14b96d0c0b69edf827b71f2bd7cbd8c9d421ebb936f1a0c67cb1c17732",
+   "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n41w081/USGS_1_n41w081.tif",
+   "use": "terrain elevation, 1 arc-second, 40..41 N, 81..80 W"
+  },
+  "faa_uas_facility_map": {
+   "bytes": 406437,
+   "file": "faa_uas_facility_map.geojson",
+   "license": "Public domain (FAA open data, UAS Facility Maps)",
+   "pipeline_git": "6829d873f60e-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "e3ce66e4453880d0b124fdb063542093afd0d070d34aa7364432ef6ef6bd1161",
+   "url": "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/FAA_UAS_FacilityMap_Data/FeatureServer/0/query?where=1%3D1&geometry=-80.42%2C40.14%2C-79.63%2C40.72&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CEILING%2CUNIT%2CAPT1_FAAID%2CMAP_EFF&outSR=4326&orderByFields=OBJECTID&f=geojson",
+   "use": "airspace exclusion zones"
+  },
+  "osm_pennsylvania": {
+   "bytes": 348195881,
+   "file": "pennsylvania-latest.osm.pbf",
+   "license": "ODbL 1.0, (c) OpenStreetMap contributors",
+   "pipeline_git": "e940e4dbf9ee-dirty",
+   "retrieved_utc": "2026-10-07",
+   "sha256": "e3bdd9fb722fde84a19b22a5db2a3346a22721d3bf77f9d42d6d35ab158ce769",
+   "url": "https://download.geofabrik.de/north-america/us/pennsylvania-latest.osm.pbf",
+   "use": "drive network, water polygons, site features (hospital, industrial, warehouse)"
+  }
+ }
+}

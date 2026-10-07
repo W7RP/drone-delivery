@@ -204,3 +204,91 @@ with the core's model.
 
 Worst cases: time 0.6% and energy 4.0%, against the 5% and 15% targets. Energy is predicted
 low, because the approach's under-prediction outweighs the hop's over-prediction.
+
+## 6. Wiring the fit into the sim
+
+`pipeline/run.sh calib profile` writes the fit to `configs/flight_profiles/px4_sitl_proxy.toml`.
+It holds the seven drone keys, each `assumption = true`, with the bootstrap spread in a comment.
+A scenario selects a profile with `[flight_profile] file` (spec 8.7). The profile's values then
+replace the scenario's own drone values, and the scenario must use schema 1.5.0 to do this.
+
+The pipeline builds one Pittsburgh scenario per entry in `pipeline/params.yaml` `scenarios`:
+
+| Scenario | Profile | Battery |
+|---|---|---|
+| `parts_logistics_pittsburgh` | `px4_sitl_proxy` | 900 Wh, as configured |
+| `parts_logistics_pittsburgh_placeholder` | none (the Phase 2 and 3 values) | 900 Wh |
+| `parts_logistics_pittsburgh_battery_1370wh` | `px4_sitl_proxy` | 1370 Wh (section 7, spec A66) |
+
+The placeholder scenario's network files are byte-identical to Phase 3's, and its 7-day run
+reproduces Phase 3's metrics exactly. The golden tests use `configs/` scenarios that select no
+profile, so they are unchanged. `scripts/verify.sh` runs all three Pittsburgh scenarios within
+the release budget.
+
+## 7. Consequences
+
+All of these come from `pipeline/run.sh calib consequences scenarios`. The results are in
+`pipeline/calib/out/consequences.json` and `scenarios.json`.
+
+**Payload and range.** This is the longest one-way lane the energy guard (spec 6, A23) accepts
+when the drone leaves at `charge_target_soc` (0.95) with a 900 Wh battery and a 0.20 reserve.
+The diversion leg is taken as zero, so these are upper bounds.
+
+| Payload | Placeholder | Fitted |
+|---|---|---|
+| 2 kg | 36.1 km | 12.8 km |
+| 5 kg | 21.1 km | 5.7 km |
+| 10 kg (above the 6.4 kg MTOW payload margin) | 8.0 km | none |
+
+The fitted cruise power is 2.11 times the placeholder's and the fitted hover power 1.53 times.
+Range shrinks more than that, by 2.8x at 2 kg and 3.7x at 5 kg. The guard holds back a fixed
+amount (hover for `T_cycle` and `T_contingency`, the diversion and the charger leg), and
+that amount takes a larger share of the battery once hover costs more.
+
+**Lanes.** The pipeline's lane stage was rerun offline from its cache with each profile. It is
+compared here to Phase 3's network, which had 9 pads and 24 lanes.
+
+| Scenario | Lanes kept | Gained | Lost | Pads left out | Flows | Fleet |
+|---|---|---|---|---|---|---|
+| Placeholder | 24 | 0 | 0 | none | 10 | 8 |
+| Fitted, 900 Wh | 10 | 0 | 14 | Edgar Thomson, Josh Steel, Clairton, Old Koppers | 6 | 5 |
+| Fitted, 1370 Wh | 24 | 0 | 0 | none | 10 | 10 |
+
+At 900 Wh the fitted range (5.7 km at 5 kg) cuts every Mon Valley lane to the north. The 12
+remaining lanes form two groups: the Strip District and Oakland pads around the hub, and the
+Mon Valley pads. Spec A65 keeps the hub's group of 5 pads and 10 lanes. The Mon Valley pads
+were in a separate group, so their lanes (Edgar Thomson to Josh Steel, Clairton to Old Koppers)
+are lost with them.
+
+No profile gains a lane. The fit lowers range, so a new lane would need a longer battery.
+Clairton is not served by any scenario. It is reachable only through Edgar Thomson, and R16
+needs 5.1 MJ for that visit; the 1370 Wh battery holds 3.7 MJ usable.
+
+**Seven days, seed 42.** The split of the drone's door-to-door time is pod wait, queue, pad
+service and flight.
+
+| Scenario | Drone mean (s) | Truck mean (s) | Speedup | Pod wait / queue / service / flight (s) | Rejected |
+|---|---|---|---|---|---|
+| Phase 3 (`docs/results.md`) | 1287 | 2263 | 1.76 | 515 / 118 / 250 / 403 | 187 of 1373 |
+| Placeholder | 1286.7 | 2263.4 | 1.76 | 515.4 / 118.4 / 249.5 / 403.3 | 187 of 1373 |
+| Fitted, 900 Wh | 1263.3 | 1926.8 | 1.53 | 654.7 / 146.9 / 313.8 / 147.9 | 313 of 1344 |
+| Fitted, 1370 Wh | 10054.9 | 2264.6 | 0.23 | 9018.0 / 129.4 / 510.7 / 396.8 | 161 of 1373 |
+
+- **Fitted, 900 Wh.** It keeps only the short hub-to-Oakland flows. So its mean flight is
+  148 s, and the trucks it competes with are also on short trips (1927 s). The drone is 1.53x
+  faster. Pod wait grows because the network has fewer drones (5) and the hub's warehouse has
+  to share them.
+- **Fitted, 1370 Wh.** It serves every Phase 3 flow, but the drone becomes 4.4x slower than the
+  truck. Each visit uses about twice the placeholder's energy. The drone recharges on OUT
+  (spec 3.7, `charging.power_w` 1500 W at 0.9 efficiency), so a recharge holds OUT for up to
+  46 minutes. The hub's OUT spot is busy 73% of the time, against 48% with the placeholder.
+  Pods wait behind the charging drone, and pod wait reaches 9018 s.
+
+  The cause is charger power, not range. The 1500 W charger is a Phase 2 placeholder sized for
+  the old powers. The brief does not ask for a charger change, so none is made.
+
+**Battery.** The longest legal lane in Phase 3's catalog is hub to Edgar Thomson, 12.9 km. At
+5 kg under the fitted profile, its visit needs 3.69 MJ above reserve. That includes the
+diversion to the destination's nearest pad. With a 0.75 usable fraction this is 1367.1 Wh of
+capacity, against the 900 Wh configured. `parts_logistics_pittsburgh_battery_1370wh` rounds it
+up to 1370 Wh (spec A66). The battery's extra mass is not modelled, so this is a lower bound.

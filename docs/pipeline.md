@@ -102,6 +102,8 @@ source here was fetched by work-in-progress pipeline code, so each entry's revis
      (`docs/calibration.md`).
    - `parts_logistics_pittsburgh_placeholder`: Phase 3's placeholder profile. Its catalog, lanes
      and truck matrix are byte-identical to Phase 3's.
+   - `parts_logistics_pittsburgh_battery_1370wh`: the fitted profile with a 1370 Wh battery,
+     sized for the longest legal lane at 5 kg (spec A66).
 
    A variant can select a flight profile and override drone keys. Its lane range, energy guard,
    flows and fleet all follow its own model. If its lanes no longer reach a pad cluster, the
