@@ -8,7 +8,7 @@ import tomllib
 
 import numpy as np
 
-from . import constraints, energy, fetch, lanes, osm, outputs, pads, sanity, scenario, truck
+from . import constraints, energy, fetch, lanes, osm, outputs, pads, plot, sanity, scenario, truck
 from .geo import Enu
 from .params import load, q
 from .paths import CACHE, PIPELINE, RAW
@@ -47,6 +47,8 @@ def build(manifest: dict) -> None:
     outputs.write_derived(pad_list, sites_cfg, lane_list, tm, doc, manifest,
                           revision)
     sanity.check(params, extract.water)
+    retrieved = manifest["files"]["osm_pennsylvania"]["retrieved_utc"]
+    plot.overview(pad_list, lane_list, lane_rejections, cons, retrieved)
 
 
 def main() -> int:
