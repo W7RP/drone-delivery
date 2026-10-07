@@ -4,5 +4,7 @@ runs/
 calib/
 __pycache__/
 .venv/
+# Pipeline downloads and intermediate files (pipeline/data/raw/manifest.json records them).
+pipeline/data/
 # Rust build output.
 target/

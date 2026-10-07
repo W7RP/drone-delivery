@@ -1,0 +1,14 @@
+# Top-level dependencies of the offline pipeline; requirements.txt pins the full set.
+# osmium: reads the OSM PBF extract (road graph, water, sites) without a database.
+# pyogrio: reads the Census TIGER shapefile. rasterio: reads the USGS DEM GeoTIFFs.
+# shapely, pyproj: geometry and geodesy. numpy, scipy: arrays, KD-tree, sparse shortest paths.
+# pyyaml: pipeline/sites.yaml. matplotlib: the one debug plot.
+osmium
+pyogrio
+rasterio
+shapely
+pyproj
+numpy
+scipy
+pyyaml
+matplotlib
