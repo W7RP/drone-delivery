@@ -26,8 +26,11 @@ fi
 # The package lives in pipeline/; downloaded files stay under pipeline/data/, off sys.path.
 cd "$HERE"
 if [[ "${1:-}" == "calib" ]]; then
-  # Phase 5 flight calibration (pipeline/calib); the scripts import the px4 log reader.
+  # Phase 5 flight calibration (pipeline/calib); the scripts import the px4 log reader and call
+  # the release sim, which is built first so it matches the configs.
   shift
+  [[ -d "$HOME/.cargo/bin" ]] && PATH="$HOME/.cargo/bin:$PATH"
+  (cd "$HERE/../sim" && cargo build --quiet --release)
   exec "$VENV/bin/python" -I calib/run.py "$@"
 fi
 if [[ "${1:-}" == "test" ]]; then

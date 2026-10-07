@@ -4,17 +4,17 @@
 # come from public data through the pipeline (derived/); every number below is a placeholder
 # (assumption = true), not real data.
 
-schema_version = "1.3.0"
+schema_version = "1.5.0"
 
 # No scheduled faults; random pad-controller faults still follow pad_ops.pc_fault_rate_per_h.
 faults = []
 
 [meta]
-name = "parts_logistics_pittsburgh"
+name = "parts_logistics_pittsburgh_placeholder"
 preset = "PARTS_LOGISTICS"
 status = "COMPLETE"
 city = "Pittsburgh"
-description = "Anchor preset on real Pittsburgh sites: Strip District warehouses to Mon Valley plants and Oakland hospitals, seven days."
+description = "The anchor preset with the placeholder flight profile (as in Phase 3): Strip District warehouses to Oakland hospitals and Mon Valley plants, seven days."
 
 [sim]
 seed = { value = 42, unit = "1", assumption = true }
@@ -30,7 +30,8 @@ origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }
 # Pads (derived/pads.toml), lanes (derived/lanes.csr.bin) and the truck matrix
 # (derived/truck_matrix.bin), relative to this file.
 [network_files]
-dir = "/home/jdarr/projects/drone-delivery/configs/parts_logistics_pittsburgh/derived"
+dir = "/home/jdarr/projects/drone-delivery/configs/parts_logistics_pittsburgh_placeholder/derived"
+
 
 [drone]
 # Rule (spec A52): ceil(offered drone-hours per hour 3.563 / target utilisation 0.5).
@@ -42,14 +43,14 @@ battery_capacity_j = { value = 3240000.0, unit = "J", assumption = true }
 initial_soc = { value = 1.0, unit = "1", assumption = true }
 reserve_soc = { value = 0.2, unit = "1", assumption = true }
 charge_target_soc = { value = 0.95, unit = "1", assumption = true }
-cruise_speed_mps = { value = 15.032525207898399, unit = "m/s", assumption = true }
-cruise_power_ref_w = { value = 2107.8699783626766, unit = "W", assumption = true }
-hover_power_ref_w = { value = 1830.5084009219167, unit = "W", assumption = true }
+cruise_speed_mps = { value = 15.033, unit = "m/s", assumption = true }
+cruise_power_ref_w = { value = 2107.87, unit = "W", assumption = true }
+hover_power_ref_w = { value = 1830.508, unit = "W", assumption = true }
 power_ref_mass_kg = { value = 14.6, unit = "kg", assumption = true }
-takeoff_s = { value = 34.17909536916918, unit = "s", assumption = true }
-approach_s = { value = 48.8496, unit = "s", assumption = true }
+takeoff_s = { value = 34.179, unit = "s", assumption = true }
+approach_s = { value = 48.85, unit = "s", assumption = true }
 go_around_s = { value = 40.0, unit = "s", assumption = true }
-hop_s = { value = 22.626399999999997, unit = "s", assumption = true }
+hop_s = { value = 22.626, unit = "s", assumption = true }
 p_release_fault = { value = 0.01, unit = "1", assumption = true }
 p_latch_fault = { value = 0.01, unit = "1", assumption = true }
 

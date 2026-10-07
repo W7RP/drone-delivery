@@ -33,7 +33,9 @@ def run_meta(run: Path) -> dict:
     return meta
 
 SIM = REPO / "sim" / "target" / "release" / "sim"
-PITTSBURGH = REPO / "configs" / "parts_logistics_pittsburgh" / "scenario.toml"
+# The placeholder profile's Pittsburgh scenario: the model before calibration, and the base
+# scenario_with() substitutes profile values into (it selects no flight_profile of its own).
+PITTSBURGH = REPO / "configs" / "parts_logistics_pittsburgh_placeholder" / "scenario.toml"
 PHASE_KEYS = {"takeoff": "takeoff", "cruise": "cruise", "approach_landing": "approach", "hop": "hop"}
 
 
