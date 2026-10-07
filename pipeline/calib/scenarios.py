@@ -2,11 +2,11 @@
 Phase 3's (placeholder) network: lanes gained and lost, pads left out, whether Clairton is
 served. 7c: a 7-day run of each (seed 42, release sim) with drone door-to-door time and its
 split (pod wait, queue, pad service, flight) next to the truck. Writes out/scenarios.json; run
-outputs go to runs/calib/<variant>/ (git-ignored)."""
+outputs go to runs/calib/<variant>/ (git-ignored). Wall time and memory are scripts/verify.sh's
+budget check and are not recorded here, so this file reruns byte-identically."""
 
 import json
 import subprocess
-import time
 
 from common import OUT, REPO, SIM
 
@@ -36,14 +36,11 @@ def network(variant: str) -> dict:
 
 def run(variant: str) -> dict:
     out = REPO / "runs" / "calib" / variant
-    started = time.monotonic()
     subprocess.run([str(SIM), "run", str(REPO / "configs" / variant / "scenario.toml"),
                     "--seed", str(SEED), "--out", str(out)], check=True, capture_output=True)
-    wall = time.monotonic() - started
     m = json.loads((out / "metrics.json").read_text())
     split = m["door_to_door_split_s"]
     return {
-        "wall_s": round(wall, 2),
         "requests": m["shipment_requests_in_window"],
         "rejected": m["requests_rejected"],
         "deliveries_per_h": round(m["deliveries_per_h"], 2),
