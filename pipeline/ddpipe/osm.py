@@ -1,8 +1,11 @@
 """One pass over the OSM extract: drivable road ways, water polygons and named site features
 inside the pipeline area. Everything outside the area bounding box is dropped here."""
 
+import hashlib
 import logging
+import pickle
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import osmium
@@ -65,6 +68,25 @@ def _is_water(tags) -> bool:
 
 def _site_tags(tags, keys) -> dict:
     return {k: tags.get(k) for k in keys if k in tags}
+
+
+def read_cached(pbf_path: Path, pbf_sha256: str, cache_dir: Path, area: dict,
+                site_keys: tuple[str, ...]) -> Extract:
+    """`read`, memoised on disk by the extract's sha256, the area and the site keys. The cache
+    only saves the 50 s pass over the extract; deleting it changes no output."""
+    key = hashlib.sha256(repr((pbf_sha256, sorted(area.items()), site_keys,
+                               sorted(DRIVABLE), sorted(EXCLUDED_SERVICE))).encode()).hexdigest()
+    path = cache_dir / f"osm_{key[:16]}.pickle"
+    if path.exists():
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    extract = read(pbf_path, area, site_keys)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part")
+    with open(tmp, "wb") as f:
+        pickle.dump(extract, f, protocol=pickle.HIGHEST_PROTOCOL)
+    tmp.rename(path)
+    return extract
 
 
 def read(pbf_path, area: dict, site_keys: tuple[str, ...]) -> Extract:

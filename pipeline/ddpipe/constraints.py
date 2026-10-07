@@ -16,13 +16,23 @@ FACILITY_MAP_FILE = "faa_uas_facility_map.geojson"
 
 
 @dataclass
+class ExclusionCell:
+    geom: shapely.Geometry
+    airport: str
+    ceiling_ft: float
+
+
+@dataclass
 class Constraints:
     water: shapely.Geometry
     exclusion: shapely.Geometry
-    exclusion_cells: int
+    cells: list[ExclusionCell]
+
+    def cells_crossed(self, line: shapely.Geometry) -> list[ExclusionCell]:
+        return [c for c in self.cells if c.geom.intersects(line)]
 
 
-def airspace_exclusion(params: dict) -> tuple[shapely.Geometry, int]:
+def airspace_exclusion(params: dict) -> list[ExclusionCell]:
     ceiling_min_ft = q(params["airspace"]["cruise_altitude_agl_ft"], "ft")
     doc = json.loads((RAW / FACILITY_MAP_FILE).read_text())
     cells = []
@@ -31,13 +41,15 @@ def airspace_exclusion(params: dict) -> tuple[shapely.Geometry, int]:
         if p["UNIT"] != "Feet":
             raise ValueError(f"facility map cell in {p['UNIT']}, expected Feet")
         if p["CEILING"] < ceiling_min_ft:
-            cells.append(shapely.geometry.shape(f["geometry"]))
+            cells.append(ExclusionCell(shapely.geometry.shape(f["geometry"]), p["APT1_FAAID"],
+                                       float(p["CEILING"])))
     log.info("airspace: %d of %d facility-map cells below %.0f ft are excluded",
              len(cells), len(doc["features"]), ceiling_min_ft)
-    return shapely.union_all(cells), len(cells)
+    return cells
 
 
 def build(params: dict, water_polygons: list) -> Constraints:
     water = shapely.union_all([shapely.make_valid(g) for g in water_polygons])
-    exclusion, n = airspace_exclusion(params)
-    return Constraints(water=water, exclusion=exclusion, exclusion_cells=n)
+    cells = airspace_exclusion(params)
+    exclusion = shapely.union_all([c.geom for c in cells])
+    return Constraints(water=water, exclusion=exclusion, cells=cells)
