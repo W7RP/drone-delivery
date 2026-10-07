@@ -113,14 +113,20 @@ fn flight_model(args: &[String]) -> ExitCode {
         eprintln!("--lane-m and --payload-kg need non-negative numbers\n{USAGE}");
         return ExitCode::from(2);
     };
-    let scenario = match Scenario::load(std::path::Path::new(&config)) {
-        Ok(s) => s,
+    // Parse only: the flight model needs the drone section, not the network's energy rules
+    // (R12, R16), which a profile under evaluation may not satisfy on every lane.
+    let path = std::path::Path::new(&config);
+    let cfg = match std::fs::read_to_string(path)
+        .map_err(|e| drone_sim::config::ConfigError(format!("{config}: {e}")))
+        .and_then(|text| drone_sim::config::parse_in(&text, path.parent()))
+    {
+        Ok(c) => c,
         Err(e) => {
             eprintln!("config error: {e}");
             return ExitCode::from(2);
         }
     };
-    let v = VisitEstimate::new(&scenario.cfg, lane_m, payload_kg);
+    let v = VisitEstimate::new(&cfg, lane_m, payload_kg);
     let phase = |p: drone_sim::flight::PhaseEstimate| serde_json::json!({"time_s": p.time_s, "energy_j": p.energy_j});
     let out = serde_json::json!({
         "config": config,
