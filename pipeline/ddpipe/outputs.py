@@ -27,15 +27,15 @@ def _quantity(value, unit: str, assumption: bool) -> str:
     return f'{{ value = {value!r}, unit = "{unit}", assumption = {str(assumption).lower()} }}'
 
 
-def pads_toml(pads, defaults: dict) -> str:
+def pads_toml(pads, defaults: dict, pods_by_role: dict) -> str:
     lines = [
         "# Pad catalog of parts_logistics_pittsburgh in the form of a scenario's pads[] (spec 8.2),",
         "# written by pipeline/run.sh; do not edit. Coordinates are OSM data (assumption = false);",
         "# the other fields are placeholders from pipeline/sites.yaml. lanes.csr.bin and",
         "# truck_matrix.bin carry the FNV-1a 64 hash of this file as their source_hash (spec 9.0).",
     ]
-    pods = int(q(defaults["initial_empty_pods"], "count"))
     for p in pads:
+        pods = int(q(pods_by_role[p.role], "count"))
         parking_key = "hub_parking_capacity" if p.is_hub else "parking_capacity"
         parking = int(q(defaults[parking_key], "count"))
         lines += [
@@ -60,7 +60,7 @@ def _r(x: float, nd: int = 3) -> float:
 
 
 def report(pads, pad_rejections, lane_list, lane_rejections, lane_range_m, payload_kg,
-           exclusion_cells, tm, graph, ratios, revision: str) -> dict:
+           exclusion_cells, tm, graph, ratios, scenario_doc: dict, revision: str) -> dict:
     import numpy as np
 
     return {
@@ -86,6 +86,7 @@ def report(pads, pad_rejections, lane_list, lane_rejections, lane_range_m, paylo
             {"a": r.a, "b": r.b, "length_m": _r(r.length_m, 1), "reason": r.reason}
             for r in lane_rejections
         ],
+        "scenario": scenario_doc,
         "truck": {
             "road_nodes": int(len(graph.node_ids)),
             "ways_with_maxspeed": graph.tagged_ways,
@@ -107,10 +108,10 @@ def _write(path: Path, data: bytes) -> None:
     tmp.rename(path)
 
 
-def write_derived(pads, defaults, lane_list, tm, report_doc: dict, manifest: dict,
+def write_derived(pads, sites_cfg: dict, lane_list, tm, report_doc: dict, manifest: dict,
                   revision: str) -> dict[str, Path]:
     DERIVED.mkdir(parents=True, exist_ok=True)
-    catalog = pads_toml(pads, defaults).encode()
+    catalog = pads_toml(pads, sites_cfg["pad_defaults"], sites_cfg["initial_empty_pods_by_role"]).encode()
     source_hash = binfmt.fnv1a64(catalog)
     files = {
         PADS_FILE: catalog,

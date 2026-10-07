@@ -8,7 +8,7 @@ import tomllib
 
 import numpy as np
 
-from . import constraints, energy, fetch, lanes, osm, outputs, pads, sanity, truck
+from . import constraints, energy, fetch, lanes, osm, outputs, pads, sanity, scenario, truck
 from .geo import Enu
 from .params import load, q
 from .paths import CACHE, PIPELINE, RAW
@@ -40,10 +40,11 @@ def build(manifest: dict) -> None:
     logging.info("road / straight on lane pairs: median %.2f, p90 %.2f",
                  np.median(ratios), np.percentile(ratios, 90))
     revision = pipeline_revision()
+    scenario_doc = scenario.write(pad_list, lane_list, template, model, params)
     doc = outputs.report(pad_list, pad_rejections, lane_list, lane_rejections, lane_range_m,
                          q(params["lanes"]["payload_kg"], "kg"), len(cons.cells), tm, graph,
-                         ratios, revision)
-    outputs.write_derived(pad_list, sites_cfg["pad_defaults"], lane_list, tm, doc, manifest,
+                         ratios, scenario_doc, revision)
+    outputs.write_derived(pad_list, sites_cfg, lane_list, tm, doc, manifest,
                           revision)
     sanity.check(params, extract.water)
 
