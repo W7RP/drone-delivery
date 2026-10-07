@@ -26,7 +26,7 @@ endif()
 # Our code builds warning-free with these; third-party headers come in as SYSTEM.
 set(DD_WARNINGS -Wall -Wextra -Wpedantic -Wconversion -Werror)
 
-add_library(dd_core STATIC src/geometry.cpp)
+add_library(dd_core STATIC src/geometry.cpp src/flight_records.cpp)
 target_include_directories(dd_core PUBLIC include)
 target_compile_options(dd_core PRIVATE ${DD_WARNINGS})
 
@@ -52,6 +52,7 @@ dd_node(precland_check_node)
 dd_node(drone_agent_node)
 dd_node(pad_controller_node)
 dd_node(fleet_manager_node)
+dd_node(flight_logger_node)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
