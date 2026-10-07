@@ -1,4 +1,6 @@
-# Phase 2 results
+# Results
+
+## Phase 2: synthetic networks
 
 Conditions: commit `4d81103` (numbers re-checked unchanged after the f32 storage change), release build, seed 42, replication 0, each scenario's own
 `configs/<name>/scenario.toml`. Every input number is a placeholder (`assumption = true`), so
@@ -35,7 +37,7 @@ What the numbers say:
   and the mean door-to-door from 4237 s to 752 s. Pod circulation, not drone count, was the
   limit.
 
-## Performance
+### Performance
 
 Scale case (200 drones, 40 pads, 7 simulated days), same commit, on an Intel i9-13900K
 under WSL2, measured with `/usr/bin/time -v` by `scripts/verify.sh`:
@@ -50,3 +52,76 @@ under WSL2, measured with `/usr/bin/time -v` by `scripts/verify.sh`:
 
 At the overloaded demand the scale case was first written with (6 requests per pad-hour), the
 same run processed 2.37 million events in 1.1 s at 10 MB.
+
+## Phase 3: Pittsburgh parts logistics
+
+Conditions: commit `1eec183`, release build, seed 42, replication 0,
+`configs/parts_logistics_pittsburgh/scenario.toml`, with the network from the pipeline
+(`docs/pipeline.md`; data retrieved 2026-10-07). Seven simulated days; the metrics window starts
+after one hour.
+
+Setup: 9 pads, 24 lanes, 8 drones, 16 pods owned by the two warehouses, and 8 shipment requests
+per hour. All placeholders.
+
+Times are door to door in seconds, means over shipments delivered to their destination. The drone
+time is split into four parts (spec 7, M2) that add up exactly:
+
+- Pod wait: request until the pod is on OUT.
+- Queue: pod on OUT until a drone starts latching it, plus time holding over the destination.
+- Pad service: latch, charging before take-off, take-off, approaches and release.
+- Flight: lanes flown with the pod.
+
+| Destination | Orders | Drone | Pod wait | Queue | Pad service | Flight | Truck |
+|---|---|---|---|---|---|---|---|
+| VA Pittsburgh Healthcare (Oakland) | 238 | 1010 | 509 | 122 | 251 | 128 | 1945 |
+| UPMC Oakland | 239 | 1030 | 516 | 110 | 250 | 153 | 1897 |
+| UPMC Magee-Womens (Oakland) | 221 | 1091 | 534 | 126 | 256 | 176 | 1996 |
+| Josh Steel (Braddock) | 239 | 1604 | 507 | 116 | 248 | 734 | 2675 |
+| Edgar Thomson plant (Braddock) | 216 | 1724 | 512 | 119 | 243 | 850 | 2829 |
+| All | 1153 | 1287 | 515 | 118 | 250 | 403 | 2263 |
+
+| Measure | 1x demand | 3x demand |
+|---|---|---|
+| Requests in window | 1373 | 4030 |
+| Rejected at the backlog cap (20 per pad) | 187 (13.6%) | 2510 (62%) |
+| Deliveries per hour | 6.90 | 8.82 |
+| Drone door to door, mean / p95 (s) | 1287 / 2820 | 13094 / over 14400 |
+| Truck door to door, mean / p95 (s) | 2263 / 3040 | 2288 / 3160 |
+| Speedup (mean truck / mean drone) | 1.76 | 0.17 |
+| Pod wait, mean (s) | 515 | 12262 |
+| Stockout fraction | 0.003 | 0.26 |
+| Drone / truck cost per delivery (cu) | 8.39 / 23.50 | 6.58 / 24.04 |
+| Events, wall time, peak RSS | 240 095, 0.02 s, 5 MB | 286 944, 0.03 s, 5.5 MB |
+
+What the numbers say:
+
+- At the anchor demand the drone beats the truck by about 1000 s on every destination. The
+  margin is narrower for the Mon Valley plants, where lanes run 9 to 13 km.
+- The biggest part of the drone's time is not flying. It is the 8 to 9 minutes before the pod is
+  on OUT: placement plus waiting for OUT to clear of drones that are charging. Pad service adds
+  about 4 minutes and the queue about 2. Flight is only 2 to 3 minutes to Oakland and 12 to 14
+  to the Mon Valley.
+- Clairton gets no deliveries. The only lanes that avoid the airspace exclusion around the AGC
+  runways go through the Edgar Thomson plant. That 23 km route needs more energy than the R16
+  guard allows with a 5 kg pod, so the pipeline leaves those flows out (logged in
+  `derived/report.json`). The truck would serve them; the drone cannot, under these
+  placeholders.
+- The 187 rejections at 1x all come from one event. On day 4.9 a release fault grounded a drone
+  on the Achieva warehouse's IN spot, and spec A18 closes a pad for the rest of the run. From
+  then on that warehouse could not place pods, so its requests filled the 20-slot backlog and
+  were turned away.
+
+  Without the cap that backlog grew without limit. So did both warehouses' backlogs at 3x
+  demand, with 2560 requests still waiting at the end of the week, which is why
+  `demand.max_backlog_per_pad` exists (spec P08, M9).
+- At 3x the network delivers 8.8 per hour, its ceiling with one OUT spot per warehouse. Accepted
+  requests wait over 3 hours for a pod. The backlog stays bounded, and memory stays at 5.5 MB.
+- Cost: 8 drones at 0.86 deliveries per drone-hour cost 8.39 cu per delivery against the truck's
+  23.50. The placeholder break-even is 0.31 deliveries per drone-hour.
+
+![Pittsburgh overview](../pipeline/out/pittsburgh_overview.png)
+
+Reproduce: `pipeline/run.sh` (optional; the derived files are committed), then
+`sim/target/release/sim run configs/parts_logistics_pittsburgh/scenario.toml --seed 42 --out <dir>`.
+For the 3x case, `python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh/scenario.toml 3 <dir>`
+writes the scaled copy. `scripts/verify.sh` runs both against the time and memory budget.
