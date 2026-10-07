@@ -43,9 +43,11 @@ sources:
     license: Public domain (US Census Bureau TIGER/Line 2020)
     use: population per block (POP20), summed to block groups
 
-  # FAA Aeronautical Data Delivery Service, Class Airspace, every shape intersecting the area.
-  - name: faa_class_airspace
-    file: faa_class_airspace.geojson
-    url: https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Class_Airspace/FeatureServer/0/query?where=1%3D1&geometry=-80.42%2C40.14%2C-79.63%2C40.72&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson
-    license: Public domain (FAA open data)
+  # FAA UAS Facility Maps: 30 arc-second cells around controlled airports, each with the
+  # ceiling (ft AGL) up to which LAANC can authorise small-drone flight. Cells whose ceiling is
+  # below the cruise altitude in params.yaml become exclusion zones.
+  - name: faa_uas_facility_map
+    file: faa_uas_facility_map.geojson
+    url: https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/FAA_UAS_FacilityMap_Data/FeatureServer/0/query?where=1%3D1&geometry=-80.42%2C40.14%2C-79.63%2C40.72&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CEILING%2CUNIT%2CAPT1_FAAID%2CMAP_EFF&outSR=4326&orderByFields=OBJECTID&f=geojson
+    license: Public domain (FAA open data, UAS Facility Maps)
     use: airspace exclusion zones

@@ -51,7 +51,10 @@ def _check_content(path: Path, suffix: str) -> None:
         raise RuntimeError(f"{path.name}: starts with {head!r}, not a {suffix} file")
     if suffix == ".geojson":
         doc = json.loads(path.read_text())
-        if doc.get("type") != "FeatureCollection" or doc.get("exceededTransferLimit"):
+        truncated = doc.get("exceededTransferLimit") or doc.get("properties", {}).get(
+            "exceededTransferLimit"
+        )
+        if doc.get("type") != "FeatureCollection" or truncated:
             raise RuntimeError(f"{path.name}: not a complete FeatureCollection")
 
 
