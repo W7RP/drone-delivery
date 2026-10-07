@@ -12,7 +12,7 @@ use crate::ids::{
     PadId, PadMode, PodId, PodLocation, ReturnPolicy, ServiceOutcome, Spot, TimeMs, TimerKind,
     ms_from_s, s_from_ms,
 };
-use crate::metrics::ClosedOrder;
+use crate::metrics::{ClosedOrder, DoorToDoorSplit};
 use crate::network::Network;
 use crate::world::World;
 
@@ -74,10 +74,35 @@ pub struct Order {
     pub truck_delivered_t_ms: TimeMs,
     pub truck_cost: f64,
     pub fail_reason: Option<AlertCode>,
+    /// Measurement only (spec 7 M2 split), never read by FM decisions: start of the latch that
+    /// picked this pod up, lane time flown with it latched, and time its drone held with it.
+    pub latch_start_t_ms: TimeMs,
+    pub flight_ms: TimeMs,
+    pub hold_ms: TimeMs,
     pub excluded_drone: DroneId,
 }
 
 impl Order {
+    /// Door-to-door time of a delivered or diverted order in four parts that sum to it exactly
+    /// (spec 7, M2): pod wait (request to pod on OUT), queue (pod on OUT to latch start, plus
+    /// landing holds), flight (lanes flown with the pod) and pad service (the rest: latch,
+    /// charging before departure, takeoff, approaches, release). None while open or failed.
+    pub fn split(&self) -> Option<DoorToDoorSplit> {
+        let delivered = matches!(self.status, OrderStatus::Delivered | OrderStatus::Diverted);
+        if !delivered || self.latch_start_t_ms == NO_TIME {
+            return None;
+        }
+        let pod_wait_ms = self.placed_t_ms - self.requested_t_ms;
+        let queue_ms = (self.latch_start_t_ms - self.placed_t_ms) + self.hold_ms;
+        let total_ms = self.delivered_t_ms - self.requested_t_ms;
+        Some(DoorToDoorSplit {
+            pod_wait_ms,
+            queue_ms,
+            flight_ms: self.flight_ms,
+            pad_service_ms: total_ms - pod_wait_ms - queue_ms - self.flight_ms,
+        })
+    }
+
     fn is_closed(&self) -> bool {
         matches!(
             self.status,
@@ -841,6 +866,9 @@ impl World {
             truck_delivered_t_ms: truck_delivered,
             truck_cost,
             fail_reason: None,
+            latch_start_t_ms: NO_TIME,
+            flight_ms: 0,
+            hold_ms: 0,
             excluded_drone: NO_DRONE,
         });
         let rec = &mut self.fm.pods[pod as usize];
@@ -1616,6 +1644,7 @@ impl World {
                 delivered_ms: (t != NO_TIME).then_some(t),
                 truck_delivered_ms: o.truck_delivered_t_ms,
                 truck_cost: o.truck_cost,
+                split: o.split(),
             };
             self.metrics.shipment_closed(
                 &closed,
@@ -1637,8 +1666,10 @@ impl World {
             })
         };
         let reason = o.fail_reason.map_or("", |r| r.name());
+        let split = o.split();
+        let part = |f: fn(&DoorToDoorSplit) -> TimeMs| OptSecs(split.as_ref().map(f));
         self.out.delivery_line(format_args!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{:.4}\n",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{:.4},{},{},{},{}\n",
             o.order_id,
             o.kind.name(),
             o.status.name(),
@@ -1654,6 +1685,10 @@ impl World {
             secs(o.delivered_t_ms),
             secs(o.truck_delivered_t_ms),
             o.truck_cost,
+            part(|s| s.pod_wait_ms),
+            part(|s| s.queue_ms),
+            part(|s| s.pad_service_ms),
+            part(|s| s.flight_ms),
         ));
     }
 

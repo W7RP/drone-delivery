@@ -127,12 +127,24 @@ pub struct ClosedOrder {
     pub delivered_ms: Option<TimeMs>,
     pub truck_delivered_ms: TimeMs,
     pub truck_cost: f64,
+    pub split: Option<DoorToDoorSplit>,
+}
+
+/// Parts of one order's drone door-to-door time (spec 7, M2); they sum to it exactly.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DoorToDoorSplit {
+    pub pod_wait_ms: TimeMs,
+    pub queue_ms: TimeMs,
+    pub pad_service_ms: TimeMs,
+    pub flight_ms: TimeMs,
 }
 
 #[derive(Debug, Clone)]
 pub struct Metrics {
     pub window: (TimeMs, TimeMs),
     deliveries_in_window: u64,
+    split_sum: DoorToDoorSplit,
+    split_n: u64,
     closed_delivered: u64,
     closed_diverted: u64,
     closed_failed: u64,
@@ -180,6 +192,8 @@ impl Metrics {
         Self {
             window,
             deliveries_in_window: 0,
+            split_sum: DoorToDoorSplit::default(),
+            split_n: 0,
             closed_delivered: 0,
             closed_diverted: 0,
             closed_failed: 0,
@@ -264,6 +278,21 @@ impl Metrics {
     }
 
     /// M1, M2, M4, M7 contributions of a closed SHIPMENT order.
+    /// Mean of each door-to-door part over the orders in `door_to_door_s` (M2).
+    fn split_summary(&self) -> Value {
+        #[allow(clippy::cast_precision_loss)]
+        let n = self.split_n as f64;
+        let mean = |ms: TimeMs| (n > 0.0).then(|| s_from_ms(ms) / n);
+        let s = self.split_sum;
+        json!({
+            "n": self.split_n,
+            "pod_wait": mean(s.pod_wait_ms),
+            "queue": mean(s.queue_ms),
+            "pad_service": mean(s.pad_service_ms),
+            "flight": mean(s.flight_ms),
+        })
+    }
+
     pub fn shipment_closed(&mut self, o: &ClosedOrder, delivered: bool, diverted: bool) {
         if delivered && o.delivered_ms.is_some_and(|t| self.in_window(t)) {
             self.deliveries_in_window += 1;
@@ -288,6 +317,13 @@ impl Metrics {
         if let (true, Some(d)) = (delivered, o.delivered_ms) {
             let drone_ms = d - o.requested_ms;
             self.door_drone.add(drone_ms);
+            if let Some(s) = o.split {
+                self.split_sum.pod_wait_ms += s.pod_wait_ms;
+                self.split_sum.queue_ms += s.queue_ms;
+                self.split_sum.pad_service_ms += s.pad_service_ms;
+                self.split_sum.flight_ms += s.flight_ms;
+                self.split_n += 1;
+            }
             #[allow(clippy::cast_precision_loss)]
             {
                 self.saving_sum_s += (truck_ms as f64 - drone_ms as f64) / 1000.0;
@@ -343,6 +379,7 @@ impl Metrics {
             "deliveries_in_window": self.deliveries_in_window,
             "door_to_door_s": self.door_drone.summary(),
             "truck_door_to_door_s": self.door_truck.summary(),
+            "door_to_door_split_s": self.split_summary(),
             "speedup": match (mean_truck, mean_drone) { (Some(t), Some(d)) => ratio(t, d), _ => None },
             "saving_s": ratio(self.saving_sum_s, self.saving_n as f64),
             "spot_utilization": { "in": per_spot(&self.spot_in), "out": per_spot(&self.spot_out) },

@@ -35,6 +35,13 @@
     "p50": 2470.0,
     "p95": 9620.0
   },
+  "door_to_door_split_s": {
+    "flight": 400.009,
+    "n": 37,
+    "pad_service": 455.19678378378376,
+    "pod_wait": 2554.0707297297295,
+    "queue": 329.07781081081083
+  },
   "events_processed": 3059,
   "fleet_size": 2,
   "go_around_rate": 0.14492753623188406,

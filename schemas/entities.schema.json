@@ -67,6 +67,21 @@
           "$ref": "common.schema.json#/$defs/AlertCode",
           "x-type": "u8",
           "x-unit": "-"
+        },
+        "latch_start_t_ms": {
+          "$ref": "common.schema.json#/$defs/t_ms"
+        },
+        "flight_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "x-type": "u64",
+          "x-unit": "ms"
+        },
+        "hold_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "x-type": "u64",
+          "x-unit": "ms"
         }
       }
     },

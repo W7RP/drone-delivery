@@ -101,6 +101,9 @@ The flight model signature is in 2.7.
 | delivered_t_ms | u64 | ms | Release verified at `delivered_pad` (transition V18). |
 | truck_delivered_t_ms | u64 | ms | Baseline completion time, computed at creation (section 7, M2). |
 | fail_reason | u8 AlertCode | - | Why the order FAILED: RELEASE_FAULT (V20) or DRONE_GROUNDED (D14). Meaningful only when status = FAILED. |
+| latch_start_t_ms | u64 | ms | Start of the latch that picked the pod up (V08 or V24 into LATCHING). Measurement only, for the M2 split. |
+| flight_ms | u64 | ms | Lane time flown with this order's pod latched (sum over `LANE_DONE`). Measurement only. |
+| hold_ms | u64 | ms | Time the carrying drone spent in HOLDING with the pod. Measured on the drone, not the PC, whose HELD state can outlast a hold when a cancel is lost. Measurement only. |
 
 Order status: `CREATED` (on `POD_PLACED`) > `ASSIGNED` (drone chosen) > `LATCHED` (`POD_LATCHED`)
 > `IN_TRANSIT` (departed) > one of `DELIVERED` (released at `dest_pad`), `DIVERTED` (released at
@@ -820,7 +823,7 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 | ID | Metric | Formula | Measurement point | Unit |
 |---|---|---|---|---|
 | M1 | deliveries_per_h | count(SHIPMENT, status DELIVERED, `delivered_t_ms` in W) / (T_W / 3600) | V18 at `dest_pad` | 1/h |
-| M2 | door_to_door_s, truck_door_to_door_s, speedup | drone: (`delivered_t_ms` - `requested_t_ms`) / 1000. Truck: (`truck_delivered_t_ms` - `requested_t_ms`) / 1000. Report mean, p50, p95 for both; speedup = mean truck / mean drone; saving_s = mean(truck - drone) over orders with both. | Drone at V18. Truck computed by FM at order creation from `requested_t_ms` (below). | s, s, 1 |
+| M2 | door_to_door_s, truck_door_to_door_s, speedup, door_to_door_split_s | drone: (`delivered_t_ms` - `requested_t_ms`) / 1000. Truck: (`truck_delivered_t_ms` - `requested_t_ms`) / 1000. Report mean, p50, p95 for both; speedup = mean truck / mean drone; saving_s = mean(truck - drone) over orders with both. Split, per order and as means over the same orders: pod_wait = `placed_t_ms` - `requested_t_ms`; queue = `latch_start_t_ms` - `placed_t_ms` + `hold_ms`; flight = `flight_ms`; pad_service = the rest (latch, charging before departure, takeoff, approaches and go-arounds, release). The four add up to the drone time exactly. | Drone at V18. Truck computed by FM at order creation from `requested_t_ms` (below). | s, s, 1, s |
 | M3 | spot_utilization (per pad, per spot) | (1 / T_W) * integral over W of [spot has a drone (`in_drone` or `out_drone` != NONE)] dt | Updated at V06 to V10, V24 to V26, V36 | 1 |
 | M4 | queue_time_s | Three components, each mean/p50/p95: placement_wait = `placed_t_ms` - `requested_t_ms`; pickup_wait = `latched_t_ms` - `placed_t_ms`; landing_hold = time a visit spends in HELD (V02 to V04 or V05). | P03, V31/V32, V04 | s |
 | M5 | battery_cycles | per drone: `energy_charged_j` / `drone.battery_capacity_j` (equivalent full cycles). Report per drone, fleet mean, and fleet total / count(M1 deliveries). | V33 (`energy_added_j`) | 1 |
@@ -1044,8 +1047,9 @@ files above into it.
 
 `deliveries.csv` columns: `order_id, kind, status, fail_reason, origin_pad, dest_pad,
 delivered_pad, drone_id, requested_t_ms, placed_t_ms, latched_t_ms, delivered_t_ms,
-drone_door_to_door_s, truck_door_to_door_s, truck_cost_cu`. Enums as strings, NONE IDs and
-unset times as empty fields.
+drone_door_to_door_s, truck_door_to_door_s, truck_cost_cu, pod_wait_s, queue_s, pad_service_s,
+flight_s`. The last four are the M2 split, filled for DELIVERED and DIVERTED orders. Enums as
+strings, NONE IDs and unset times as empty fields.
 
 ### 8.5 Presets
 
@@ -1317,4 +1321,4 @@ that:
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
-| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. |
+| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. |

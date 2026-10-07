@@ -482,6 +482,10 @@ impl World {
     fn pc_on_out(&mut self, p: PadId, d: DroneId, soc: f32, codes: [u16; 3]) {
         let s = self.pad(p);
         if s.out_pod != NO_POD && s.pickup_drone == d {
+            let order = s.pickup_order;
+            if order != NO_ORDER {
+                self.fm.orders[order as usize].latch_start_t_ms = self.now;
+            }
             self.visit_mut(p, d).attempt = 1;
             self.visit_to(p, d, codes[0], VisitState::Latching);
             self.send_latch_cmd(p, d);
