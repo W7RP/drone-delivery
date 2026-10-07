@@ -163,6 +163,7 @@ pub struct Metrics {
     pod_available: Vec<Interval>,
     requests: u64,
     stockouts: u64,
+    rejected: u64,
     approaches: u64,
     go_arounds: u64,
     latch_aborts: u64,
@@ -212,6 +213,7 @@ impl Metrics {
             pod_available: vec![Interval::default(); n_pads],
             requests: 0,
             stockouts: 0,
+            rejected: 0,
             approaches: 0,
             go_arounds: 0,
             latch_aborts: 0,
@@ -244,6 +246,13 @@ impl Metrics {
         if self.in_window(t) {
             self.requests += 1;
             self.stockouts += u64::from(stockout);
+        }
+    }
+
+    /// M9: a request turned away at a full backlog (P08). It also counted in `shipment_request`.
+    pub fn request_rejected(&mut self, t: TimeMs) {
+        if self.in_window(t) {
+            self.rejected += 1;
         }
     }
 
@@ -396,6 +405,8 @@ impl Metrics {
             "pod_availability": per_spot(&self.pod_available),
             "stockout_fraction": ratio(self.stockouts as f64, self.requests as f64),
             "shipment_requests_in_window": self.requests,
+            "requests_rejected": self.rejected,
+            "rejected_fraction": ratio(self.rejected as f64, self.requests as f64),
             "abort_rate": ratio((self.closed_diverted + self.closed_failed) as f64, closed as f64),
             "orders_closed": { "delivered": self.closed_delivered, "diverted": self.closed_diverted, "failed": self.closed_failed },
             "go_around_rate": ratio(self.go_arounds as f64, self.approaches as f64),

@@ -896,6 +896,15 @@ impl World {
     pub(crate) fn pc_shipment_request(&mut self, p: PadId, dest: PadId, deadline: TimeMs) {
         let stockout = self.pad(p).empty_pods == 0;
         self.metrics.shipment_request(self.now, stockout);
+        let full = self
+            .cfg
+            .max_backlog_per_pad
+            .is_some_and(|cap| self.pad(p).backlog.len() >= usize::from(cap));
+        if full {
+            self.metrics.request_rejected(self.now);
+            self.log_transition(tcode::p(8), p, NO_DRONE, NO_STATE, NO_STATE);
+            return;
+        }
         let now = self.now;
         self.pad_mut(p).backlog.push_back(Shipment {
             requested: now,

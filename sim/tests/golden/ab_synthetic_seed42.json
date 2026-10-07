@@ -77,7 +77,9 @@
       "p95": 8530.0
     }
   },
+  "rejected_fraction": 0.0,
   "replication": 0,
+  "requests_rejected": 0,
   "saving_s": -1275.7714324324327,
   "scenario": "ab_synthetic",
   "seed": 42,

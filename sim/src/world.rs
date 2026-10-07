@@ -42,6 +42,8 @@ pub fn narrow_f32(v: f64) -> f32 {
 
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
+/// Initial backlog capacity per pad when `demand.max_backlog_per_pad` is absent; it grows as needed.
+const DEFAULT_BACKLOG_CAPACITY: usize = 64;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Shipment {
@@ -303,7 +305,11 @@ impl World {
                 pickup_order: NO_ORDER,
                 inventory: inv,
                 empty_pods: p.initial_empty_pods,
-                backlog: VecDeque::with_capacity(64),
+                // A capped backlog never grows past its cap, so it never reallocates.
+                backlog: VecDeque::with_capacity(
+                    cfg.max_backlog_per_pad
+                        .map_or(DEFAULT_BACKLOG_CAPACITY, usize::from),
+                ),
                 returns: VecDeque::with_capacity(16),
                 landing_queue: VecDeque::with_capacity(n_drones),
                 depart_queue: VecDeque::with_capacity(n_drones),
@@ -865,6 +871,15 @@ impl World {
             "pod conservation violated at t={}",
             self.now
         );
+        if let Some(cap) = self.cfg.max_backlog_per_pad {
+            assert!(
+                self.pads
+                    .iter()
+                    .all(|p| p.backlog.len() <= usize::from(cap)),
+                "a backlog exceeds demand.max_backlog_per_pad at t={}",
+                self.now
+            );
+        }
 
         let n_pads = self.pads.len();
         let occ = &mut self.scratch;

@@ -295,13 +295,14 @@ reason OUT_OF_SERVICE (transition V00).
 
 | ID | Owner | Trigger | Guard | Action | Messages |
 |---|---|---|---|---|---|
-| P01 | PC | `SHIPMENT_REQUEST` (DG) | none | Append `(requested_t_ms, dest_pad, deadline_t_ms)` to the backlog (FIFO). If `empty_pods` = 0 the request counts as a stockout (M6). Try P02. | In: `SHIPMENT_REQUEST`. Out: if OUT is held by a READY drone with no pickup, `SHIPMENT_PENDING` to FM. |
+| P01 | PC | `SHIPMENT_REQUEST` (DG) | backlog shorter than `demand.max_backlog_per_pad`, or no cap | Append `(requested_t_ms, dest_pad, deadline_t_ms)` to the backlog (FIFO). If `empty_pods` = 0 the request counts as a stockout (M6). Try P02. | In: `SHIPMENT_REQUEST`. Out: if OUT is held by a READY drone with no pickup, `SHIPMENT_PENDING` to FM. |
 | P02 | PC | Any change to OUT, inventory, backlog, return queue, or mode | mode = ONLINE; OUT drone-free; `out_pod` = NONE; and either backlog non-empty with `empty_pods` > 0, or return queue non-empty | Take the head of the return queue if the backlog is empty, else the backlog head. Shipments use the lowest-id unreserved empty pod; returns use their named pod. Set `out_placing`; schedule `POD_PLACE_DONE` after `pad_ops.pod_place_s`. | Out: `PAD_STATUS` to FM (inventory changed). |
 | P03 | PC | `POD_PLACE_DONE` | none | `out_pod` = pod, `out_placing` = false, pod location PAD_OUT. Re-evaluate any WAIT_OUT visit (V21). | Out: `POD_PLACED` to FM. |
 | P04 | PC | Drone leaves IN while `in_pod` != NONE (V24 to V26, or V36 from IN) | none | Schedule `POD_REMOVE_DONE` after `pad_ops.pod_remove_s` (recipient takes the pod; not modelled as a person). | In: `LANDED` (spot OUT) or `DEPARTED` (spot IN). |
 | P05 | PC | `POD_REMOVE_DONE` | none | `in_pod` = NONE; pod becomes empty, joins inventory (`empty_pods` += 1). Run the landing queue (3.5). | Out: `POD_REMOVED` to FM. |
 | P06 | PC | `POD_RETURN_REQUEST` (FM) | pod is in this pad's inventory | Mark pod reserved (`empty_pods` -= 1), append to return queue. Try P02. | In: `POD_RETURN_REQUEST`. Out: `PAD_STATUS` to FM. |
 | P07 | PC | `PICKUP_ASSIGNED` (FM) | `out_pod` or the placement in progress is that pod | Record pickup for the drone's visit (or for its next visit if it has none yet). Re-evaluate V21. | In: `PICKUP_ASSIGNED`. |
+| P08 | PC | `SHIPMENT_REQUEST` (DG) | backlog holds `demand.max_backlog_per_pad` requests | Reject the request: nothing is queued and no order will exist. Counts in M9, and as a stockout if `empty_pods` = 0 (M6). | In: `SHIPMENT_REQUEST`. |
 
 FM owns the decision to return a pod (6.5). The PC only places what it is told to place.
 
@@ -831,6 +832,7 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 | M7 | abort_rate, go_around_rate, latch_abort_count, divert_count | abort_rate = SHIPMENT orders closed DIVERTED or FAILED / SHIPMENT orders closed (DELIVERED + DIVERTED + FAILED). go_around_rate = go-arounds / `APPROACH_DONE` count (all approaches in W). latch_abort_count = V30 count. divert_count = DIVERTED alerts. | FM order closure; D05; V30; 6.6 | 1, 1, count, count |
 
 | M8 | truck_cost_per_delivery, drone_cost_per_delivery, cost_ratio, breakeven_deliveries_per_drone_h, actual_deliveries_per_drone_h | Truck: mean of `truck_cost` (below) over M2's orders. Drone: (`costs.drone_per_s` * `drone.fleet_size` * T_W + `costs.energy_per_j` * E_grid) / count(M1), with E_grid = energy added in W / `charging.efficiency`. cost_ratio = drone / truck. Break-even = `costs.drone_per_s` * 3600 / (truck_cost_per_delivery - E_grid cost per delivery): the deliveries per drone-hour at which the drone cost per delivery equals the truck's; null if the denominator is <= 0 or there are no deliveries. Actual = count(M1) / `drone.fleet_size` / (T_W / 3600). | FM order closure; V33 | cu, cu, 1, 1/h, 1/h |
+| M9 | requests_rejected, rejected_fraction | requests_rejected = SHIPMENT_REQUESTs in W turned away at a full backlog; rejected_fraction = requests_rejected / all SHIPMENT_REQUESTs in W. A rejected request never becomes an order, so it appears in no other metric except M6. | P08 | count, 1 |
 
 Truck baseline per order:
 
@@ -967,6 +969,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | policy.marker_max_hold_cycles | count | Marker hold cycles before divert. |
 | policy.pod_min_per_pad | count | Pod rebalancing threshold. |
 | demand.deadline_offset_s | s | Deadline = request + this. |
+| demand.max_backlog_per_pad | count | Optional, 1 to 65535. Shipment requests a pad queues before it rejects new ones (P08, M9). Absent: no cap, the backlog grows without limit when a pad cannot keep up. |
 | demand.flows[].origin | - | Origin pad name. |
 | demand.flows[].destination | - | Destination pad name. |
 | demand.flows[].rate_per_h | 1/h | Poisson rate of shipment requests. |
@@ -1310,6 +1313,15 @@ that:
 - A51 Raw data are one snapshot (the OSM extract changes daily). `derived/` is committed and
   its `manifest.json` records each source's sha256, so results stay reproducible; a fresh
   download gives a slightly different network.
+- A52 Pipeline scenarios size the fleet by one rule: offered drone-hours per hour (each order
+  flown out loaded and back with an empty pod, with its pad service and the charging time for
+  both legs) divided by a placeholder target utilisation, rounded up. Demand runs from each
+  warehouse pad to every pad its drones can reach under R16; flows they cannot reach are
+  logged and left out.
+- A53 A pad that cannot keep up queues shipment requests without limit unless
+  `demand.max_backlog_per_pad` is set; with it, a request that finds the backlog full is turned
+  away (P08), as a shipper would book another carrier. Rejected requests are counted (M9) and
+  are not orders, so they carry no drone or truck time.
 
 ## 11 Amendments
 
@@ -1321,4 +1333,4 @@ that:
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
-| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. |
+| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53 | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |

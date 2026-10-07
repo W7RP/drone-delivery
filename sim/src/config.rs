@@ -220,6 +220,9 @@ pub struct Config {
     pub handshake: HandshakeCfg,
     pub policy: PolicyCfg,
     pub deadline_offset_ms: TimeMs,
+    /// `demand.max_backlog_per_pad`: requests a pad holds before rejecting new ones (P08);
+    /// None when the key is absent (no cap).
+    pub max_backlog_per_pad: Option<u16>,
     pub flows: Vec<Flow>,
     pub truck: TruckCfg,
     pub hist_bin_ms: TimeMs,
@@ -553,7 +556,16 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     let pad_ops = parse_pad_ops(&top.section("pad_ops")?)?;
     let handshake = parse_handshake(&top.section("handshake")?)?;
     let policy = parse_policy(&top.section("policy")?)?;
-    let (deadline_offset_ms, flows) = parse_demand(&top.section("demand")?, &names, &pads)?;
+    let demand = top.section("demand")?;
+    let (deadline_offset_ms, flows) = parse_demand(&demand, &names, &pads)?;
+    let max_backlog_per_pad = if demand.has("max_backlog_per_pad") {
+        Some(narrow(
+            demand.count("max_backlog_per_pad", 1, i64::from(u16::MAX))?,
+            "demand.max_backlog_per_pad",
+        )?)
+    } else {
+        None
+    };
     let truck = parse_truck(&top.section("truck")?)?;
     if truck.matrix_source == MatrixSource::File {
         let Some(files) = network_files.as_mut() else {
@@ -616,6 +628,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         handshake,
         policy,
         deadline_offset_ms,
+        max_backlog_per_pad,
         flows,
         truck,
         hist_bin_ms,
@@ -1020,6 +1033,7 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
 fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(TimeMs, Vec<Flow>)> {
     d.allow(&[
         "deadline_offset_s",
+        "max_backlog_per_pad",
         "flows",
         "rate_per_pad_per_h",
         "hub_weight",

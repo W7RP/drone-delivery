@@ -554,6 +554,14 @@
         "deadline_offset_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
         },
+        "max_backlog_per_pad": {
+          "$ref": "common.schema.json#/$defs/q_count_pos",
+          "properties": {
+            "value": {
+              "maximum": 65535
+            }
+          }
+        },
         "flows": {
           "type": "array",
           "minItems": 1,
