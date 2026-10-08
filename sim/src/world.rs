@@ -40,6 +40,9 @@ pub fn narrow_f32(v: f64) -> f32 {
     v as f32
 }
 
+/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3), for the per-spot occupancy check.
+#[cfg(debug_assertions)]
+const SPOT_CODES: usize = 5;
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
 /// Initial backlog capacity per pad when `demand.max_backlog_per_pad` is absent; it grows as needed.
@@ -78,13 +81,8 @@ pub struct PadSt {
     pub in_reserved: DroneId,
     pub in_pod: PodId,
     pub in_pod_removal_scheduled: bool,
-    pub out_drone: DroneId,
-    pub out_reserved: DroneId,
-    pub out_pod: PodId,
-    pub out_placing: bool,
-    pub placing: Placement,
-    pub pickup_drone: DroneId,
-    pub pickup_order: OrderId,
+    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3.
+    pub outs: Vec<OutSpot>,
     /// Empty pods physically in inventory, reserved or not.
     pub inventory: Vec<PodId>,
     /// Unreserved count (`PadState.empty_pods`).
@@ -100,6 +98,39 @@ pub struct PadSt {
     pub latch_fault: bool,
     pub deferred: Vec<Entry>,
     pub msg_seq: u32,
+}
+
+/// One OUT spot: the drone on it or granted it, the pod on it or being placed, and the drone
+/// assigned to pick that pod up.
+#[derive(Clone, Copy, Debug)]
+pub struct OutSpot {
+    pub drone: DroneId,
+    pub reserved: DroneId,
+    pub pod: PodId,
+    pub placing: bool,
+    pub placement: Placement,
+    pub pickup_drone: DroneId,
+    pub pickup_order: OrderId,
+}
+
+impl OutSpot {
+    fn empty() -> OutSpot {
+        OutSpot {
+            drone: NO_DRONE,
+            reserved: NO_DRONE,
+            pod: NO_POD,
+            placing: false,
+            placement: Placement {
+                pod: NO_POD,
+                kind: OrderKind::Shipment,
+                dest: NO_PAD,
+                requested: 0,
+                deadline: 0,
+            },
+            pickup_drone: NO_DRONE,
+            pickup_order: NO_ORDER,
+        }
+    }
 }
 
 /// The PC's record of one drone's pass through its pad, indexed by `visit_index(pad, drone)`.
@@ -124,6 +155,8 @@ pub struct Visit {
     pub locked: bool,
     pub service_sent: bool,
     pub held_since: TimeMs,
+    /// OUT spot a hop is going to (V21), 0-based.
+    pub hop_out: u8,
 }
 
 impl Visit {
@@ -148,6 +181,7 @@ impl Visit {
             locked: false,
             service_sent: false,
             held_since: 0,
+            hop_out: 0,
         }
     }
 
@@ -205,6 +239,8 @@ pub struct DroneSt {
     pub last_report_quiet_ms: TimeMs,
     pub service_done: bool,
     pub approach_spot: Spot,
+    /// OUT spot the last HOP_CMD named.
+    pub hop_out: u8,
     pub cmd_attempt: u8,
     /// Pad and time of the last physical departure, for the PC-occupancy invariant.
     pub left_pad: PadId,
@@ -281,6 +317,7 @@ impl World {
             cfg.hist_max_ms,
             n_pads,
             n_drones,
+            usize::from(cfg.pad_ops.out_spots),
         );
         let total_pods = cfg.total_pods() as usize;
         let mut pads = Vec::with_capacity(n_pads);
@@ -306,19 +343,7 @@ impl World {
                 in_reserved: NO_DRONE,
                 in_pod: NO_POD,
                 in_pod_removal_scheduled: false,
-                out_drone: NO_DRONE,
-                out_reserved: NO_DRONE,
-                out_pod: NO_POD,
-                out_placing: false,
-                placing: Placement {
-                    pod: NO_POD,
-                    kind: OrderKind::Shipment,
-                    dest: NO_PAD,
-                    requested: 0,
-                    deadline: 0,
-                },
-                pickup_drone: NO_DRONE,
-                pickup_order: NO_ORDER,
+                outs: vec![OutSpot::empty(); usize::from(p.out_spots)],
                 inventory: inv,
                 empty_pods: p.initial_empty_pods,
                 // A capped backlog never grows past its cap, so it never reallocates.
@@ -378,6 +403,7 @@ impl World {
                 last_report_quiet_ms: 0,
                 service_done: false,
                 approach_spot: Spot::In,
+                hop_out: 0,
                 cmd_attempt: 0,
                 left_pad: NO_PAD,
                 left_pad_at: 0,
@@ -409,7 +435,7 @@ impl World {
             out,
             ended: false,
             #[cfg(debug_assertions)]
-            scratch: vec![0; total_pods.max(n_pads * 3)],
+            scratch: vec![0; total_pods.max(n_pads * SPOT_CODES)],
             net,
             cfg,
         };
@@ -433,13 +459,19 @@ impl World {
                 drone.spot = Some(Spot::Parking);
                 self.pads[p].parked += 1;
             } else {
-                drone.spot = Some(Spot::Out);
-                self.pads[p].out_drone = id;
-                self.metrics.spot_occupied(p, false, true, 0);
+                // Without parking, drones start on the pad's OUT spots, one each (R4).
+                let k = self.pads[p]
+                    .outs
+                    .iter()
+                    .position(|o| o.drone == NO_DRONE)
+                    .expect("R4: no more drones than OUT spots");
+                drone.spot = Some(Spot::out(k));
+                self.pads[p].outs[k].drone = id;
+                self.metrics.spot_occupied(p, Some(k), true, 0);
                 let mut v = Visit::closed();
                 v.pad = pad;
                 v.state = VisitState::Ready;
-                v.spot = Spot::Out;
+                v.spot = Spot::out(k);
                 v.outcome = VisitOutcome::Open;
                 v.soc = self.drones[d].soc;
                 let i = self.visit_index(pad, id);
@@ -1038,9 +1070,11 @@ impl World {
                 mark(pod, "inventory");
             }
             mark(pad.in_pod, "IN");
-            mark(pad.out_pod, "OUT");
-            if pad.out_placing {
-                mark(pad.placing.pod, "placing");
+            for o in &pad.outs {
+                mark(o.pod, "OUT");
+                if o.placing {
+                    mark(o.placement.pod, "placing");
+                }
             }
         }
         for d in &self.drones {
@@ -1063,7 +1097,7 @@ impl World {
 
         let n_pads = self.pads.len();
         let occ = &mut self.scratch;
-        occ[..n_pads * 3].fill(0);
+        occ[..n_pads * SPOT_CODES].fill(0);
         for (i, d) in self.drones.iter().enumerate() {
             assert!(
                 d.soc.is_finite() && d.soc >= 0.0,
@@ -1072,19 +1106,23 @@ impl World {
                 self.now
             );
             if let (Some(spot), true) = (d.spot, d.pad != NO_PAD) {
-                let slot = usize::from(d.pad) * 3 + usize::from(spot.code());
+                let slot = usize::from(d.pad) * SPOT_CODES + usize::from(spot.code());
                 occ[slot] += 1;
             }
         }
         for p in 0..n_pads {
+            let at = |spot: Spot| occ[p * SPOT_CODES + usize::from(spot.code())];
             assert!(
-                occ[p * 3] <= 1 && occ[p * 3 + 1] <= 1,
+                Spot::ALL
+                    .iter()
+                    .filter(|&&s| s != Spot::Parking)
+                    .all(|&s| at(s) <= 1),
                 "two drones on one spot at pad {p}, t={}",
                 self.now
             );
             let cap = self.pads[p].parking_capacity;
             assert!(
-                u16::from(occ[p * 3 + 2]) <= cap,
+                u16::from(at(Spot::Parking)) <= cap,
                 "parking over capacity at pad {p}, t={}",
                 self.now
             );
@@ -1099,7 +1137,7 @@ impl World {
             if pad.mode == PadMode::ControllerFault {
                 continue;
             }
-            for d in [pad.in_drone, pad.out_drone] {
+            for d in std::iter::once(pad.in_drone).chain(pad.outs.iter().map(|o| o.drone)) {
                 if d == NO_DRONE {
                     continue;
                 }
@@ -1140,7 +1178,7 @@ impl World {
                     let on_pad = self
                         .pads
                         .iter()
-                        .any(|p| p.out_pod == pod || p.in_pod == pod);
+                        .any(|p| p.in_pod == pod || p.outs.iter().any(|o| o.pod == pod));
                     assert!(
                         on_drone || on_pad,
                         "open order {} lost its pod {pod}",

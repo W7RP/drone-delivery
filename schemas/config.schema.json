@@ -512,6 +512,12 @@
         },
         "marker_self_check": {
           "type": "boolean"
+        },
+        "out_spots": {
+          "$ref": "common.schema.json#/$defs/q_out_spots"
+        },
+        "parking_capacity": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
         }
       },
       "dependentRequired": {

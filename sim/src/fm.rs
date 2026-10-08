@@ -44,12 +44,13 @@ impl FmDrone {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct FmPad {
     pub mode: PadMode,
     pub empty_pods: u32,
     pub backlog_len: u16,
-    pub out_pod: PodId,
+    /// Pod waiting on each OUT spot, as FM last heard (POD_PLACED, POD_LATCHED, PAD_STATUS).
+    pub out_pods: Vec<PodId>,
     pub returns_inbound: u32,
     /// The pad reported an unreadable fiducial (A35): no drone is sent to land there.
     pub marker_fault: bool,
@@ -268,7 +269,7 @@ impl Fm {
                     mode: PadMode::Online,
                     empty_pods: p.initial_empty_pods,
                     backlog_len: 0,
-                    out_pod: NO_POD,
+                    out_pods: vec![NO_POD; usize::from(p.out_spots)],
                     returns_inbound: 0,
                     marker_fault: false,
                 })
@@ -313,6 +314,14 @@ impl Fm {
         } else {
             self.pods[pod as usize].order
         }
+    }
+
+    /// The drone is on an OUT spot with no pod on it, so it may park there (6.4).
+    fn parks_on_free_out(&self, d: DroneId) -> bool {
+        let fd = &self.drones[usize::from(d)];
+        fd.spot
+            .and_then(Spot::out_index)
+            .is_some_and(|k| self.pads[usize::from(fd.pad)].out_pods[k] == NO_POD)
     }
 
     fn claim_of(&self, d: usize) -> PadId {
@@ -618,8 +627,8 @@ impl DroneRebalancingPolicy for NearestUnclaimed {
         {
             return Some(reposition(q));
         }
-        let can_park_here = v.cfg.pads[usize::from(p)].parking_capacity > 0
-            || (fd.spot == Some(Spot::Out) && v.fm.pads[usize::from(p)].out_pod == NO_POD);
+        let can_park_here =
+            v.cfg.pads[usize::from(p)].parking_capacity > 0 || v.fm.parks_on_free_out(d);
         if v.unclaimed_for(p, d) && can_park_here {
             return Some(Mission {
                 kind: MissionKind::Park,
@@ -811,8 +820,10 @@ impl World {
                 requested,
                 deadline,
                 payload_kg,
+                out_index,
             } => {
                 self.fm_pod_placed(sent, pad, pod, kind, dest, requested, deadline, payload_kg);
+                self.fm.pads[usize::from(pad)].out_pods[usize::from(out_index)] = pod;
             }
             Msg::PodLatched { pod, drone, .. } => self.fm_pod_latched(sent, pod, drone),
             Msg::PodDelivered { pad, pod, drone } => self.fm_pod_delivered(sent, pad, pod, drone),
@@ -900,7 +911,6 @@ impl World {
         rec.order = order_id;
         rec.loaded = kind == OrderKind::Shipment;
         rec.return_dest = NO_PAD;
-        self.fm.pads[usize::from(pad)].out_pod = pod;
         self.fm.unassigned.push(order_id);
         self.fm_run_assignment();
         self.fm_rebalance_pods(pad, None);
@@ -914,7 +924,11 @@ impl World {
         rec.pad = NO_PAD;
         rec.drone = drone;
         if pad != NO_PAD {
-            self.fm.pads[usize::from(pad)].out_pod = NO_POD;
+            for slot in &mut self.fm.pads[usize::from(pad)].out_pods {
+                if *slot == pod {
+                    *slot = NO_POD;
+                }
+            }
         }
         let fd = self.fd_mut(drone);
         fd.pod = pod;
@@ -1033,7 +1047,7 @@ impl World {
         fp.mode = mode;
         fp.empty_pods = u32::from(empty_pods);
         fp.backlog_len = backlog_len;
-        fp.out_pod = out_pod;
+        fp.out_pods[0] = out_pod;
         fp.marker_fault = marker_fault;
         if marker_fault && !marker_was {
             self.fm_withdraw_pickups(pad);
@@ -1097,7 +1111,7 @@ impl World {
             return;
         }
         let fd = self.fm.drones[usize::from(out_drone)];
-        if fd.mode == DroneMode::Parked && fd.pad == pad && fd.spot == Some(Spot::Out) {
+        if fd.mode == DroneMode::Parked && fd.pad == pad && fd.spot.is_some_and(Spot::is_out) {
             self.fm.refresh_claims();
             let mission = {
                 let v = self.view();
@@ -1163,10 +1177,11 @@ impl World {
                 fd.last_pad = pad;
                 fd.dest = pad;
                 fd.mission = MissionKind::Park;
+                // Without parking the drone stays on the OUT spot it reported last.
                 fd.spot = Some(if has_parking {
                     Spot::Parking
                 } else {
-                    Spot::Out
+                    prev.spot.filter(|s| s.is_out()).unwrap_or(Spot::Out)
                 });
                 // A pickup assigned while the drone was moving into parking is started now.
                 let pickup = fd.pickup_order;
@@ -1340,10 +1355,8 @@ impl World {
             None => {
                 let pad = self.fm.drones[usize::from(d)].pad;
                 self.fm_alert_stranded(d, pad, NO_ORDER);
-                let fd = self.fm.drones[usize::from(d)];
                 let parkable = self.cfg.pads[usize::from(pad)].parking_capacity > 0
-                    || (fd.spot == Some(Spot::Out)
-                        && self.fm.pads[usize::from(pad)].out_pod == NO_POD);
+                    || self.fm.parks_on_free_out(d);
                 if parkable {
                     self.fm_send_mission(
                         d,
@@ -1518,7 +1531,7 @@ impl World {
             i != usize::from(incoming)
                 && fd.mode == DroneMode::Parked
                 && fd.pad == pad
-                && fd.spot == Some(Spot::Out)
+                && fd.spot.is_some_and(Spot::is_out)
         });
         let Some(e) = parked else { return };
         let e = DroneId::try_from(e).expect("fleet size fits u16");

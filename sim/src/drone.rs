@@ -253,22 +253,23 @@ impl World {
                     self.after(ms, Ev::ReleaseDone { drone: d, pad });
                 }
             }
-            Msg::HopCmd { pad, .. } if mode == DroneMode::OnPad => {
+            Msg::HopCmd { pad, out_index, .. } if mode == DroneMode::OnPad => {
                 self.disarm_response(d);
                 match self.dr(d).spot {
                     Some(Spot::In) => {
+                        self.dr_mut(d).hop_out = out_index;
                         self.drone_to(d, tcode::d(15), DroneMode::Hopping);
                         self.after(
                             ms_from_s(self.cfg.drone.hop_s),
                             Ev::HopDone { drone: d, pad },
                         );
                     }
-                    Some(Spot::Out) => self.resend_report(d),
+                    Some(s) if s.is_out() => self.resend_report(d),
                     _ => {}
                 }
             }
             Msg::LatchCmd { pad, attempt, .. }
-                if mode == DroneMode::OnPad && self.dr(d).spot == Some(Spot::Out) =>
+                if mode == DroneMode::OnPad && self.dr(d).spot.is_some_and(Spot::is_out) =>
             {
                 self.disarm_response(d);
                 if attempt <= self.dr(d).done_latch_attempt {
@@ -418,7 +419,7 @@ impl World {
                     return;
                 }
                 if self.pads[usize::from(dr.pad)].parking_capacity == 0 {
-                    if dr.spot == Some(Spot::Out) && dr.mode == DroneMode::OnPad {
+                    if dr.spot.is_some_and(Spot::is_out) && dr.mode == DroneMode::OnPad {
                         self.dr_mut(d).park_since = self.now;
                         self.drone_to(d, tcode::d(18), DroneMode::Parked);
                         self.status(d);
@@ -483,9 +484,10 @@ impl World {
             }
             Ev::HopDone { drone, pad } => {
                 self.hover(drone, self.cfg.drone.hop_s);
-                self.dr_mut(drone).spot = Some(Spot::Out);
+                let spot = Spot::out(usize::from(self.dr(drone).hop_out));
+                self.dr_mut(drone).spot = Some(spot);
                 self.drone_to(drone, tcode::d(15), DroneMode::OnPad);
-                self.landed(drone, pad, Spot::Out);
+                self.landed(drone, pad, spot);
             }
             Ev::ReleaseDone { drone, pad } => self.release_done(drone, pad),
             Ev::LatchDone { drone, pad } => self.latch_done(drone, pad),
@@ -683,7 +685,8 @@ impl World {
             1.0 - self.cfg.drone.p_latch_fault
         };
         let locked = self.rng.latch[usize::from(d)].bernoulli(p_ok);
-        let out_pod = self.pads[usize::from(pad)].out_pod;
+        let k = self.dr(d).spot.and_then(Spot::out_index).unwrap_or(0);
+        let out_pod = self.pads[usize::from(pad)].outs[k].pod;
         let mass = if out_pod == NO_POD {
             0.0
         } else {
@@ -695,7 +698,7 @@ impl World {
         if locked && out_pod != NO_POD {
             dr.pod = out_pod;
             dr.payload_kg = mass;
-            self.pads[usize::from(pad)].out_pod = NO_POD;
+            self.pads[usize::from(pad)].outs[k].pod = NO_POD;
         }
         let msg = Msg::LatchReport {
             drone: d,

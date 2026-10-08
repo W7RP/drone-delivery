@@ -78,6 +78,8 @@ pub enum Msg {
     HopCmd {
         pad: PadId,
         drone: DroneId,
+        /// 0-based OUT spot to hop to (A72); 0 at a pad with one OUT spot.
+        out_index: u8,
     },
     LatchCmd {
         pad: PadId,
@@ -145,6 +147,8 @@ pub enum Msg {
         requested: TimeMs,
         deadline: TimeMs,
         payload_kg: f32,
+        /// 0-based OUT spot the pod was placed on (A72).
+        out_index: u8,
     },
     PodLatched {
         pad: PadId,
@@ -352,7 +356,12 @@ impl Msg {
                 drone,
                 attempt,
             } => a.u16(pad).u16(drone).u8(attempt),
-            Msg::HopCmd { pad, drone } | Msg::DepartClear { pad, drone } => a.u16(pad).u16(drone),
+            Msg::HopCmd {
+                pad,
+                drone,
+                out_index,
+            } => a.u16(pad).u16(drone).u8(out_index),
+            Msg::DepartClear { pad, drone } => a.u16(pad).u16(drone),
             Msg::LatchCmd {
                 pad,
                 drone,
@@ -443,6 +452,7 @@ impl Msg {
                 requested,
                 deadline,
                 payload_kg,
+                out_index,
             } => a
                 .u16(pad)
                 .u32(pod)
@@ -450,7 +460,8 @@ impl Msg {
                 .u16(dest)
                 .u64(requested)
                 .u64(deadline)
-                .f32(payload_kg),
+                .f32(payload_kg)
+                .u8(out_index),
             Msg::PodLatched { pad, pod, drone } | Msg::PodDelivered { pad, pod, drone } => {
                 a.u16(pad).u32(pod).u16(drone)
             }
