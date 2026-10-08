@@ -1,0 +1,32 @@
+{
+ "n": 15,
+ "capture_radius_m": 0.15,
+ "current_p_latch_fault": 0.01,
+ "families": {
+  "rayleigh": {
+   "bias_m": 0.0,
+   "sigma_m": 0.0664481552289703,
+   "aic": -55.372318389907015,
+   "p_miss": 0.0782438418592681
+  },
+  "rice": {
+   "bias_m": 0.08003523204675218,
+   "sigma_m": 0.034821452725140145,
+   "aic": -56.39767009769555,
+   "p_miss": 0.03212880104821603
+  }
+ },
+ "chosen": "rice",
+ "week_seeds_1_to_5": {
+  "current": {
+   "latch_abort_count": 1.0,
+   "drone_mean_s": 1199.2873344396853,
+   "deliveries_per_h": 7.796407185628743
+  },
+  "derived": {
+   "latch_abort_count": 2.2,
+   "drone_mean_s": 1178.686503569137,
+   "deliveries_per_h": 7.608383233532933
+  }
+ }
+}

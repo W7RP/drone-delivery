@@ -24,7 +24,7 @@ pub const SCHEMA_VERSION: &str = "1.6.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 7] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 10] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -32,6 +32,14 @@ const VERSIONED_KEYS: [(&str, &str, &str); 7] = [
     ("pad_ops", "repair_spread_s", "1.6.0"),
     ("pad_ops", "marker_self_check", "1.6.0"),
     ("handshake", "reorder_window_s", "1.6.0"),
+    ("drone", "latch_capture_radius_m", "1.6.0"),
+    ("drone", "out_landing_error_bias_m", "1.6.0"),
+    ("drone", "out_landing_error_sigma_m", "1.6.0"),
+];
+const LATCH_DERIVATION_KEYS: [&str; 3] = [
+    "latch_capture_radius_m",
+    "out_landing_error_bias_m",
+    "out_landing_error_sigma_m",
 ];
 
 /// Schema versions are "1.<minor>.0"; compare by minor.
@@ -160,7 +168,17 @@ pub struct DroneCfg {
     pub go_around_s: f64,
     pub hop_s: f64,
     pub p_release_fault: f64,
+    /// Given, or derived from the OUT landing error and the latch capture radius (A71).
     pub p_latch_fault: f64,
+    pub latch_derivation: Option<LatchDerivation>,
+}
+
+/// Where a derived `p_latch_fault` came from (A71).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LatchDerivation {
+    pub capture_radius_m: f64,
+    pub out_error_bias_m: f64,
+    pub out_error_sigma_m: f64,
 }
 
 /// Battery mass that follows capacity (A68): empty mass = airframe + capacity / specific energy.
@@ -1013,6 +1031,9 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         "hop_s",
         "p_release_fault",
         "p_latch_fault",
+        "latch_capture_radius_m",
+        "out_landing_error_bias_m",
+        "out_landing_error_sigma_m",
     ])?;
     let fleet_size: u16 = narrow(d.count("fleet_size", 1, 65_534)?, "drone.fleet_size")?;
     let initial_pads = if d.has("initial_pads") {
@@ -1050,6 +1071,28 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
     } else {
         None
     };
+    let derived = LATCH_DERIVATION_KEYS.iter().filter(|k| d.has(k)).count();
+    let latch_derivation = match (derived, d.has("p_latch_fault")) {
+        (0, true) => None,
+        (3, false) => Some(LatchDerivation {
+            capture_radius_m: d.quantity("latch_capture_radius_m", "m", Range::Pos)?,
+            out_error_bias_m: d.quantity("out_landing_error_bias_m", "m", Range::NonNeg)?,
+            out_error_sigma_m: d.quantity("out_landing_error_sigma_m", "m", Range::Pos)?,
+        }),
+        _ => {
+            return err(
+                "drone: give p_latch_fault, or latch_capture_radius_m with out_landing_error_bias_m and out_landing_error_sigma_m",
+            );
+        }
+    };
+    let p_latch_fault = match latch_derivation {
+        Some(l) => crate::flight::landing_miss_probability(
+            l.out_error_bias_m,
+            l.out_error_sigma_m,
+            l.capture_radius_m,
+        ),
+        None => d.quantity("p_latch_fault", "1", Range::Prob)?,
+    };
     let empty_mass_kg = match mass_coupling {
         Some(c) => c.empty_mass_kg(battery_capacity_j),
         None => d.quantity("empty_mass_kg", "kg", Range::Pos)?,
@@ -1074,7 +1117,8 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         go_around_s: d.quantity("go_around_s", "s", Range::Pos)?,
         hop_s: d.quantity("hop_s", "s", Range::Pos)?,
         p_release_fault: d.quantity("p_release_fault", "1", Range::Prob)?,
-        p_latch_fault: d.quantity("p_latch_fault", "1", Range::Prob)?,
+        p_latch_fault,
+        latch_derivation,
     })
 }
 

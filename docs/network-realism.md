@@ -157,3 +157,28 @@ DEPARTED 300 ms late.
 A third test holds DEPARTED for 3 s against a 1 s window. The request is released exactly one
 window after it arrived, and the late DEPARTED still closes the departure. With message loss,
 each lost radio message delays the next one on its link by up to the window (A70).
+
+## 6. Latch failures from the landing error
+
+`drone.p_latch_fault` was a 1% guess, unrelated to how accurately drones land. A latch closes
+only on a pod inside its capture funnel, a placeholder 0.15 m from the OUT spot centre (the PX4
+harness's value, A55). With `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`
+and `drone.out_landing_error_sigma_m`, the core derives the probability itself (A71): a 2-D
+Gaussian touchdown with that bias and spread lies at a Rice-distributed distance from the
+spot, and a latch attempt fails when it lies outside the funnel.
+
+The 15 Phase 4 OUT landings (2.9 to 13.6 cm, `analysis/data/phase4_out_landing_error.json`)
+are fitted by maximum likelihood (`analysis/latch.py`):
+
+| Model | Bias (cm) | Spread (cm) | AIC | p_latch_fault per attempt |
+|---|---|---|---|---|
+| Current placeholder | | | | 0.0100 |
+| Rayleigh | 0.0 | 6.6 | -55.4 | 0.0782 |
+| Rice (chosen) | 8.0 | 3.5 | -56.4 | 0.0321 |
+
+The derived value is about three times the placeholder. That is an extrapolation: none of the
+15 landings missed the funnel, and Rice wins on AIC by only 1.0, with Rayleigh more than
+doubling the tail. Over a placeholder Pittsburgh week (seeds 1-5), latch aborts rise from 1.0
+to 2.2 per run; door-to-door (1199 s against 1179 s) and deliveries per hour (7.80 against
+7.61) move by less than the spread between seeds. Each attempt draws anew, so the one retry
+usually saves the pickup (A71). Marker detection stays at 0.97.

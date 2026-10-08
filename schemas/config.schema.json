@@ -259,8 +259,7 @@
         "approach_s",
         "go_around_s",
         "hop_s",
-        "p_release_fault",
-        "p_latch_fault"
+        "p_release_fault"
       ],
       "additionalProperties": false,
       "properties": {
@@ -330,18 +329,47 @@
         },
         "p_latch_fault": {
           "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "latch_capture_radius_m": {
+          "$ref": "common.schema.json#/$defs/q_m_pos"
+        },
+        "out_landing_error_bias_m": {
+          "$ref": "common.schema.json#/$defs/q_m_nonneg"
+        },
+        "out_landing_error_sigma_m": {
+          "$ref": "common.schema.json#/$defs/q_m_pos"
         }
       },
-      "oneOf": [
+      "allOf": [
         {
-          "required": [
-            "empty_mass_kg"
+          "oneOf": [
+            {
+              "required": [
+                "empty_mass_kg"
+              ]
+            },
+            {
+              "required": [
+                "airframe_mass_kg",
+                "battery_specific_energy_wh_per_kg"
+              ]
+            }
           ]
         },
         {
-          "required": [
-            "airframe_mass_kg",
-            "battery_specific_energy_wh_per_kg"
+          "oneOf": [
+            {
+              "required": [
+                "p_latch_fault"
+              ]
+            },
+            {
+              "required": [
+                "latch_capture_radius_m",
+                "out_landing_error_bias_m",
+                "out_landing_error_sigma_m"
+              ]
+            }
           ]
         }
       ]

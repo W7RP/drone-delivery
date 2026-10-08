@@ -592,6 +592,17 @@
         }
       }
     },
+    "q_m_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
     "q_cost_per_m": {
       "$ref": "#/$defs/quantity",
       "properties": {
