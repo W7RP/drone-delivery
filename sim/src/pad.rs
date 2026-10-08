@@ -428,6 +428,8 @@ impl World {
                 let ms = self.cfg.pad_ops.latch_verify_ms;
                 self.pc_timer_arm(p, d, TimerKind::PcVerifyLockDone, ms);
             }
+            (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
+                if mission == MissionKind::Pickup && dest == p && self.hop_to_pickup(p, d) => {}
             (VisitState::Ready, Msg::DepartRequest { mission, .. }) => {
                 self.visit_mut(p, d).depart_mission = mission;
                 if !self.pad(p).depart_queue.contains(&d) {
@@ -592,12 +594,37 @@ impl World {
         });
     }
 
-    /// V24 to V26 (or V13-style fallback from the hop timeout).
+    /// V43: a drone on one OUT spot asks to leave for a pickup at this pad while its pod waits
+    /// on another OUT spot. It hops there on the ground instead of taking off and queueing to
+    /// land again (A72). Returns whether the hop was commanded.
+    fn hop_to_pickup(&mut self, p: PadId, d: DroneId) -> bool {
+        // Only an empty drone: one that latched a pod in this visit leaves as a normal departure.
+        let v = self.visit(p, d);
+        if !v.spot.is_out() || v.locked {
+            return false;
+        }
+        let Some(k) = self.out_for(p, d, false, false) else {
+            return false;
+        };
+        self.out_mut(p, k).reserved = d;
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_to(p, d, tcode::v(43), VisitState::Hopping);
+        self.send_hop(p, d);
+        true
+    }
+
+    /// V24 to V26 (or V13-style fallback from the hop timeout): the drone has hopped from IN, or
+    /// from another OUT spot (V43), to its OUT spot.
     fn pc_hop_landed(&mut self, p: PadId, d: DroneId, soc: f32, fallback: Option<u16>) {
         self.free_reservation(p, d);
         self.visit_mut(p, d).soc = soc;
-        self.set_in_drone(p, NO_DRONE);
-        self.drone_left_in(p);
+        match self.visit(p, d).spot.out_index() {
+            Some(from) => self.set_out_drone(p, from, NO_DRONE),
+            None => {
+                self.set_in_drone(p, NO_DRONE);
+                self.drone_left_in(p);
+            }
+        }
         let k = usize::from(self.visit(p, d).hop_out);
         self.set_out_drone(p, k, d);
         self.visit_mut(p, d).spot = Spot::out(k);

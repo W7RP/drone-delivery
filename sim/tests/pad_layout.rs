@@ -140,3 +140,29 @@ fn layout_keys_are_checked() {
     let t = busy_two_drones(layout(base(), 2, Some(0)));
     assert!(run(&t).summary["deliveries_per_h"].as_f64().expect("rate") > 0.0);
 }
+
+/// One drone parked on A's first OUT spot (no parking area), a second OUT spot for the pod.
+fn parked_on_out_two_spots() -> Table {
+    let mut t = layout(base(), 2, Some(0));
+    set(&mut t, "drone.initial_pads", Value::Array(vec!["A".into()]));
+    t
+}
+
+#[test]
+fn a_drone_on_one_out_spot_hops_to_its_pod_on_another() {
+    let r = run(&parked_on_out_two_spots());
+    let at_a = drone_pad_labels(&r, 0, A);
+    // The parked drone asks to leave for the pickup at its own pad, hops to the pod's spot on
+    // the ground (V43) instead of taking off and queueing, lands there and latches (V24).
+    assert_eq!(
+        window(&at_a, "V43", 4),
+        strs(&["V43", "D15", "D15", "V24"]),
+        "{at_a:?}"
+    );
+    assert!(
+        !at_a.iter().any(|l| l == "D20"),
+        "no local takeoff and re-landing"
+    );
+    assert!(!has_alert(&r, "DRONE_SILENT"), "the drone answers the hop");
+    assert!(r.summary["deliveries_per_h"].as_f64().expect("rate") > 0.0);
+}

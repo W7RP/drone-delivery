@@ -253,11 +253,35 @@ impl World {
                     self.after(ms, Ev::ReleaseDone { drone: d, pad });
                 }
             }
-            Msg::HopCmd { pad, out_index, .. } if mode == DroneMode::OnPad => {
+            Msg::HopCmd { pad, out_index, .. }
+                if matches!(mode, DroneMode::OnPad | DroneMode::Parked) =>
+            {
                 self.disarm_response(d);
                 match self.dr(d).spot {
-                    Some(Spot::In) => {
+                    Some(Spot::In) if mode == DroneMode::OnPad => {
                         self.dr_mut(d).hop_out = out_index;
+                        self.drone_to(d, tcode::d(15), DroneMode::Hopping);
+                        self.after(
+                            ms_from_s(self.cfg.drone.hop_s),
+                            Ev::HopDone { drone: d, pad },
+                        );
+                    }
+                    // V43: from one OUT spot to the one holding its pickup pod. The hop ends in a
+                    // new landing, so the latch bookkeeping starts afresh as after an approach.
+                    Some(s)
+                        if s.is_out()
+                            && s.out_index() != Some(usize::from(out_index))
+                            && self.dr(d).pod == NO_POD =>
+                    {
+                        // A drone parked on its OUT spot (D18) hops too; it collects any parked
+                        // charge first, as on any departure from parking (A16).
+                        self.apply_parked_charge(d);
+                        let dr = self.dr_mut(d);
+                        dr.hop_out = out_index;
+                        dr.service_done = false;
+                        dr.busy = false;
+                        dr.done_latch_attempt = 0;
+                        dr.last_report = None;
                         self.drone_to(d, tcode::d(15), DroneMode::Hopping);
                         self.after(
                             ms_from_s(self.cfg.drone.hop_s),
