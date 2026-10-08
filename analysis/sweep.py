@@ -28,8 +28,13 @@ Writes analysis/out/sweep.json and sweep.md: the table, the Pareto set (door-to-
 cost), and the chosen layout, the cheapest within 10% of the best mean door-to-door, which is
 also written as configs/parts_logistics_pittsburgh_1370wh_layout/scenario.toml.
 
-Run: uv run analysis/sweep.py"""
+Phase 6b adds `--base 900`: the same grid on the coupled 900 Wh network (fitted profile, 5 pads,
+4.5 kg airframe at 200 Wh/kg, spec A68) with the yield fix on (A74) at every point; it writes
+sweep_900wh.json/.md and configs/parts_logistics_pittsburgh_900wh_layout.
 
+Run: uv run analysis/sweep.py [--base 1370|900]"""
+
+import argparse
 import csv
 import json
 import re
@@ -37,6 +42,7 @@ import shutil
 import statistics
 import subprocess
 import tempfile
+from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
 
@@ -44,8 +50,37 @@ import tomli
 
 from variants import CONFIGS, OUT, SIM, build_sim, quantity, variant
 
-BASE = "parts_logistics_pittsburgh_battery_1370wh"
-CHOSEN = "parts_logistics_pittsburgh_1370wh_layout"
+# Coupled battery mass (A68) and the yield fix (A74), for the 900 Wh base of Phase 6b.
+AIRFRAME_KG = 4.5
+SPECIFIC_ENERGY_WH_PER_KG = 200.0
+
+
+@dataclass(frozen=True)
+class Base:
+    scenario: str
+    chosen: str
+    label: str
+    out_name: str
+    schema: str
+    # Keys every sweep point and the "with repair" reference also get.
+    extra: dict = field(default_factory=dict)
+    coupled: bool = False
+
+
+BASES = {
+    "1370": Base("parts_logistics_pittsburgh_battery_1370wh", "parts_logistics_pittsburgh_1370wh_layout",
+                 "1370 Wh", "sweep", "1.6.0"),
+    "900": Base("parts_logistics_pittsburgh", "parts_logistics_pittsburgh_900wh_layout",
+                "900 Wh", "sweep_900wh", "1.7.0",
+                extra={
+                    "schema_version": "1.7.0",
+                    "drone.empty_mass_kg": None,
+                    "drone.airframe_mass_kg": quantity(AIRFRAME_KG, "kg"),
+                    "drone.battery_specific_energy_wh_per_kg": quantity(SPECIFIC_ENERGY_WH_PER_KG, "Wh/kg"),
+                    "policy.yield_on_request": True,
+                },
+                coupled=True),
+}
 POWERS_W = [1500.0, 3000.0, 6000.0, 12000.0]
 PARKING = [0, 1, 2, 3]
 OUT_SPOTS = [1, 2, 3]
@@ -77,9 +112,10 @@ REPAIR = {
 }
 
 
-def edits(power_w: float, parking: int, out_spots: int) -> dict:
+def edits(base: Base, power_w: float, parking: int, out_spots: int) -> dict:
     return {
         **REPAIR,
+        **base.extra,
         "charging.power_w": power_w,
         "charging.charge_while_parked": parking > 0,
         "pad_ops.parking_capacity": quantity(parking, "count"),
@@ -158,24 +194,24 @@ def pareto(points: list[dict]) -> list[dict]:
     return front
 
 
-def write_chosen(point: dict) -> Path:
+def write_chosen(base: Base, point: dict) -> Path:
     """The chosen layout as a committed scenario: the base file's text with the layout keys set,
     so its comments and every other value stay as they are."""
-    text = (CONFIGS / BASE / "scenario.toml").read_text()
+    text = (CONFIGS / base.scenario / "scenario.toml").read_text()
     header = (
-        "# The 1370 Wh Pittsburgh scenario with the charging and pad layout chosen by\n"
-        "# analysis/sweep.py, which wrote this file from the 1370 Wh scenario and shares its network\n"
+        f"# The {base.label} Pittsburgh scenario with the charging and pad layout chosen by\n"
+        f"# analysis/sweep.py, which wrote this file from the {base.label} scenario and shares its network\n"
         "# files. Every number is a placeholder (assumption = true), not real data.\n"
     )
     text = header + text[text.index("\n\n") + 1:]
     parking = "no parking" if point["parking"] == 0 else f"{point['parking']} charging parking slots"
     subs = [
-        (r'^schema_version = "[^"]+"$', 'schema_version = "1.6.0"'),
-        (r'^name = "[^"]+"$', f'name = "{CHOSEN}"'),
+        (r'^schema_version = "[^"]+"$', f'schema_version = "{base.schema}"'),
+        (r'^name = "[^"]+"$', f'name = "{base.chosen}"'),
         (r'^description = "[^"]+"$',
-         f'description = "The 1370 Wh scenario with the charging and pad layout chosen by analysis/sweep.py: '
+         f'description = "The {base.label} scenario with the charging and pad layout chosen by analysis/sweep.py: '
          f'{point["power_w"] / 1000:g} kW chargers, {point["out_spots"]} OUT spots and {parking} at every pad, seven days."'),
-        (r'^dir = "derived"$', f'dir = "../{BASE}/derived"'),
+        (r'^dir = "derived"$', f'dir = "../{base.scenario}/derived"'),
         (r'^power_w = \{ value = [0-9.]+,', f'power_w = {{ value = {point["power_w"]},'),
         (r'^charge_while_parked = (true|false)$', f'charge_while_parked = {str(point["parking"] > 0).lower()}'),
     ]
@@ -194,27 +230,40 @@ def write_chosen(point: dict) -> Path:
     )
     text, n = re.subn(r"^(pc_fault_duration_s = .*\n)", r"\1" + layout.replace("\\", "\\\\"), text, count=1, flags=re.MULTILINE)
     assert n == 1
-    path = CONFIGS / CHOSEN / "scenario.toml"
+    if base.coupled:
+        coupled = (
+            "# Battery mass follows capacity (spec A68): 4.5 kg + 900 Wh / 200 Wh/kg = 9.0 kg.\n"
+            f'airframe_mass_kg = {{ value = {AIRFRAME_KG}, unit = "kg", assumption = true }}\n'
+            f'battery_specific_energy_wh_per_kg = {{ value = {SPECIFIC_ENERGY_WH_PER_KG}, unit = "Wh/kg", assumption = true }}\n'
+        )
+        text, n = re.subn(r"^empty_mass_kg = .*\n", coupled.replace("\\", "\\\\"), text, count=1, flags=re.MULTILINE)
+        assert n == 1
+        text, n = re.subn(r"^\[policy\]\n", "[policy]\n# Idle drones make room on request (spec A74).\nyield_on_request = true\n", text, count=1, flags=re.MULTILINE)
+        assert n == 1
+    path = CONFIGS / base.chosen / "scenario.toml"
     path.parent.mkdir(exist_ok=True)
     path.write_text(text)
     return path
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--base", choices=sorted(BASES), default="1370")
+    base = BASES[parser.parse_args().base]
     build_sim()
-    base_cfg = tomli.loads((CONFIGS / BASE / "scenario.toml").read_text())
+    base_cfg = tomli.loads((CONFIGS / base.scenario / "scenario.toml").read_text())
     window = (base_cfg["sim"]["warmup_s"]["value"] * 1000, base_cfg["sim"]["duration_s"]["value"] * 1000)
-    derived = CONFIGS / BASE / base_cfg["network_files"]["dir"]
+    derived = CONFIGS / base.scenario / base_cfg["network_files"]["dir"]
     n_pads = len(tomli.loads((derived / "pads.toml").read_text())["pads"])
     points = []
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        before = [run_one(CONFIGS / BASE / "scenario.toml", s, root / f"base_{s}", window) for s in SEEDS]
-        repaired = variant(BASE, root, "base_repair", REPAIR)
+        before = [run_one(CONFIGS / base.scenario / "scenario.toml", s, root / f"base_{s}", window) for s in SEEDS]
+        repaired = variant(base.scenario, root, "base_repair", {**REPAIR, **base.extra})
         before_repair = [run_one(repaired, s, root / f"base_repair_{s}", window) for s in SEEDS]
         for power_w, parking, out_spots in product(POWERS_W, PARKING, OUT_SPOTS):
             name = f"p{int(power_w)}_k{parking}_o{out_spots}"
-            path = variant(BASE, root, name, edits(power_w, parking, out_spots))
+            path = variant(base.scenario, root, name, edits(base, power_w, parking, out_spots))
             runs = [run_one(path, s, root / f"{name}_{s}", window) for s in SEEDS]
             point = {"power_w": power_w, "parking": parking, "out_spots": out_spots,
                      "cost_cu": cost_proxy(n_pads, power_w, parking, out_spots), "feasible": None not in runs}
@@ -229,7 +278,7 @@ def main() -> None:
                  key=lambda p: (p["cost_cu"], p["door_to_door_s"]["mean"]))
     front = pareto(points)
     result = {
-        "base": BASE, "seeds": SEEDS, "cost_cu": COST_CU, "n_pads": n_pads,
+        "base": base.scenario, "seeds": SEEDS, "cost_cu": COST_CU, "n_pads": n_pads,
         "before": stats_over(before),
         "before_with_repair": stats_over(before_repair),
         "points": points,
@@ -238,8 +287,8 @@ def main() -> None:
         "chosen": chosen,
     }
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "sweep.json").write_text(json.dumps(result, indent=1) + "\n")
-    write_chosen(chosen)
+    (OUT / f"{base.out_name}.json").write_text(json.dumps(result, indent=1) + "\n")
+    write_chosen(base, chosen)
     on_front = {(p["power_w"], p["parking"], p["out_spots"]) for p in front}
     fmt = lambda x: f"{x['mean']:.0f} ± {x['std']:.0f}"
     lines = [
@@ -254,7 +303,7 @@ def main() -> None:
         mark = "yes" if (p["power_w"], p["parking"], p["out_spots"]) in on_front else ""
         r = p["rejected_fraction"]
         lines.append(f"{head} {fmt(p['door_to_door_s'])} | {fmt(p['pod_wait_s'])} | {r['mean']:.1%} ± {r['std']:.1%} | {fmt(p['truck_s'])} | {mark} |")
-    (OUT / "sweep.md").write_text("\n".join(lines) + "\n")
+    (OUT / f"{base.out_name}.md").write_text("\n".join(lines) + "\n")
     for label in ("before", "before_with_repair"):
         b = result[label]
         print(f"{label}: door-to-door {fmt(b['door_to_door_s'])}, pod wait {fmt(b['pod_wait_s'])}, "

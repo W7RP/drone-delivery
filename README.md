@@ -73,7 +73,7 @@ Phase 6a adds realism and then attacks that bottleneck (`docs/network-realism.md
   messages are put back in order, and latch failures follow the measured landing error.
 - **Layout:** pads can have up to three OUT spots and charging parking. At 1370 Wh, two OUT
   spots and 6 kW chargers take door-to-door from 9710 s to 735 s, now 3.1 times faster than the
-  truck.
+  truck (1370 Wh: infeasible airframe, not for demo).
 - **Opt-in:** every new behaviour is set by optional config keys, so existing scenarios and
   their results are unchanged.
 

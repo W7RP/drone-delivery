@@ -122,6 +122,17 @@ not finish in 60 s. The numbers are the section numbers of `docs/network-realism
 the results. Steps 4 and 5 are covered by tests (`sim/tests/marker_fault.rs`,
 `sim/tests/reordering.rs`).
 
+## Weather and traffic (Phase 6b)
+
+```
+uv run analysis/sweep.py --base 900   # 2: charging and pad layout at 900 Wh (writes the chosen scenario)
+uv run analysis/fleet.py --base 900   # 2: pods and fleet at that layout
+sim/target/release/sim run <scenario.toml> --seed N --out <dir> --no-event-log
+```
+
+`--no-event-log` skips `events.bin`; the analysis scripts always pass it and refuse to start
+with less than 20 GB free. `docs/weather-traffic.md` has the results.
+
 ## Test and verify
 
 ```
