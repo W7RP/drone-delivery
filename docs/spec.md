@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.6.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.7.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -691,6 +691,14 @@ reason for the timer goes away. A popped TIMER whose `gen` differs is discarded.
 - Same config, same seed, same replication index gives a bit-identical event trace and
   metrics. Nothing reads the wall clock, environment or thread scheduling.
 
+### 5.5 Run guards
+
+A run aborts with an error, after flushing what it wrote, when more than
+`sim.max_events_per_timestamp` events pop at one sim time (a zero-time loop; real runs peak at
+about 12), or when `events.bin` would pass `sim.max_event_log_mib`. `sim run --no-event-log`
+writes no `events.bin`; sweeps use it. The guards change no result of a run that stays within
+them.
+
 ## 6 Fleet manager policy interfaces
 
 Policies are pure functions of a read-only `FleetView` and the triggering input; they return
@@ -903,7 +911,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version: "1.6.0", "1.5.0" or "1.3.0". Each newer version only added optional keys, and a file may use a key only when it declares the version that added it: `flight_profile` needs 1.5.0, the keys marked 1.6.0 below need 1.6.0. |
+| schema_version | - | Config schema version: "1.7.0", "1.6.0", "1.5.0" or "1.3.0". Each newer version only added optional keys, and a file may use a key only when it declares the version that added it: `flight_profile` needs 1.5.0, the keys marked 1.6.0 below need 1.6.0, those marked 1.7.0 need 1.7.0. |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -914,6 +922,8 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | sim.warmup_s | s | Metrics window start. |
 | sim.start_time_of_day_s | s | Local time of day at t = 0. |
 | sim.replications | count | Runs with replication index 0..n-1. |
+| sim.max_events_per_timestamp | count | 1.7.0, optional, default 10000. A run that fires more events at one sim time aborts with an error (5.5). |
+| sim.max_event_log_mib | count | 1.7.0, optional, default 256. A run whose `events.bin` would pass this size aborts with an error (5.5). |
 | geo.origin_lat_deg | deg | ENU origin latitude. |
 | geo.origin_lon_deg | deg | ENU origin longitude. |
 | pads[].name | - | Unique pad name. |
@@ -1537,3 +1547,4 @@ that:
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
+| 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk. |

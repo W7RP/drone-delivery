@@ -279,6 +279,46 @@ pub struct Links {
     pub injected: Vec<((EntityKind, u16), u16, TimeMs)>,
 }
 
+/// Why a run stopped early (spec 5.5).
+#[derive(Debug)]
+pub enum RunError {
+    Io(io::Error),
+    /// More than `sim.max_events_per_timestamp` events at one sim time: a zero-time loop.
+    Watchdog {
+        t_ms: TimeMs,
+        events: u32,
+    },
+    /// `events.bin` reached `sim.max_event_log_mib`.
+    EventLogCap {
+        t_ms: TimeMs,
+        bytes: u64,
+    },
+}
+
+impl std::fmt::Display for RunError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RunError::Io(e) => write!(f, "output error: {e}"),
+            RunError::Watchdog { t_ms, events } => write!(
+                f,
+                "watchdog: {events} events at t = {t_ms} ms exceed sim.max_events_per_timestamp"
+            ),
+            RunError::EventLogCap { t_ms, bytes } => write!(
+                f,
+                "event log reached its cap of {bytes} bytes at t = {t_ms} ms (sim.max_event_log_mib)"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RunError {}
+
+impl From<io::Error> for RunError {
+    fn from(e: io::Error) -> Self {
+        RunError::Io(e)
+    }
+}
+
 pub struct World {
     pub cfg: Config,
     pub net: Network,
@@ -442,6 +482,8 @@ impl World {
         for d in &mut world.drones {
             d.set_soc(world.cfg.drone.initial_soc);
         }
+        let cap = world.cfg.max_event_log_bytes;
+        world.out.set_event_cap(cap);
         world.place_initial_drones();
         world.schedule_initial_events();
         world
@@ -743,12 +785,35 @@ impl World {
         ));
     }
 
-    /// Run to END_OF_RUN, then flush outputs. Returns the metrics summary JSON.
-    pub fn run(&mut self) -> io::Result<Value> {
+    /// Run to END_OF_RUN, then flush outputs. Returns the metrics summary JSON, or a guard error
+    /// (spec 5.5) when the run would fire too many events at one timestamp or outgrow its event
+    /// log; outputs written so far are flushed either way.
+    pub fn run(&mut self) -> Result<Value, RunError> {
+        let mut same_t: (TimeMs, u32) = (NO_TIME, 0);
         while let Some(entry) = self.queue.pop() {
             self.now = entry.t;
+            same_t = if same_t.0 == entry.t {
+                (entry.t, same_t.1 + 1)
+            } else {
+                (entry.t, 1)
+            };
+            if same_t.1 > self.cfg.max_events_per_timestamp {
+                // Best effort: the guard error matters more than a flush failure here.
+                let _ = self.out.finish();
+                return Err(RunError::Watchdog {
+                    t_ms: entry.t,
+                    events: same_t.1,
+                });
+            }
             self.dispatch(entry);
             self.metrics.events_processed += 1;
+            if self.out.events_capped() {
+                let _ = self.out.finish();
+                return Err(RunError::EventLogCap {
+                    t_ms: self.now,
+                    bytes: self.cfg.max_event_log_bytes,
+                });
+            }
             #[cfg(debug_assertions)]
             self.check_invariants();
             if self.ended {

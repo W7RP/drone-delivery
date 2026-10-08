@@ -93,7 +93,7 @@ def run_one(scenario: Path, seed: int, out: Path, window_ms) -> dict | None:
     The run's outputs are deleted once read, so a sweep never leaves event logs behind."""
     try:
         done = subprocess.run(
-            [str(SIM), "run", str(scenario), "--seed", str(seed), "--out", str(out)],
+            [str(SIM), "run", str(scenario), "--seed", str(seed), "--out", str(out), "--no-event-log"],
             capture_output=True, text=True, timeout=RUN_TIMEOUT_S,
         )
         if done.returncode == CONFIG_ERROR_EXIT:
@@ -126,7 +126,7 @@ def read_run(out: Path, window_ms) -> dict:
 
 def load_error(scenario: Path) -> str:
     probe = scenario.parent / "probe"
-    done = subprocess.run([str(SIM), "run", str(scenario), "--seed", "1", "--out", str(probe)],
+    done = subprocess.run([str(SIM), "run", str(scenario), "--seed", "1", "--out", str(probe), "--no-event-log"],
                           capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
     shutil.rmtree(probe, ignore_errors=True)
     return done.stderr.strip().removeprefix("config error: ")

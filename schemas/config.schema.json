@@ -14,9 +14,10 @@
       "enum": [
         "1.3.0",
         "1.5.0",
-        "1.6.0"
+        "1.6.0",
+        "1.7.0"
       ],
-      "description": "1.5.0 adds flight_profile, 1.6.0 adds the Phase 6a keys; earlier files stay valid without them."
+      "description": "1.5.0 adds flight_profile, 1.6.0 the Phase 6a keys, 1.7.0 the Phase 6b keys; earlier files stay valid without them."
     },
     "meta": {
       "type": "object",
@@ -78,6 +79,12 @@
           }
         },
         "replications": {
+          "$ref": "common.schema.json#/$defs/q_count_pos"
+        },
+        "max_events_per_timestamp": {
+          "$ref": "common.schema.json#/$defs/q_count_pos"
+        },
+        "max_event_log_mib": {
           "$ref": "common.schema.json#/$defs/q_count_pos"
         }
       }

@@ -19,12 +19,12 @@ use crate::ids::{
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 
-pub const SCHEMA_VERSION: &str = "1.6.0";
+pub const SCHEMA_VERSION: &str = "1.7.0";
 /// Earlier minor versions this core still reads. Each later version only added optional keys,
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
-const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
+const COMPATIBLE_VERSIONS: [&str; 3] = ["1.3.0", "1.5.0", "1.6.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 15] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -38,7 +38,13 @@ const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
     ("pad_ops", "out_spots", "1.6.0"),
     ("pad_ops", "parking_capacity", "1.6.0"),
     ("demand", "pods_per_origin", "1.6.0"),
+    ("sim", "max_events_per_timestamp", "1.7.0"),
+    ("sim", "max_event_log_mib", "1.7.0"),
 ];
+/// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
+const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
+const DEFAULT_MAX_EVENT_LOG_MIB: u64 = 256;
+const BYTES_PER_MIB: u64 = 1 << 20;
 const LATCH_DERIVATION_KEYS: [&str; 3] = [
     "latch_capture_radius_m",
     "out_landing_error_bias_m",
@@ -333,6 +339,9 @@ pub struct Config {
     pub warmup_ms: TimeMs,
     pub start_time_of_day_s: f64,
     pub replications: u32,
+    /// Run guards (spec 5.5): a run aborts with an error past either.
+    pub max_events_per_timestamp: u32,
+    pub max_event_log_bytes: u64,
     pub origin_lat_deg: f64,
     pub origin_lon_deg: f64,
     pub pads: Vec<PadCfg>,
@@ -631,6 +640,8 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "warmup_s",
         "start_time_of_day_s",
         "replications",
+        "max_events_per_timestamp",
+        "max_event_log_mib",
     ])?;
     let seed_path = sim.key_path("seed");
     let seed = match quantity_table(sim.get("seed")?, &seed_path, "1")? {
@@ -651,6 +662,22 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         sim.count("replications", 1, i64::from(u32::MAX))?,
         "sim.replications",
     )?;
+    let max_events_per_timestamp = if sim.has("max_events_per_timestamp") {
+        narrow(
+            sim.count("max_events_per_timestamp", 1, i64::from(u32::MAX))?,
+            "sim.max_events_per_timestamp",
+        )?
+    } else {
+        DEFAULT_MAX_EVENTS_PER_TIMESTAMP
+    };
+    let max_event_log_mib: u64 = if sim.has("max_event_log_mib") {
+        narrow(
+            sim.count("max_event_log_mib", 1, i64::from(u32::MAX))?,
+            "sim.max_event_log_mib",
+        )?
+    } else {
+        DEFAULT_MAX_EVENT_LOG_MIB
+    };
 
     let geo = top.section("geo")?;
     geo.allow(&["origin_lat_deg", "origin_lon_deg"])?;
@@ -767,6 +794,8 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         warmup_ms: ms_from_s(warmup_s),
         start_time_of_day_s,
         replications,
+        max_events_per_timestamp,
+        max_event_log_bytes: max_event_log_mib * BYTES_PER_MIB,
         origin_lat_deg,
         origin_lon_deg,
         pads,
