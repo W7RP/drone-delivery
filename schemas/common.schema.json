@@ -272,7 +272,8 @@
         "D_ENERGY_RESERVE",
         "FM_HOLD_LIMIT",
         "END_OF_RUN",
-        "FM_PAD_RECHECK"
+        "FM_PAD_RECHECK",
+        "REORDER_RELEASE"
       ]
     },
     "FlightSource": {

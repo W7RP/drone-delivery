@@ -538,6 +538,9 @@
         },
         "pc_silence_alert_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "reorder_window_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
         }
       }
     },

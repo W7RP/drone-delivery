@@ -100,6 +100,7 @@ code_enum!(TimerKind {
     DResponseTimeout = "D_RESPONSE_TIMEOUT", DHoldRetry = "D_HOLD_RETRY",
     DPcSilenceAlert = "D_PC_SILENCE_ALERT", DEnergyReserve = "D_ENERGY_RESERVE",
     FmHoldLimit = "FM_HOLD_LIMIT", EndOfRun = "END_OF_RUN", FmPadRecheck = "FM_PAD_RECHECK",
+    ReorderRelease = "REORDER_RELEASE",
 });
 code_enum!(FlightSource { Des = "DES", Px4Sitl = "PX4_SITL" });
 code_enum!(ServiceMode { Auto = "AUTO", Manual = "MANUAL" });

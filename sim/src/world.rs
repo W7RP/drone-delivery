@@ -189,7 +189,7 @@ pub struct DroneSt {
     pub park_since: TimeMs,
     pub last_hold_report: Option<HoldReason>,
     pub msg_seq: u32,
-    pub last_msg: Option<(Msg, u32)>,
+    pub last_msg: Option<(Msg, u32, u32)>,
     pub awaiting: Await,
     pub retries: u8,
     pub silence_since: TimeMs,
@@ -232,6 +232,17 @@ impl DroneSt {
     }
 }
 
+/// Spec 4.1 reordering on the D <-> PC radio link: per-link sequence numbers, the next one
+/// each receiver expects, and the messages it holds while an earlier one is outstanding.
+/// Link index: drone -> pad `d * n_pads + p`, pad -> drone `n_pads * n_drones + p * n_drones + d`.
+pub struct Links {
+    pub last_sent: Vec<u32>,
+    pub expected: Vec<u32>,
+    pub held: Vec<(usize, u32, Entry)>,
+    /// Fault injection: (sender, message kind code, extra latency) for the next such message.
+    pub injected: Vec<((EntityKind, u16), u16, TimeMs)>,
+}
+
 pub struct World {
     pub cfg: Config,
     pub net: Network,
@@ -251,6 +262,7 @@ pub struct World {
     pub pod_mass_kg: Vec<f32>,
     /// PC-side return reservation per pod (P06), NO_PAD when unreserved.
     pub pc_return_dest: Vec<PadId>,
+    pub links: Links,
     pub ended: bool,
     #[cfg(debug_assertions)]
     scratch: Vec<u8>,
@@ -377,6 +389,12 @@ impl World {
         let mut world = World {
             pod_mass_kg: vec![narrow_f32(cfg.pod_empty_mass_kg); total_pods],
             pc_return_dest: vec![NO_PAD; total_pods],
+            links: Links {
+                last_sent: vec![0; 2 * n_pads * n_drones],
+                expected: vec![1; 2 * n_pads * n_drones],
+                held: Vec::new(),
+                injected: Vec::new(),
+            },
             energy,
             replication,
             now: 0,
@@ -553,20 +571,64 @@ impl World {
         *slot
     }
 
-    /// Send a new message (fresh `msg_seq`); returns the seq so the sender can re-send it.
-    pub fn send(&mut self, msg: Msg) -> u32 {
+    /// Send a new message (fresh `msg_seq`, and on the radio link a fresh `link_seq`); returns
+    /// both so the sender can re-send it unchanged.
+    pub fn send(&mut self, msg: Msg) -> (u32, u32) {
         let seq = self.next_seq(msg.sender());
-        self.send_with_seq(msg, seq);
-        seq
+        let link_seq = match self.link_of(&msg) {
+            Some(link) => {
+                self.links.last_sent[link] += 1;
+                self.links.last_sent[link]
+            }
+            None => 0,
+        };
+        self.send_with_seq(msg, seq, link_seq);
+        (seq, link_seq)
+    }
+
+    /// The radio link a message travels on (spec 4.1), None for FM links.
+    fn link_of(&self, msg: &Msg) -> Option<usize> {
+        let (n_pads, n_drones) = (self.pads.len(), self.drones.len());
+        match (msg.sender(), msg.receiver()) {
+            ((EntityKind::Drone, d), Receiver::Pad(p)) => {
+                Some(usize::from(d) * n_pads + usize::from(p))
+            }
+            ((EntityKind::Pad, p), Receiver::Drone(d)) => {
+                Some(n_pads * n_drones + usize::from(p) * n_drones + usize::from(d))
+            }
+            _ => None,
+        }
+    }
+
+    /// Fault injection for tests: the next `kind` message from `sender` arrives `extra_ms` late,
+    /// so a message sent after it on the same link can overtake it (spec 4.1 reordering).
+    pub fn inject_message_delay(&mut self, sender: (EntityKind, u16), kind: u16, extra_ms: TimeMs) {
+        self.links.injected.push((sender, kind, extra_ms));
+    }
+
+    fn injected_delay(&mut self, msg: &Msg) -> TimeMs {
+        if self.links.injected.is_empty() {
+            return 0;
+        }
+        let key = (msg.sender(), msg.kind_code());
+        match self
+            .links
+            .injected
+            .iter()
+            .position(|&(s, k, _)| (s, k) == key)
+        {
+            Some(i) => self.links.injected.remove(i).2,
+            None => 0,
+        }
     }
 
     /// Spec 4.1: latency per link, loss only on the D <-> PC radio link.
-    pub fn send_with_seq(&mut self, msg: Msg, seq: u32) {
+    pub fn send_with_seq(&mut self, msg: Msg, seq: u32, link_seq: u32) {
         let latency = if msg.is_radio() {
             self.cfg.handshake.local_latency_ms
         } else {
             self.cfg.handshake.fm_latency_ms
-        };
+        } + self.injected_delay(&msg);
         if msg.is_radio() {
             let (kind, id) = msg.sender();
             let stream = match kind {
@@ -576,6 +638,7 @@ impl World {
             if stream.bernoulli(self.cfg.handshake.p_msg_loss) {
                 let ev = Ev::Message {
                     seq,
+                    link_seq,
                     sent: self.now,
                     msg,
                 };
@@ -587,6 +650,7 @@ impl World {
             latency,
             Ev::Message {
                 seq,
+                link_seq,
                 sent: self.now,
                 msg,
             },
@@ -716,6 +780,14 @@ impl World {
         else {
             return true;
         };
+        if timer == TimerKind::ReorderRelease {
+            let link = self.held_link(owner_kind, owner_id, subject);
+            return self
+                .links
+                .held
+                .iter()
+                .any(|&(l, s, _)| l == link && s == generation);
+        }
         match owner_kind {
             EntityKind::Pad => {
                 let v = &self.visits[self.visit_index(owner_id, subject)];
@@ -741,11 +813,17 @@ impl World {
 
     pub(crate) fn dispatch(&mut self, entry: Entry) {
         let ev = entry.ev;
-        if let Ev::Message { msg, .. } = ev {
+        if let Ev::Message { msg, link_seq, .. } = ev {
             if let Receiver::Pad(p) = msg.receiver()
                 && self.pad_is_faulted(p)
             {
                 self.log_event(self.now, &ev, LogStatus::Dropped);
+                return;
+            }
+            if self.cfg.handshake.reorder_window_ms > 0
+                && let Some(link) = self.link_of(&msg)
+            {
+                self.receive_in_order(link, link_seq, entry);
                 return;
             }
         } else if let Some(p) = Self::pad_target(&ev)
@@ -759,6 +837,96 @@ impl World {
             self.log_event(self.now, &ev, LogStatus::Stale);
             return;
         }
+        self.process(ev);
+    }
+
+    /// Spec 4.1 reordering: a message ahead of a gap on its link is held for
+    /// `handshake.reorder_window_s`; the one it overtook releases it, or the window ends and the
+    /// gap is taken as a lost message. A link sequence below the expected one is a re-send or a
+    /// late copy and goes straight through (receivers treat duplicates as such).
+    fn receive_in_order(&mut self, link: usize, link_seq: u32, entry: Entry) {
+        let expected = self.links.expected[link];
+        if link_seq > expected {
+            self.log_event(self.now, &entry.ev, LogStatus::Deferred);
+            self.links.held.push((link, link_seq, entry));
+            let Ev::Message { msg, .. } = entry.ev else {
+                unreachable!("only messages are held")
+            };
+            let (receiver_kind, receiver_id) = match msg.receiver() {
+                Receiver::Pad(p) => (EntityKind::Pad, p),
+                Receiver::Drone(d) => (EntityKind::Drone, d),
+                Receiver::FleetManager => unreachable!("FM links are not reordered"),
+            };
+            let window = self.cfg.handshake.reorder_window_ms;
+            self.timer(
+                window,
+                TimerKind::ReorderRelease,
+                receiver_kind,
+                receiver_id,
+                msg.sender().1,
+                link_seq,
+            );
+            return;
+        }
+        if link_seq == expected {
+            self.links.expected[link] = expected + 1;
+        }
+        self.process(entry.ev);
+        self.release_in_order(link);
+    }
+
+    /// Process held messages on `link` that are now due: every one at or below the expected
+    /// sequence, lowest first.
+    fn release_in_order(&mut self, link: usize) {
+        loop {
+            let due = self
+                .links
+                .held
+                .iter()
+                .enumerate()
+                .filter(|&(_, &(l, s, _))| l == link && s <= self.links.expected[link])
+                .min_by_key(|&(_, &(_, s, _))| s)
+                .map(|(i, _)| i);
+            let Some(i) = due else { break };
+            let (_, s, entry) = self.links.held.remove(i);
+            if s == self.links.expected[link] {
+                self.links.expected[link] = s + 1;
+            }
+            let receiver_faulted = matches!(
+                entry.ev,
+                Ev::Message { msg, .. }
+                    if matches!(msg.receiver(), Receiver::Pad(p) if self.pad_is_faulted(p))
+            );
+            if receiver_faulted {
+                self.log_event(self.now, &entry.ev, LogStatus::Dropped);
+            } else {
+                self.process(entry.ev);
+            }
+        }
+    }
+
+    fn held_link(&self, receiver_kind: EntityKind, receiver: u16, sender: u16) -> usize {
+        let (n_pads, n_drones) = (self.pads.len(), self.drones.len());
+        match receiver_kind {
+            EntityKind::Pad => usize::from(sender) * n_pads + usize::from(receiver),
+            _ => n_pads * n_drones + usize::from(sender) * n_drones + usize::from(receiver),
+        }
+    }
+
+    /// The reorder window of a held message ran out: the gap before it is a lost message.
+    fn reorder_window_ended(
+        &mut self,
+        receiver_kind: EntityKind,
+        receiver: u16,
+        sender: u16,
+        seq: u32,
+    ) {
+        let link = self.held_link(receiver_kind, receiver, sender);
+        self.links.expected[link] = self.links.expected[link].max(seq);
+        self.release_in_order(link);
+    }
+
+    fn process(&mut self, ev: Ev) {
         self.log_event(self.now, &ev, LogStatus::Processed);
         match ev {
             Ev::Message { sent, msg, .. } => match msg.receiver() {
@@ -790,6 +958,13 @@ impl World {
             Ev::FaultStart { kind, pad, random } => self.fault_start(kind, pad, random),
             Ev::FaultEnd { kind, pad } => self.fault_end(kind, pad),
             Ev::RepairDone { pad, drone } => self.repair_done(pad, drone),
+            Ev::Timer {
+                timer: TimerKind::ReorderRelease,
+                owner_kind,
+                owner_id,
+                subject,
+                generation,
+            } => self.reorder_window_ended(owner_kind, owner_id, subject, generation),
             Ev::Timer {
                 timer,
                 owner_kind,

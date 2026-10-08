@@ -24,13 +24,14 @@ pub const SCHEMA_VERSION: &str = "1.6.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 6] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 7] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
     ("pad_ops", "repair_mean_s", "1.6.0"),
     ("pad_ops", "repair_spread_s", "1.6.0"),
     ("pad_ops", "marker_self_check", "1.6.0"),
+    ("handshake", "reorder_window_s", "1.6.0"),
 ];
 
 /// Schema versions are "1.<minor>.0"; compare by minor.
@@ -234,6 +235,9 @@ pub struct HandshakeCfg {
     pub max_retries: u8,
     pub hold_retry_ms: TimeMs,
     pub pc_silence_alert_ms: TimeMs,
+    /// How long a radio message that overtook an earlier one on its link is held for it (4.1);
+    /// 0 when `handshake.reorder_window_s` is absent: deliver on arrival.
+    pub reorder_window_ms: TimeMs,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1171,6 +1175,7 @@ fn parse_handshake(h: &Section<'_>) -> Result<HandshakeCfg> {
         "max_retries",
         "hold_retry_s",
         "pc_silence_alert_s",
+        "reorder_window_s",
     ])?;
     let ms = |key: &str, r: Range| h.quantity(key, "s", r).map(ms_from_s);
     let p_msg_loss = h.quantity("p_msg_loss", "1", Range::Prob)?;
@@ -1185,6 +1190,11 @@ fn parse_handshake(h: &Section<'_>) -> Result<HandshakeCfg> {
         max_retries: narrow(h.count("max_retries", 0, 255)?, "handshake.max_retries")?,
         hold_retry_ms: ms("hold_retry_s", Range::Pos)?,
         pc_silence_alert_ms: ms("pc_silence_alert_s", Range::Pos)?,
+        reorder_window_ms: if h.has("reorder_window_s") {
+            ms("reorder_window_s", Range::NonNeg)?
+        } else {
+            0
+        },
     })
 }
 

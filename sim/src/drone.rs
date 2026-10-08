@@ -47,8 +47,8 @@ impl World {
 
     /// Send to a PC and remember the message for D16 re-sends.
     fn drone_send_pc(&mut self, d: DroneId, msg: Msg) {
-        let seq = self.send(msg);
-        self.dr_mut(d).last_msg = Some((msg, seq));
+        let (seq, link_seq) = self.send(msg);
+        self.dr_mut(d).last_msg = Some((msg, seq, link_seq));
     }
 
     fn status(&mut self, d: DroneId) {
@@ -783,8 +783,8 @@ impl World {
     }
 
     fn resend_last(&mut self, d: DroneId) {
-        if let Some((msg, seq)) = self.dr(d).last_msg {
-            self.send_with_seq(msg, seq);
+        if let Some((msg, seq, link_seq)) = self.dr(d).last_msg {
+            self.send_with_seq(msg, seq, link_seq);
         }
     }
 

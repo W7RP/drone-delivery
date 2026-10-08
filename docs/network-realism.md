@@ -133,3 +133,27 @@ unchanged.
 after the first drone leaves for B. That drone holds and diverts, and the second drone is never
 sent to B while the fault lasts. A control run without the self-check does send it, and a run
 with a 30-minute fault shows missions to B resume once the fault clears.
+
+## 5. Messages that arrive out of order
+
+Every message already carried a sequence number per sender (`msg_seq`). A receiver cannot use it
+to spot a swap, because a drone's numbers also go to FM and to other pads. Radio messages now
+also carry `link_seq`, numbered per direction of each drone-pad link. With
+`handshake.reorder_window_s` set, a receiver holds a message that arrives ahead of a gap. It
+releases the message as soon as the missing one arrives, or when the window ends; in that case
+the gap counts as a lost message. A late copy below the expected number is handled as a
+duplicate, as before.
+
+The sim's latency is constant, so swaps happen only when injected (`World::inject_message_delay`).
+`sim/tests/reordering.rs` injects the one swap the protocol produces by itself. On a local yield
+(D20) the drone sends DEPARTED and then LANDING_REQUEST to the same pad, and the test delivers
+DEPARTED 300 ms late.
+
+| Reorder window | Pad sees | Effect |
+|---|---|---|
+| none | LANDING_REQUEST mid-departure (V38), then DEPARTED (V36) | the request is lost as a duplicate; the drone waits a response timeout and retries (D09) |
+| 1 s | DEPARTED (V36), then the request (V01) | granted at once |
+
+A third test holds DEPARTED for 3 s against a 1 s window. The request is released exactly one
+window after it arrived, and the late DEPARTED still closes the departure. With message loss,
+each lost radio message delays the next one on its link by up to the window (A70).

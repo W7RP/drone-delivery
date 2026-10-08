@@ -450,6 +450,12 @@ energy_added_j   = charge_dwell_s * charging.power_w * charging.efficiency
 - Every message carries `msg_seq` (per sender, +1 per new message, unchanged on re-send) and
   `sent_t_ms`. Receivers treat a repeated `msg_seq` as a duplicate: they do not act twice and
   re-send their last reply (V38, D17).
+- Radio messages also carry `link_seq`, which numbers the messages of one direction of one
+  D <-> PC link (+1 per new message, unchanged on re-send). With `handshake.reorder_window_s`
+  above 0 a receiver processes them in `link_seq` order (A70). A message ahead of a gap is
+  held (logged DEFERRED) until the missing one arrives or the window ends (`REORDER_RELEASE`);
+  then the gap counts as a lost message. A `link_seq` below the expected one is a re-send or a
+  late copy and is processed at once, as a duplicate. `events.bin` records `msg_seq` only.
 - The requester owns retries. Request/reply pairs and their timeouts are in 4.2. After
   `handshake.max_retries` re-sends without reply, the requester takes the silence branch (4.5).
 
@@ -628,7 +634,9 @@ subject_id = drone_id of the visit, gen = visit gen); D_RESPONSE_TIMEOUT, D_HOLD
 D_PC_SILENCE_ALERT, D_ENERGY_RESERVE (owner drone: owner_id = subject_id = drone_id);
 FM_HOLD_LIMIT (owner FM: owner_id = 0, subject_id = drone_id); END_OF_RUN (owner core,
 recorded as FLEET_MANAGER with owner_id = 0 and subject_id = NONE, at `sim.duration_s`);
-FM_PAD_RECHECK (owner FM: owner_id = 0, subject_id = pad_id, A44).
+FM_PAD_RECHECK (owner FM: owner_id = 0, subject_id = pad_id, A44); REORDER_RELEASE (owner the
+receiving pad or drone: owner_id = receiver, subject_id = sender, gen = the held message's
+`link_seq`, 4.1).
 
 ### 5.2 Ordering and tie-break
 
@@ -978,6 +986,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | handshake.max_retries | count | Re-sends before the silence branch. |
 | handshake.hold_retry_s | s | Landing re-request interval while holding. |
 | handshake.pc_silence_alert_s | s | Ground silence before PC_SILENT alert. |
+| handshake.reorder_window_s | s | 1.6.0, optional, default 0. How long a radio message that overtook an earlier one on its link waits for it (4.1, A70). 0: process on arrival. |
 | policy.assignment | - | Assignment policy name. |
 | policy.dispatch | - | Dispatch policy name. |
 | policy.holding | - | Holding policy name. |
@@ -1478,6 +1487,10 @@ that:
   service empty on IN. A repair does not end a scheduled OUT_OF_SERVICE window that is still
   open. The RELEASE_FAULT and PAD_OUT_OF_SERVICE alerts are raised as before; remote ops still
   takes no action in the sim.
+- A70 The sim's links have constant latency, so messages reorder only when a test injects a
+  delay; a real radio link can reorder through retransmission and routing.
+  `handshake.reorder_window_s` bounds how long a receiver waits for a missing message, so with
+  message loss each lost message also delays the next one on its link by up to the window.
 
 ## 11 Amendments
 
@@ -1492,4 +1505,4 @@ that:
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
-| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see. |
+| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry. |

@@ -487,8 +487,11 @@ impl Msg {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Ev {
+    /// `seq` is the sender's `msg_seq`; `link_seq` numbers the messages of one direction of one
+    /// D <-> PC radio link (4.1), 0 on FM links. Both stay the same on a re-send.
     Message {
         seq: u32,
+        link_seq: u32,
         sent: TimeMs,
         msg: Msg,
     },
