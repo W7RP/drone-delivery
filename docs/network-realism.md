@@ -251,3 +251,48 @@ The Pareto set (lowest door-to-door for its cost):
   with a drone that already held a pod, and a deadlock with a drone parked on OUT. Both are
   fixed and covered by `sim/tests/pad_layout.rs`; the sweep stops on any run that does not
   finish in 60 s.
+
+## 8. Pods and fleet at the chosen layout
+
+`uv run analysis/fleet.py` (about 10 s) sweeps two keys at the chosen layout: the number of
+drones, and `demand.pods_per_origin`, the empty pods each warehouse starts with (A73; the
+pipeline gives each of the two warehouses 8). It runs seeds 1 to 5 per point. Each cell is the
+mean door-to-door in seconds and the mean rejected fraction (requests turned away at the
+backlog cap of 20 per pad). The full table, with standard deviations and pod wait, is
+`analysis/out/fleet.md`.
+
+| Fleet \ pods | 2 | 4 | 6 | 8 | 12 | 16 |
+|---|---|---|---|---|---|---|
+| 2 | 30892 / 42% | 27210 / 35% | 31928 / 40% | 30967 / 38% | 31307 / 40% | 31307 / 40% |
+| 4 | 5185 / 0% | 2028 / 0% | 1887 / 0% | 1842 / 0% | 1838 / 0% | 1838 / 0% |
+| 6 | 10674 / 4% | 910 / 0% | 832 / 0% | 839 / 0% | 838 / 0% | 838 / 0% |
+| 8 | 16137 / 16% | 1670 / 14% | 762 / 0% | 797 / 0% | 775 / 0% | 775 / 0% |
+| 10 | 19455 / 66% | 994 / 0% | 742 / 0% | 735 / 0% | 736 / 0% | 736 / 0% |
+| 12 | 9520 / 94% | 943 / 0% | 748 / 4% | 726 / 0% | 725 / 0% | 725 / 0% |
+| 14 | 3532 / 96% | 1141 / 0% | 1309 / 1% | 739 / 0% | 737 / 0% | 737 / 0% |
+| 16 | 3036 / 97% | 2625 / 5% | 747 / 0% | 723 / 0% | 722 / 0% | 722 / 0% |
+| 18 | - / 97% | 3027 / 21% | 914 / 15% | 740 / 1% | 713 / 0% | 713 / 0% |
+
+18 drones is the most the layout allows (2 OUT spots x 9 pads, no parking). At 18 drones with 2
+pods, three of the five seeds deliver nothing in the window.
+
+| Criterion (fewest drones, then fewest pods) | Fleet | Pods per warehouse | Door-to-door (s) | Rejected |
+|---|---|---|---|---|
+| Under 5% rejected (the brief's) | 4 | 2 | 5185 ± 1085 | 0.5% |
+| ... and faster than the truck on the same orders (2271 s) | 4 | 4 | 2028 ± 366 | 0.0% |
+| ... and within 10% of the best (713 s) | 8 | 6 | 762 ± 15 | 0.0% |
+
+The scenario as written (10 drones, 8 pods) gives 735 s. Two drones with eight pods could
+match it.
+
+- Rejection alone is a weak test. Four drones keep the backlog under its cap, but an order waits
+  over an hour, mostly for its pod.
+- With few pods, more drones make things worse: at 2 pods per warehouse, rejection climbs from
+  0.5% with 4 drones to 97% with 16 and 18. With no parking, an idle drone parks on an OUT spot,
+  and a parked drone yields only when a shipment request arrives at that pad (V39). Pods
+  waiting to go home from the hospitals never trigger a yield, so they are stranded behind the
+  parked drones, and the warehouses run out. This gap predates Phase 6a (it exists with one OUT
+  spot whenever the fleet fills every OUT spot). This phase reports it and does not change the
+  yield policy; the same effect causes the occasional bad seeds at 4 to 6 pods with large
+  fleets.
+- Beyond about 8 pods per warehouse, more pods change nothing.

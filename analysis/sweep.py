@@ -114,7 +114,8 @@ def read_run(out: Path, window_ms) -> dict:
         for r in csv.DictReader(f):
             if r["kind"] == "SHIPMENT" and r["status"] == "DELIVERED" and window_ms[0] <= int(r["requested_t_ms"]) <= window_ms[1]:
                 rows.append(r)
-    mean = lambda k: statistics.fmean(float(r[k]) for r in rows)
+    # A run that delivers nothing in the window has no times to average.
+    mean = lambda k: statistics.fmean(float(r[k]) for r in rows) if rows else None
     return {
         "door_to_door_s": mean("drone_door_to_door_s"),
         "pod_wait_s": mean("pod_wait_s"),
@@ -132,11 +133,24 @@ def load_error(scenario: Path) -> str:
 
 
 def stats_over(runs: list[dict]) -> dict:
-    return {k: {"mean": statistics.fmean(r[k] for r in runs), "std": statistics.stdev(r[k] for r in runs)} for k in runs[0]}
+    """Mean and standard deviation over seeds; None for a time when any seed delivered nothing."""
+    out = {}
+    for k in runs[0]:
+        values = [r[k] for r in runs]
+        if None in values:
+            out[k] = {"mean": None, "std": None, "seeds_without_deliveries": values.count(None)}
+        else:
+            out[k] = {"mean": statistics.fmean(values), "std": statistics.stdev(values)}
+    return out
+
+
+def ranked(points: list[dict]) -> list[dict]:
+    """Points that loaded and delivered on every seed: the only ones with a mean to rank."""
+    return [p for p in points if p["feasible"] and p["door_to_door_s"]["mean"] is not None]
 
 
 def pareto(points: list[dict]) -> list[dict]:
-    feasible = [p for p in points if p["feasible"]]
+    feasible = ranked(points)
     front = []
     for p in sorted(feasible, key=lambda p: (p["cost_cu"], p["door_to_door_s"]["mean"])):
         if not front or p["door_to_door_s"]["mean"] < front[-1]["door_to_door_s"]["mean"]:
@@ -209,7 +223,7 @@ def main() -> None:
             else:
                 point["infeasible"] = load_error(path)
             points.append(point)
-    feasible = [p for p in points if p["feasible"]]
+    feasible = ranked(points)
     best = min(p["door_to_door_s"]["mean"] for p in feasible)
     chosen = min((p for p in feasible if p["door_to_door_s"]["mean"] <= (1 + WITHIN) * best),
                  key=lambda p: (p["cost_cu"], p["door_to_door_s"]["mean"]))
