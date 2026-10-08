@@ -433,6 +433,7 @@ impl World {
             (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
                 if mission == MissionKind::Park
                     && dest == p
+                    && self.cfg.policy.yield_on_request
                     && self.visit(p, d).spot == Spot::In
                     && self.pad(p).parked >= self.pad(p).parking_capacity =>
             {

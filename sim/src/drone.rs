@@ -259,14 +259,15 @@ impl World {
                 self.disarm_response(d);
                 match self.dr(d).spot {
                     Some(Spot::In) if mode == DroneMode::OnPad => {
-                        // From WAIT_OUT (V21), or from READY when making room (V44): either
-                        // way a new landing on OUT follows, with its own SERVICE_COMPLETE.
                         let dr = self.dr_mut(d);
                         dr.hop_out = out_index;
-                        dr.service_done = false;
-                        dr.busy = false;
-                        dr.done_latch_attempt = 0;
-                        dr.last_report = None;
+                        if dr.service_done {
+                            // V44: the drone had finished its service on IN; a new landing on
+                            // OUT follows, with its own SERVICE_COMPLETE.
+                            dr.service_done = false;
+                            dr.done_latch_attempt = 0;
+                            dr.last_report = None;
+                        }
                         self.drone_to(d, tcode::d(15), DroneMode::Hopping);
                         self.after(
                             ms_from_s(self.cfg.drone.hop_s),
