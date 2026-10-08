@@ -485,7 +485,7 @@ Fields are the payload; the envelope (`msg_seq`, `sent_t_ms`) is common to all.
 | POD_LATCHED | PAD → FLEET_MANAGER | `pad_id, pod_id, drone_id` | none |
 | POD_DELIVERED | PAD → FLEET_MANAGER | `pad_id, pod_id, drone_id` | none |
 | POD_REMOVED | PAD → FLEET_MANAGER | `pad_id, pod_id` | none |
-| PAD_STATUS | PAD → FLEET_MANAGER | `pad_id, mode, empty_pods, backlog_len, in_drone, out_drone, out_pod` | none. Sent on mode change and inventory change. |
+| PAD_STATUS | PAD → FLEET_MANAGER | `pad_id, mode, empty_pods, backlog_len, in_drone, out_drone, out_pod, marker_fault` | none. Sent on mode change and inventory change, and, with `pad_ops.marker_self_check`, when a marker fault starts or ends (A35). `marker_fault` is false without the self-check. |
 | SHIPMENT_PENDING | PAD → FLEET_MANAGER | `pad_id, out_drone` | FM re-missions `out_drone` (6.4) |
 | PICKUP_ASSIGNED | FLEET_MANAGER → PAD | `pad_id, pod_id, order_id, drone_id` | none |
 | POD_RETURN_REQUEST | FLEET_MANAGER → PAD | `pad_id, pod_id, dest_pad` | none; the PC places the pod when OUT allows (P02) |
@@ -695,7 +695,8 @@ E_route(a, b, m)  = sum of flight(lane, m).energy_j over the route a -> b
 P_h(m)            = hover_power_w(m)
 T_contingency_s   = (policy.marker_max_hold_cycles + 1) * T_cycle_s
                     + max(policy.max_hold_s, policy.marker_max_hold_cycles * policy.marker_hold_s)
-alt(b)            = argmin over pads q != b, FM view ONLINE, of E_route(b, q, m); ties to lower pad_id
+alt(b)            = argmin over pads q != b, FM view ONLINE and no reported marker fault (A35),
+                    of E_route(b, q, m); ties to lower pad_id
 E_divert(b, m)    = E_route(b, alt(b), m) + P_h(m) * T_cycle_s
 E_charger(b)      = 0 if b has a charger, else min over charger pads h of E_route(b, h, 0)
 
@@ -721,7 +722,8 @@ remaining route time), or (c) idle elsewhere: PARKED, or on a pad having sent
 `MISSION_REQUEST` with no mission yet (ETA = `drone.takeoff_s` + route time). Keep
 candidates with `dispatch_ok` for origin -> order destination (from the drone's soc after
 reaching origin, assuming charge to `drone.charge_target_soc` if the origin has a charger).
-Choose minimum ETA, ties to lower drone_id. A pickup may move to a candidate with a strictly
+Candidates (c) are skipped while the origin reports a marker fault, and an order whose
+destination reports one is not assigned (A35). Choose minimum ETA, ties to lower drone_id. A pickup may move to a candidate with a strictly
 smaller ETA until the pod is latched (A30). On assignment FM sends `PICKUP_ASSIGNED` to the
 origin PC and, for (b) and (c), `MISSION_ASSIGN` with `pickup_order_id`. Only CREATED orders
 are assigned. `POD_LATCHED` is authoritative: if the pad let a drone latch a pod whose order FM
@@ -739,7 +741,8 @@ Default IMMEDIATE: pod latched -> DELIVER to its order's `dest_pad`. Else a pick
 another pad -> PICKUP to that pad. Else return None and FM asks drone rebalancing (6.4). Every
 mission is checked with `dispatch_ok`; if a DELIVER fails the check FM sends PARK when the
 drone is on OUT (it charges first, then asks again) and otherwise raises ENERGY_STRANDED
-(WARNING) and the drone stays on its spot (A24).
+(WARNING) and the drone stays on its spot (A24). A loaded drone whose destination reports a
+marker fault gets no mission and waits on its spot; FM retries it when the fault clears (A35).
 
 ### 6.3 Holding: `on_hold(view, drone_id, pad_id, reason, hold_cycles) -> HoldDecision`
 
@@ -781,7 +784,9 @@ Default NEAREST_UNCLAIMED:
   drone may park here, else leaves it on its spot.
 - `yield_for` applies only to a drone parked on OUT (`parking_capacity` = 0); drones in a
   parking area never block. Cause = placement: YIELD_LOCAL (lift off, hover or land on IN, come
-  back to OUT for the new pod). Cause = inbound: REPOSITION to the nearest unclaimed pad.
+  back to OUT for the new pod), or, while the pad reports a marker fault, REPOSITION as for
+  inbound (A35). Cause = inbound: REPOSITION to the nearest unclaimed pad. Pads reporting a
+  marker fault are never REPOSITION targets.
 
 With `drone.fleet_size` <= the sum of `slots(p)` (rule R5) an unclaimed pad always exists for
 a yielding drone, because the other drones hold at most `fleet_size - 1` claims (A08).
@@ -805,7 +810,8 @@ Default MIN_THRESHOLD:
 Called when holding returns DIVERT, and for every drone whose `dest_pad` becomes
 OUT_OF_SERVICE or CONTROLLER_FAULT in FM's view (reroute inbound).
 
-Default NEAREST_FEASIBLE: among ONLINE pads other than `failed_pad` where `divert_ok` holds,
+Default NEAREST_FEASIBLE: among ONLINE pads other than `failed_pad` that report no marker fault
+(A35) and where `divert_ok` holds,
 the one with the fewest other drones holding over it or diverting to it, then the shortest
 route, then the lower pad_id; None if there is no such pad. Without the congestion term two
 busy neighbouring pads can bounce a drone between them until it reaches its reserve. On Some(q): `MISSION_ASSIGN` DIVERT to q and `ALERT` DIVERTED (WARNING). A
@@ -955,6 +961,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | pad_ops.manual_release_s | s | Release by a person, MANUAL. |
 | pad_ops.manual_latch_s | s | Latch by a person, MANUAL. |
 | pad_ops.p_marker_detect | 1 | Probability the fiducial is detected on one approach. |
+| pad_ops.marker_self_check | - | 1.6.0, optional, default false. The pad checks its own fiducial and reports a marker fault to FM in `PAD_STATUS` (A35). |
 | pad_ops.max_go_arounds | count | Go-arounds per approach cycle before abort. |
 | pad_ops.release_max_retries | count | Release retries after the first failure. |
 | pad_ops.latch_max_retries | count | Latch retries after the first failure. |
@@ -1335,8 +1342,15 @@ that:
 - A32 One airborne movement (hop or takeoff) at a time per pad.
 - A33 Deadlines are carried on orders but default policies ignore them.
 - A34 FM decisions take zero sim time; only link latency delays them.
-- A35 FM does not learn from marker misses; other drones keep using the pad during a marker
-  fault window.
+- A35 FM does not learn from marker misses. A pad with `pad_ops.marker_self_check` checks its
+  own fiducial and reports a marker fault as it starts and ends (`PAD_STATUS` `marker_fault`;
+  a PC in CONTROLLER_FAULT reports it on recovery). While a pad reports one, FM's default
+  policies send no drone to land there: orders to it are not assigned (6.1), a loaded drone
+  bound for it waits where it is (6.2), it is no alternate, reposition target or local-yield
+  pad (6.4, 6.6), and pickups there assigned to drones that would still have to fly in are
+  withdrawn. Drones already in the air keep the marker holding policy (6.3). Without the
+  self-check the pad cannot tell, and other drones keep using it during the window. The
+  self-check is optional so scenarios that predate it keep their results.
 - A36 During a PC fault, physical events at the pad (a shipper arriving, a pod placed or
   removed) still happen but the PC registers them only when it recovers, in their original
   order.
@@ -1478,4 +1492,4 @@ that:
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
-| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections. |
+| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see. |

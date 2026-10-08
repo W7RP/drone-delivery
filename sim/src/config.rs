@@ -24,12 +24,13 @@ pub const SCHEMA_VERSION: &str = "1.6.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 5] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 6] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
     ("pad_ops", "repair_mean_s", "1.6.0"),
     ("pad_ops", "repair_spread_s", "1.6.0"),
+    ("pad_ops", "marker_self_check", "1.6.0"),
 ];
 
 /// Schema versions are "1.<minor>.0"; compare by minor.
@@ -212,6 +213,9 @@ pub struct PadOpsCfg {
     pub pc_fault_duration_ms: TimeMs,
     /// Repair after a release fault (A69); None keeps the pad out of service for the run.
     pub repair: Option<RepairCfg>,
+    /// The pad checks its own fiducial and reports a marker fault to FM (A35); false: only a
+    /// drone's failed approach reveals it.
+    pub marker_self_check: bool,
 }
 
 /// Repair duration, uniform on [mean - spread, mean + spread] seconds (A69).
@@ -1114,6 +1118,7 @@ fn parse_pad_ops(p: &Section<'_>) -> Result<PadOpsCfg> {
         "pc_fault_duration_s",
         "repair_mean_s",
         "repair_spread_s",
+        "marker_self_check",
     ])?;
     let ms = |key: &str, r: Range| p.quantity(key, "s", r).map(ms_from_s);
     let repair = match (p.has("repair_mean_s"), p.has("repair_spread_s")) {
@@ -1130,6 +1135,7 @@ fn parse_pad_ops(p: &Section<'_>) -> Result<PadOpsCfg> {
     };
     Ok(PadOpsCfg {
         repair,
+        marker_self_check: p.has("marker_self_check") && p.boolean("marker_self_check")?,
         pod_place_ms: ms("pod_place_s", Range::NonNeg)?,
         pod_remove_ms: ms("pod_remove_s", Range::NonNeg)?,
         release_ms: ms("release_s", Range::Pos)?,

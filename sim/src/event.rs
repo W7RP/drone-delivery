@@ -168,6 +168,8 @@ pub enum Msg {
         in_drone: DroneId,
         out_drone: DroneId,
         out_pod: PodId,
+        /// The pad's fiducial is known to be unreadable (A35, `pad_ops.marker_self_check`).
+        marker_fault: bool,
     },
     ShipmentPending {
         pad: PadId,
@@ -461,6 +463,7 @@ impl Msg {
                 in_drone,
                 out_drone,
                 out_pod,
+                marker_fault,
             } => a
                 .u16(pad)
                 .u8(mode.code())
@@ -468,7 +471,8 @@ impl Msg {
                 .u16(backlog_len)
                 .u16(in_drone)
                 .u16(out_drone)
-                .u32(out_pod),
+                .u32(out_pod)
+                .flag(marker_fault),
             Msg::ShipmentPending { pad, out_drone } => a.u16(pad).u16(out_drone),
             Msg::PickupAssigned {
                 pad,

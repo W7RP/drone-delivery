@@ -73,6 +73,7 @@ impl World {
             in_drone: s.in_drone,
             out_drone: s.out_drone,
             out_pod: s.out_pod,
+            marker_fault: s.marker_fault && self.cfg.pad_ops.marker_self_check,
         };
         self.send(msg);
     }
@@ -1109,7 +1110,7 @@ impl World {
                     PadMode::OutOfService => {}
                 }
             }
-            FaultKind::MarkerNotDetected => self.pad_mut(p).marker_fault = true,
+            FaultKind::MarkerNotDetected => self.set_marker_fault(p, true),
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = true,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = true,
         }
@@ -1132,9 +1133,18 @@ impl World {
                     self.pad_tick(p);
                 }
             }
-            FaultKind::MarkerNotDetected => self.pad_mut(p).marker_fault = false,
+            FaultKind::MarkerNotDetected => self.set_marker_fault(p, false),
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = false,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = false,
+        }
+    }
+
+    /// A pad that checks its own fiducial reports a marker fault as it starts and ends (A35). A
+    /// PC in CONTROLLER_FAULT is silent; its recovery status (M02) carries the flag instead.
+    fn set_marker_fault(&mut self, p: PadId, faulted: bool) {
+        self.pad_mut(p).marker_fault = faulted;
+        if self.cfg.pad_ops.marker_self_check && self.pad(p).mode != PadMode::ControllerFault {
+            self.pad_status(p);
         }
     }
 

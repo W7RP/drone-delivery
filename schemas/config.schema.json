@@ -481,6 +481,9 @@
         },
         "repair_spread_s": {
           "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "marker_self_check": {
+          "type": "boolean"
         }
       },
       "dependentRequired": {

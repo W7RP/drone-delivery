@@ -51,6 +51,8 @@ pub struct FmPad {
     pub backlog_len: u16,
     pub out_pod: PodId,
     pub returns_inbound: u32,
+    /// The pad reported an unreadable fiducial (A35): no drone is sent to land there.
+    pub marker_fault: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -268,6 +270,7 @@ impl Fm {
                     backlog_len: 0,
                     out_pod: NO_POD,
                     returns_inbound: 0,
+                    marker_fault: false,
                 })
                 .collect(),
             orders: Vec::with_capacity(1024),
@@ -345,6 +348,15 @@ impl FleetView<'_> {
         self.cfg.has_charger(p)
     }
 
+    pub fn marker_fault(&self, p: PadId) -> bool {
+        self.fm.pads[usize::from(p)].marker_fault
+    }
+
+    /// A pad a drone may be sent to land at: ONLINE and not reporting a marker fault (A35).
+    pub fn landable(&self, p: PadId) -> bool {
+        self.online(p) && !self.marker_fault(p)
+    }
+
     fn drone(&self, d: DroneId) -> &FmDrone {
         &self.fm.drones[usize::from(d)]
     }
@@ -367,21 +379,25 @@ impl FleetView<'_> {
                     a,
                     b,
                     payload_kg,
-                    |q| self.online(q),
+                    |q| self.landable(q),
                     |q| self.charger(q),
                 )
     }
 
     /// Where an order to `dest` should be flown from `origin` (6.1 amendment): the destination
-    /// when it is ONLINE; the nearest ONLINE alternate (not the origin) when it is
-    /// OUT_OF_SERVICE; None while it is only suspected faulted (wait, usually brief).
+    /// when it is ONLINE; the nearest landable alternate (not the origin) when it is
+    /// OUT_OF_SERVICE; None while it is only suspected faulted (wait, usually brief) or reports
+    /// a marker fault (wait until it clears, A35).
     pub fn delivery_target(&self, origin: PadId, dest: PadId) -> Option<PadId> {
+        if self.marker_fault(dest) {
+            return None;
+        }
         match self.fm.pads[usize::from(dest)].mode {
             PadMode::Online => Some(dest),
             PadMode::ControllerFault => None,
             PadMode::OutOfService => self
                 .energy
-                .nearest_other(self.net, dest, |q| q != origin && self.online(q)),
+                .nearest_other(self.net, dest, |q| q != origin && self.landable(q)),
         }
     }
 
@@ -396,6 +412,7 @@ impl FleetView<'_> {
         let soc = self.drone(d).soc64();
         self.energy.nearest_other(self.net, from, |q| {
             self.unclaimed_for(q, d)
+                && !self.marker_fault(q)
                 && (!need_charger || self.charger(q))
                 && self.dispatch_ok(soc, from, q, 0.0)
         })
@@ -433,7 +450,9 @@ impl AssignmentPolicy for MinEta {
             ) && fd.dest == p;
             let idle = fd.mode == DroneMode::Parked
                 || (fd.mode == DroneMode::OnPad && fd.awaiting_mission);
-            let parked_elsewhere = idle && fd.pad != p && fd.pod == NO_POD;
+            // A drone elsewhere would have to land at the origin: not while it reports a
+            // marker fault (A35). Drones on it or already inbound keep their chance.
+            let parked_elsewhere = idle && fd.pad != p && fd.pod == NO_POD && !v.marker_fault(p);
             let (eta_ms, mut soc) = if at_origin {
                 (0, f64::from(fd.soc))
             } else if inbound {
@@ -527,7 +546,7 @@ impl HoldingPolicy for BoundedHold {
         let m = v.payload(d);
         let hover = v.energy.model.hover_power_w(m);
         let cap = v.energy.capacity_j;
-        let alt = v.energy.nearest_other(v.net, pad, |q| v.online(q));
+        let alt = v.energy.nearest_other(v.net, pad, |q| v.landable(q));
         match reason {
             HoldReason::PcSilent | HoldReason::OutOfService => HoldDecision::Divert,
             HoldReason::MarkerNotDetected => {
@@ -615,18 +634,21 @@ impl DroneRebalancingPolicy for NearestUnclaimed {
     fn yield_for(&self, v: &FleetView<'_>, parked: DroneId, cause: YieldCause) -> Option<Mission> {
         let fd = v.drone(parked);
         match cause {
-            YieldCause::Placement => Some(Mission {
+            // Yielding locally means landing here again, which a marker fault rules out (A35).
+            YieldCause::Placement if !v.marker_fault(fd.pad) => Some(Mission {
                 kind: MissionKind::YieldLocal,
                 dest: fd.pad,
                 order: NO_ORDER,
                 pickup_order: NO_ORDER,
             }),
-            YieldCause::Inbound => v.nearest_unclaimed(parked, fd.pad, false).map(|q| Mission {
-                kind: MissionKind::Reposition,
-                dest: q,
-                order: NO_ORDER,
-                pickup_order: NO_ORDER,
-            }),
+            YieldCause::Placement | YieldCause::Inbound => {
+                v.nearest_unclaimed(parked, fd.pad, false).map(|q| Mission {
+                    kind: MissionKind::Reposition,
+                    dest: q,
+                    order: NO_ORDER,
+                    pickup_order: NO_ORDER,
+                })
+            }
         }
     }
 }
@@ -729,7 +751,7 @@ impl DiversionPolicy for NearestFeasible {
         let mut best: Option<(usize, f64, PadId)> = None;
         for q in 0..v.net.n_pads {
             let q = PadId::try_from(q).expect("pad count fits u16");
-            if q == failed || !v.online(q) || !v.energy.divert_ok(v.net, soc, failed, q, m) {
+            if q == failed || !v.landable(q) || !v.energy.divert_ok(v.net, soc, failed, q, m) {
                 continue;
             }
             let key = (congestion(q), v.net.route_len(failed, q), q);
@@ -801,8 +823,9 @@ impl World {
                 empty_pods,
                 backlog_len,
                 out_pod,
+                marker_fault,
                 ..
-            } => self.fm_pad_status(pad, mode, empty_pods, backlog_len, out_pod),
+            } => self.fm_pad_status(pad, mode, empty_pods, backlog_len, out_pod, marker_fault),
             Msg::ShipmentPending { pad, out_drone } => self.fm_shipment_pending(pad, out_drone),
             Msg::DroneStatus {
                 drone,
@@ -1002,13 +1025,21 @@ impl World {
         empty_pods: u16,
         backlog_len: u16,
         out_pod: PodId,
+        marker_fault: bool,
     ) {
         let fp = &mut self.fm.pads[usize::from(pad)];
         let was = fp.mode;
+        let marker_was = fp.marker_fault;
         fp.mode = mode;
         fp.empty_pods = u32::from(empty_pods);
         fp.backlog_len = backlog_len;
         fp.out_pod = out_pod;
+        fp.marker_fault = marker_fault;
+        if marker_fault && !marker_was {
+            self.fm_withdraw_pickups(pad);
+        } else if marker_was && !marker_fault {
+            self.fm_run_assignment();
+        }
         if mode != was {
             if mode == PadMode::Online {
                 self.fm_run_assignment();
@@ -1036,6 +1067,26 @@ impl World {
         for o in 0..self.fm.orders.len() {
             let ord = self.fm.orders[o];
             if ord.origin_pad == pad && ord.status == OrderStatus::Assigned {
+                self.fm_unassign(OrderId::try_from(o).expect("order count fits u32"));
+            }
+        }
+    }
+
+    /// A35: a pad reports a marker fault. Pickups there assigned to drones that would still
+    /// have to fly in and land are withdrawn; drones already in the air keep the holding policy.
+    fn fm_withdraw_pickups(&mut self, pad: PadId) {
+        for o in 0..self.fm.orders.len() {
+            let ord = self.fm.orders[o];
+            if ord.origin_pad != pad || ord.status != OrderStatus::Assigned {
+                continue;
+            }
+            let fd = self.fm.drones[usize::from(ord.drone_id)];
+            let on_pad = matches!(fd.mode, DroneMode::OnPad | DroneMode::Parked) && fd.pad == pad;
+            let airborne = matches!(
+                fd.mode,
+                DroneMode::Takeoff | DroneMode::EnRoute | DroneMode::Holding
+            );
+            if !on_pad && !airborne {
                 self.fm_unassign(OrderId::try_from(o).expect("order count fits u32"));
             }
         }
@@ -1200,6 +1251,16 @@ impl World {
     /// `fm_retry_waiting` while the drone is still waiting.
     fn fm_dispatch_waiting(&mut self, d: DroneId) {
         let pad = self.fm.drones[usize::from(d)].pad;
+        // A35: a loaded drone whose destination reports a marker fault waits where it is; FM
+        // retries it on the PAD_STATUS that clears the fault.
+        let pod = self.fm.drones[usize::from(d)].pod;
+        let order = self.fm.pod_order(pod);
+        if order != NO_ORDER {
+            let dest = self.fm.orders[order as usize].dest_pad;
+            if self.fm.pads[usize::from(dest)].marker_fault {
+                return;
+            }
+        }
         let mut mission = {
             let v = self.view();
             v.fm.policies.dispatch.mission_for(&v, d)

@@ -105,3 +105,31 @@ Placeholder Pittsburgh week at 1x demand, repair mean 2 h, spread 1 h (`analysis
 All 187 rejections at seed 42 came from that one grounding, and with a repair there are none.
 None of the other seeds rejects anything either way. Seed 1 has a release fault, and repair
 lowers its mean door-to-door from 1316 s to 1220 s.
+
+## 4. Marker faults the fleet manager can see
+
+Before this phase FM never learned that a pad's fiducial could not be read (A35). A drone
+found out only by failing its approaches; then it held and diverted, and FM sent the next drone
+in all the same.
+
+With `pad_ops.marker_self_check`, the pad checks its own fiducial. It reports a marker fault in
+`PAD_STATUS` (new field `marker_fault`) when the fault starts and when it ends. While the fault
+lasts, FM's default policies send no drone to land there:
+
+- orders to the pad are not assigned;
+- a loaded drone bound for it waits where it is;
+- it is never an alternate, reposition target or local-yield pad;
+- pickups there are withdrawn from drones that would still have to fly in.
+
+A drone already in the air keeps the existing marker holding policy: it holds, then diverts.
+
+The self-check is a pad capability that the scenario turns on. The A-B example, which carries
+the golden test, has a 30-minute marker window, so making the check the default would have
+changed its golden results. With the key absent, every scenario runs as before. A `false` flag
+encodes as the zero byte that was already in `events.bin`, so even the event logs are
+unchanged.
+
+`sim/tests/marker_fault.rs` uses two drones at A with orders to B. B's marker fails a minute
+after the first drone leaves for B. That drone holds and diverts, and the second drone is never
+sent to B while the fault lasts. A control run without the self-check does send it, and a run
+with a 30-minute fault shows missions to B resume once the fault clears.

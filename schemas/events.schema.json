@@ -1568,7 +1568,8 @@
         "backlog_len",
         "in_drone",
         "out_drone",
-        "out_pod"
+        "out_pod",
+        "marker_fault"
       ],
       "properties": {
         "pad_id": {
@@ -1593,6 +1594,9 @@
         },
         "out_pod": {
           "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "marker_fault": {
+          "$ref": "common.schema.json#/$defs/flag"
         }
       },
       "x-class": "MESSAGE",
