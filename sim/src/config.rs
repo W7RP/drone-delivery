@@ -19,15 +19,55 @@ use crate::ids::{
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 
-pub const SCHEMA_VERSION: &str = "1.5.0";
-/// Earlier minor versions this core still reads: 1.5.0 only added `flight_profile`.
-const COMPATIBLE_VERSIONS: [&str; 1] = ["1.3.0"];
+pub const SCHEMA_VERSION: &str = "1.6.0";
+/// Earlier minor versions this core still reads. Each later version only added optional keys,
+/// which a file may use only when it declares that version (`VERSIONED_KEYS`).
+const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
+/// Optional keys and the schema version that added them.
+const VERSIONED_KEYS: [(&str, &str, &str); 3] = [
+    ("", "flight_profile", "1.5.0"),
+    ("drone", "airframe_mass_kg", "1.6.0"),
+    ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
+];
+
+/// Schema versions are "1.<minor>.0"; compare by minor.
+fn minor(version: &str) -> u32 {
+    version
+        .split('.')
+        .nth(1)
+        .and_then(|m| m.parse().ok())
+        .unwrap_or(0)
+}
+
+/// A key added after the file's declared version is an error, so a file never relies on
+/// behaviour its own version does not have.
+fn check_versioned_keys(root: &Table, version: &str) -> Result<()> {
+    for (section, key, added) in VERSIONED_KEYS {
+        let table = if section.is_empty() {
+            Some(root)
+        } else {
+            root.get(section).and_then(Value::as_table)
+        };
+        let path = if section.is_empty() {
+            key.to_owned()
+        } else {
+            format!("{section}.{key}")
+        };
+        if table.is_some_and(|t| t.contains_key(key)) && minor(version) < minor(added) {
+            return err(format!(
+                "{path}: needs schema_version \"{added}\", the file says \"{version}\""
+            ));
+        }
+    }
+    Ok(())
+}
 const PADS_FILE: &str = "pads.toml";
 const LANES_FILE: &str = "lanes.csr.bin";
 const TRUCK_FILE: &str = "truck_matrix.bin";
 const HOURS_PER_DAY: usize = 24;
 const SECONDS_PER_DAY: f64 = 86_400.0;
 const SECONDS_PER_HOUR: f64 = 3600.0;
+const J_PER_WH: f64 = 3600.0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigError(pub String);
@@ -97,7 +137,10 @@ pub struct FaultCfg {
 pub struct DroneCfg {
     pub fleet_size: u16,
     pub initial_pads: Vec<PadId>,
+    /// Airframe plus battery. Given directly, or derived from the battery when `mass_coupling`
+    /// is set (spec 8.2, A68).
     pub empty_mass_kg: f64,
+    pub mass_coupling: Option<MassCoupling>,
     pub latch_mass_kg: f64,
     pub mtow_kg: f64,
     pub battery_capacity_j: f64,
@@ -114,6 +157,29 @@ pub struct DroneCfg {
     pub hop_s: f64,
     pub p_release_fault: f64,
     pub p_latch_fault: f64,
+}
+
+/// Battery mass that follows capacity (A68): empty mass = airframe + capacity / specific energy.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MassCoupling {
+    pub airframe_mass_kg: f64,
+    pub specific_energy_j_per_kg: f64,
+}
+
+impl MassCoupling {
+    pub fn empty_mass_kg(&self, battery_capacity_j: f64) -> f64 {
+        self.airframe_mass_kg + battery_capacity_j / self.specific_energy_j_per_kg
+    }
+}
+
+impl DroneCfg {
+    /// Change the battery, and with it the empty mass when the mass is coupled to it.
+    pub fn set_battery_capacity(&mut self, capacity_j: f64) {
+        self.battery_capacity_j = capacity_j;
+        if let Some(c) = self.mass_coupling {
+            self.empty_mass_kg = c.empty_mass_kg(capacity_j);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -495,11 +561,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
             "schema_version: \"{version}\", this core reads \"{SCHEMA_VERSION}\" and {COMPATIBLE_VERSIONS:?}"
         ));
     }
-    if top.has("flight_profile") && version != SCHEMA_VERSION {
-        return err(format!(
-            "flight_profile: needs schema_version \"{SCHEMA_VERSION}\", the file says \"{version}\""
-        ));
-    }
+    check_versioned_keys(&root, version)?;
     let meta = top.section("meta")?;
     meta.allow(&["name", "preset", "status", "city", "description"])?;
     let name = meta.string("name")?.to_owned();
@@ -914,6 +976,8 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         "fleet_size",
         "initial_pads",
         "empty_mass_kg",
+        "airframe_mass_kg",
+        "battery_specific_energy_wh_per_kg",
         "latch_mass_kg",
         "mtow_kg",
         "battery_capacity_j",
@@ -948,13 +1012,37 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
     } else {
         round_robin_placement(pads, fleet_size)
     };
+    let battery_capacity_j = d.quantity("battery_capacity_j", "J", Range::Pos)?;
+    let coupled = d.has("airframe_mass_kg") || d.has("battery_specific_energy_wh_per_kg");
+    if coupled == d.has("empty_mass_kg") {
+        return err(
+            "drone: give empty_mass_kg, or airframe_mass_kg with battery_specific_energy_wh_per_kg",
+        );
+    }
+    let mass_coupling = if coupled {
+        Some(MassCoupling {
+            airframe_mass_kg: d.quantity("airframe_mass_kg", "kg", Range::Pos)?,
+            specific_energy_j_per_kg: d.quantity(
+                "battery_specific_energy_wh_per_kg",
+                "Wh/kg",
+                Range::Pos,
+            )? * J_PER_WH,
+        })
+    } else {
+        None
+    };
+    let empty_mass_kg = match mass_coupling {
+        Some(c) => c.empty_mass_kg(battery_capacity_j),
+        None => d.quantity("empty_mass_kg", "kg", Range::Pos)?,
+    };
     Ok(DroneCfg {
         fleet_size,
         initial_pads,
-        empty_mass_kg: d.quantity("empty_mass_kg", "kg", Range::Pos)?,
+        empty_mass_kg,
+        mass_coupling,
         latch_mass_kg: d.quantity("latch_mass_kg", "kg", Range::NonNeg)?,
         mtow_kg: d.quantity("mtow_kg", "kg", Range::Pos)?,
-        battery_capacity_j: d.quantity("battery_capacity_j", "J", Range::Pos)?,
+        battery_capacity_j,
         initial_soc: d.quantity("initial_soc", "1", Range::Prob)?,
         reserve_soc: d.quantity("reserve_soc", "1", Range::Prob)?,
         charge_target_soc: d.quantity("charge_target_soc", "1", Range::Prob)?,

@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.5.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.6.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -880,7 +880,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version: "1.5.0", or "1.3.0" for a file that does not use `flight_profile` (1.5.0 only added it). |
+| schema_version | - | Config schema version: "1.6.0", "1.5.0" or "1.3.0". Each newer version only added optional keys, and a file may use a key only when it declares the version that added it: `flight_profile` needs 1.5.0, the keys marked 1.6.0 below need 1.6.0. |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -916,7 +916,9 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | lanes[].pad_b | - | Other end. |
 | drone.fleet_size | count | Number of drones. |
 | drone.initial_pads | - | Pad name per drone; the drone starts parked there (parking area if `parking_capacity` > 0, else on OUT). Optional: when absent, drones go round-robin over pads in ID order, skipping full pads (8.6). |
-| drone.empty_mass_kg | kg | Airframe and battery without latch or payload. |
+| drone.empty_mass_kg | kg | Airframe and battery without latch or payload. Give this, or `drone.airframe_mass_kg` with `drone.battery_specific_energy_wh_per_kg`. |
+| drone.airframe_mass_kg | kg | 1.6.0, optional. Mass without battery, latch or payload; with `drone.battery_specific_energy_wh_per_kg` the empty mass becomes airframe + `drone.battery_capacity_j` / specific energy (A68). |
+| drone.battery_specific_energy_wh_per_kg | Wh/kg | 1.6.0, optional, with `drone.airframe_mass_kg`. Battery energy per kg, so a bigger battery is heavier (A68). |
 | drone.latch_mass_kg | kg | Latch carried by every drone; reduces payload margin and range. |
 | drone.mtow_kg | kg | Max takeoff mass. |
 | drone.battery_capacity_j | J | Usable battery energy. |
@@ -1440,6 +1442,13 @@ that:
   move the fit (`docs/calibration.md`). This is an artefact of the flat world. A real vehicle
   flies over a curved Earth and real terrain, and needs its own height source for the final
   approach.
+- A68 A drone's battery can carry its own mass: with `drone.airframe_mass_kg` and
+  `drone.battery_specific_energy_wh_per_kg` the empty mass is airframe + capacity / specific
+  energy, and the flight model, the energy guard and R6 all use it. The placeholders 4.5 kg and
+  200 Wh/kg give exactly the 9.0 kg every scenario has at 900 Wh, so a fixed-mass scenario and
+  its coupled form run identically. Scenarios that give `drone.empty_mass_kg` keep a mass that
+  does not depend on the battery; the 1370 Wh scenario (A66) is one, and under A68 it is light by
+  2.35 kg.
 
 ## 11 Amendments
 
@@ -1454,3 +1463,4 @@ that:
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
+| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. | Phase 6a: a bigger battery must cost mass, payload margin and energy. |

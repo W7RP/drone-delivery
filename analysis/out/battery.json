@@ -1,0 +1,28 @@
+{
+ "placeholders": {
+  "airframe_mass_kg": 4.5,
+  "battery_specific_energy_wh_per_kg": 200.0,
+  "empty_mass_kg_at_900_wh": 9.0
+ },
+ "payload_kg": 5.0,
+ "range_at_900_wh_m": 5661.534940750922,
+ "longest_legal_lane": {
+  "from": "Consumer_Fresh_Produce",
+  "route_m": 12895.5634765625,
+  "to": "Mon_Valley_Works_Edgar_Thomson_P"
+ },
+ "uncoupled_required_wh": 1367.1027350969036,
+ "coupled": {
+  "fixed_point": false,
+  "iterations": 28,
+  "sized": null,
+  "closest_capacity_wh": 3892.71102252417,
+  "closest_shortfall_wh": 46.47831534851756
+ },
+ "mtow_limit_wh": 1180.0,
+ "at_mtow_limit": {
+  "capacity_wh": 1180.0,
+  "empty_mass_kg": 10.4,
+  "range_m": 8137.160467857336
+ }
+}

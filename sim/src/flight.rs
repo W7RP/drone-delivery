@@ -199,6 +199,15 @@ impl EnergyRules {
             + self.charger_energy(net, b, has_charger)
     }
 
+    /// Longest one-way lane `dispatch_ok` accepts from `soc` into a pad with a charger when the
+    /// diversion route is zero (an alternate next to the destination): an upper bound on range.
+    pub fn max_lane_m(&self, soc: f64, payload_kg: f64) -> f64 {
+        let hover = self.model.hover_power_w(payload_kg);
+        let fixed_j = hover * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s);
+        let per_m_j = self.model.segment(1.0, payload_kg).1;
+        ((self.usable_j(soc) - fixed_j) / per_m_j).max(0.0)
+    }
+
     pub fn usable_j(&self, soc: f64) -> f64 {
         (soc - self.reserve_soc) * self.capacity_j
     }

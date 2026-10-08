@@ -473,6 +473,17 @@
         }
       }
     },
+    "q_Wh_per_kg_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "Wh/kg"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
     "q_lat_deg": {
       "$ref": "#/$defs/quantity",
       "properties": {

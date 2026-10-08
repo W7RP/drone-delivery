@@ -60,6 +60,17 @@ def iter_quantities(node, path=""):
         yield path, None
 
 
+J_PER_WH = 3600.0
+
+
+def empty_mass_kg(d: dict) -> float:
+    """drone.empty_mass_kg, or airframe plus battery when the mass is coupled (spec A68)."""
+    if "empty_mass_kg" in d:
+        return q(d["empty_mass_kg"])
+    battery_kg = q(d["battery_capacity_j"]) / J_PER_WH / q(d["battery_specific_energy_wh_per_kg"])
+    return q(d["airframe_mass_kg"]) + battery_kg
+
+
 def enu_m(lat_deg, lon_deg, lat0_deg, lon0_deg):
     x = (
         EARTH_RADIUS_M
@@ -82,7 +93,7 @@ def check_dispatch_energy(cfg: dict, name: str) -> None:
 
     def k(m):
         return (
-            (q(d["empty_mass_kg"]) + q(d["latch_mass_kg"]) + m)
+            (empty_mass_kg(d) + q(d["latch_mass_kg"]) + m)
             / q(d["power_ref_mass_kg"])
         ) ** 1.5
 
@@ -209,7 +220,7 @@ def check_files_network(cfg: dict, name: str, scenario_dir: Path, validator) -> 
 def check_common_rules(cfg: dict, name: str) -> None:
     d = cfg["drone"]
     pl = cfg["payload"]
-    margin = q(d["mtow_kg"]) - q(d["empty_mass_kg"]) - q(d["latch_mass_kg"])
+    margin = q(d["mtow_kg"]) - empty_mass_kg(d) - q(d["latch_mass_kg"])
     if q(pl["pod_gross_mass_kg"]) > margin or q(pl["pod_empty_mass_kg"]) >= q(
         pl["pod_gross_mass_kg"]
     ):

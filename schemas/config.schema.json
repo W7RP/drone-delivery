@@ -13,9 +13,10 @@
     "schema_version": {
       "enum": [
         "1.3.0",
-        "1.5.0"
+        "1.5.0",
+        "1.6.0"
       ],
-      "description": "1.5.0 adds flight_profile; 1.3.0 files stay valid without it."
+      "description": "1.5.0 adds flight_profile, 1.6.0 adds the Phase 6a keys; earlier files stay valid without them."
     },
     "meta": {
       "type": "object",
@@ -244,7 +245,6 @@
       "type": "object",
       "required": [
         "fleet_size",
-        "empty_mass_kg",
         "latch_mass_kg",
         "mtow_kg",
         "battery_capacity_j",
@@ -276,6 +276,12 @@
         },
         "empty_mass_kg": {
           "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "airframe_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "battery_specific_energy_wh_per_kg": {
+          "$ref": "common.schema.json#/$defs/q_Wh_per_kg_pos"
         },
         "latch_mass_kg": {
           "$ref": "common.schema.json#/$defs/q_kg_nonneg"
@@ -325,7 +331,20 @@
         "p_latch_fault": {
           "$ref": "common.schema.json#/$defs/q_prob"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "empty_mass_kg"
+          ]
+        },
+        {
+          "required": [
+            "airframe_mass_kg",
+            "battery_specific_energy_wh_per_kg"
+          ]
+        }
+      ]
     },
     "payload": {
       "type": "object",

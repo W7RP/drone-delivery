@@ -103,6 +103,16 @@ and reruns byte-identically. The held-out flights are
 the fit lane. `run_flight.sh --lane-id N` flies any directed lane of the Pittsburgh catalog.
 `docs/calibration.md` has the results.
 
+## Network realism analysis (Phase 6a)
+
+```
+uv run analysis/battery.py                        # battery-mass coupling, analysis/out/battery.json
+sim/target/release/sim battery --config <scenario.toml> --payload-kg 5 --from <pad> --to <pad>
+```
+
+Each script builds the release sim, writes the scenario variants it needs into a temporary
+directory and its results into `analysis/out/`. `docs/network-realism.md` has the results.
+
 ## Test and verify
 
 ```
