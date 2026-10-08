@@ -36,6 +36,8 @@ pub struct FmDrone {
     pub landed_since_hold: bool,
     /// Sent MISSION_REQUEST and has no mission yet: idle and assignable from any pad.
     pub awaiting_mission: bool,
+    /// Told to make room (A74) and not heard from since.
+    pub yielding: bool,
 }
 
 impl FmDrone {
@@ -233,6 +235,7 @@ pub struct Fm {
     /// ENERGY_STRANDED already raised for this drone's current stranding.
     pub stranded: Vec<bool>,
     retrying: bool,
+    making_room: bool,
     /// Claims per pad (spec 6.4), refreshed before each rebalancing decision.
     pub claims: Vec<u16>,
     returns_buf: Vec<PodReturn>,
@@ -259,6 +262,7 @@ impl Fm {
                     hold_since: 0,
                     landed_since_hold: false,
                     awaiting_mission: false,
+                    yielding: false,
                 };
                 n_drones
             ],
@@ -293,6 +297,7 @@ impl Fm {
             pad_gen: vec![0; cfg.pads.len()],
             stranded: vec![false; n_drones],
             retrying: false,
+            making_room: false,
             claims: vec![0; cfg.pads.len()],
             returns_buf: Vec::with_capacity(cfg.pads.len()),
             policies: Policies::defaults(),
@@ -863,6 +868,133 @@ impl World {
             } => self.fm_hold_report(drone, pad, reason, hold_cycles, soc),
             _ => {}
         }
+        if let (EntityKind::Drone, d) = msg.sender() {
+            self.fd_mut(d).yielding = false;
+        }
+        self.fm_make_room();
+    }
+
+    /// A74 (`policy.yield_on_request`): an idle, empty drone on a spot makes room when a drone
+    /// holds over its pad, or when a pod there waits for an OUT spot. It moves to a free parking
+    /// slot, else (from IN) to a free OUT spot, else away by the rebalancing policy. One move
+    /// per pad per pass; a drone is moved again only after it reports.
+    fn fm_make_room(&mut self) {
+        if !self.cfg.policy.yield_on_request || self.fm.making_room {
+            return;
+        }
+        self.fm.making_room = true;
+        for p in 0..self.fm.pads.len() {
+            let pad = PadId::try_from(p).expect("pad count fits u16");
+            let holders = self
+                .fm
+                .drones
+                .iter()
+                .filter(|fd| fd.mode == DroneMode::Holding && fd.pad == pad);
+            let (mut held, mut loaded) = (false, false);
+            for fd in holders {
+                held = true;
+                loaded |= fd.pod != NO_POD;
+            }
+            let free_out = self.fm_free_out(pad).is_some();
+            let placing = !free_out && self.fm_placement_waits(pad);
+            if !held && !placing {
+                continue;
+            }
+            let idle_on = |spot: fn(Spot) -> bool, fm: &Fm| {
+                (0..fm.drones.len()).find(|&i| {
+                    let fd = &fm.drones[i];
+                    fd.pad == pad
+                        && fd.pod == NO_POD
+                        && fd.pickup_order == NO_ORDER
+                        && !fd.yielding
+                        && fd.spot.is_some_and(spot)
+                        && (fd.mode == DroneMode::Parked
+                            || (fd.mode == DroneMode::OnPad && fd.awaiting_mission))
+                })
+            };
+            let on_in = idle_on(|s| s == Spot::In, &self.fm);
+            let on_out = idle_on(Spot::is_out, &self.fm);
+            // A loaded drone needs IN; an empty one can use either spot.
+            let pick = match (held, loaded, placing) {
+                (true, true, _) => on_in,
+                (true, false, _) if !free_out => on_in.or(on_out),
+                (_, _, true) => on_out,
+                _ => None,
+            };
+            let Some(i) = pick else { continue };
+            let d = DroneId::try_from(i).expect("fleet size fits u16");
+            // For a waiting pod the last resort is the existing local yield: lift off, let the
+            // pod be placed, land again. For a drone waiting to land it would only go round.
+            let mut mv = self.fm_room_move(d, pad);
+            if mv.is_none() && placing && !held {
+                let v = self.view();
+                mv =
+                    v.fm.policies
+                        .drone_rebalancing
+                        .yield_for(&v, d, YieldCause::Placement);
+            }
+            if let Some(m) = mv {
+                self.fm_send_mission(d, m);
+                self.fd_mut(d).yielding = true;
+            }
+        }
+        self.fm.making_room = false;
+    }
+
+    /// Where a yielding drone goes (A74): parking with room, a free OUT spot (from IN; the pad
+    /// turns the PARK into a ground hop, V44), or the rebalancing policy's nearest unclaimed pad.
+    fn fm_room_move(&mut self, d: DroneId, pad: PadId) -> Option<Mission> {
+        let stay = Mission {
+            kind: MissionKind::Park,
+            dest: pad,
+            order: NO_ORDER,
+            pickup_order: NO_ORDER,
+        };
+        let capacity = self.cfg.pads[usize::from(pad)].parking_capacity;
+        let in_parking = self
+            .fm
+            .drones
+            .iter()
+            .filter(|fd| {
+                fd.pad == pad
+                    && (fd.spot == Some(Spot::Parking)
+                        || (fd.mission == MissionKind::Park && fd.yielding))
+            })
+            .count();
+        if usize::from(capacity) > in_parking {
+            return Some(stay);
+        }
+        let fd = self.fm.drones[usize::from(d)];
+        if fd.spot == Some(Spot::In) && self.fm_free_out(pad).is_some() {
+            return Some(stay);
+        }
+        self.fm.refresh_claims();
+        let v = self.view();
+        v.fm.policies
+            .drone_rebalancing
+            .yield_for(&v, d, YieldCause::Inbound)
+    }
+
+    /// An OUT spot at `pad` with no pod and no drone, as FM last heard.
+    fn fm_free_out(&self, pad: PadId) -> Option<usize> {
+        let fp = &self.fm.pads[usize::from(pad)];
+        (0..fp.out_pods.len()).find(|&k| {
+            fp.out_pods[k] == NO_POD
+                && !self
+                    .fm
+                    .drones
+                    .iter()
+                    .any(|fd| fd.pad == pad && fd.spot == Some(Spot::out(k)))
+        })
+    }
+
+    /// A shipment or a pod return at `pad` is waiting to be placed on OUT.
+    fn fm_placement_waits(&self, pad: PadId) -> bool {
+        let fp = &self.fm.pads[usize::from(pad)];
+        (fp.backlog_len > 0 && fp.empty_pods > 0)
+            || self.fm.pods.iter().any(|r| {
+                r.location == PodLocation::PadInventory && r.pad == pad && r.return_dest != NO_PAD
+            })
     }
 
     #[allow(clippy::too_many_arguments)]

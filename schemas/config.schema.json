@@ -639,6 +639,9 @@
         },
         "pod_min_per_pad": {
           "$ref": "common.schema.json#/$defs/q_count_nonneg"
+        },
+        "yield_on_request": {
+          "type": "boolean"
         }
       }
     },

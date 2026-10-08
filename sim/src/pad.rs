@@ -430,6 +430,14 @@ impl World {
             }
             (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
                 if mission == MissionKind::Pickup && dest == p && self.hop_to_pickup(p, d) => {}
+            (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
+                if mission == MissionKind::Park
+                    && dest == p
+                    && self.visit(p, d).spot == Spot::In
+                    && self.pad(p).parked >= self.pad(p).parking_capacity =>
+            {
+                self.hop_to_free_out(p, d);
+            }
             (VisitState::Ready, Msg::DepartRequest { mission, .. }) => {
                 self.visit_mut(p, d).depart_mission = mission;
                 if !self.pad(p).depart_queue.contains(&d) {
@@ -611,6 +619,20 @@ impl World {
         self.visit_to(p, d, tcode::v(43), VisitState::Hopping);
         self.send_hop(p, d);
         true
+    }
+
+    /// V44 (A74): an idle drone on IN makes room by hopping to a free OUT spot, because the
+    /// parking area has no room. With no free OUT spot the request waits: the PC answers as to a
+    /// duplicate, and the drone's watchdog asks again.
+    fn hop_to_free_out(&mut self, p: PadId, d: DroneId) {
+        let Some(k) = self.out_for(p, d, true, true) else {
+            self.pc_duplicate(p, d);
+            return;
+        };
+        self.out_mut(p, k).reserved = d;
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_to(p, d, tcode::v(44), VisitState::Hopping);
+        self.send_hop(p, d);
     }
 
     /// V24 to V26 (or V13-style fallback from the hop timeout): the drone has hopped from IN, or

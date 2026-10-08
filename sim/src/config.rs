@@ -24,7 +24,7 @@ pub const SCHEMA_VERSION: &str = "1.7.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 3] = ["1.3.0", "1.5.0", "1.6.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 15] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 16] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -40,6 +40,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 15] = [
     ("demand", "pods_per_origin", "1.6.0"),
     ("sim", "max_events_per_timestamp", "1.7.0"),
     ("sim", "max_event_log_mib", "1.7.0"),
+    ("policy", "yield_on_request", "1.7.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
@@ -284,6 +285,8 @@ pub struct PolicyCfg {
     pub marker_hold_s: f64,
     pub marker_max_hold_cycles: u8,
     pub pod_min_per_pad: u32,
+    /// `policy.yield_on_request` (A74): idle drones make room for arriving drones and pods.
+    pub yield_on_request: bool,
 }
 
 /// `truck.synthetic_*` (spec 9.2 SYNTHETIC); absent when the matrix comes from a file.
@@ -1333,6 +1336,7 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
         "marker_hold_s",
         "marker_max_hold_cycles",
         "pod_min_per_pad",
+        "yield_on_request",
     ])?;
     // One implementation of each in phase 2; the names are still validated.
     p.enumeration("assignment", AssignmentPolicyName::from_name)?;
@@ -1353,6 +1357,7 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
             p.count("pod_min_per_pad", 0, i64::from(u32::MAX))?,
             "policy.pod_min_per_pad",
         )?,
+        yield_on_request: p.has("yield_on_request") && p.boolean("yield_on_request")?,
     })
 }
 

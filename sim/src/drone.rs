@@ -259,7 +259,14 @@ impl World {
                 self.disarm_response(d);
                 match self.dr(d).spot {
                     Some(Spot::In) if mode == DroneMode::OnPad => {
-                        self.dr_mut(d).hop_out = out_index;
+                        // From WAIT_OUT (V21), or from READY when making room (V44): either
+                        // way a new landing on OUT follows, with its own SERVICE_COMPLETE.
+                        let dr = self.dr_mut(d);
+                        dr.hop_out = out_index;
+                        dr.service_done = false;
+                        dr.busy = false;
+                        dr.done_latch_attempt = 0;
+                        dr.last_report = None;
                         self.drone_to(d, tcode::d(15), DroneMode::Hopping);
                         self.after(
                             ms_from_s(self.cfg.drone.hop_s),
@@ -447,6 +454,9 @@ impl World {
                         self.dr_mut(d).park_since = self.now;
                         self.drone_to(d, tcode::d(18), DroneMode::Parked);
                         self.status(d);
+                    } else if dr.spot == Some(Spot::In) {
+                        // A74: making room on IN; the pad moves it to a free OUT spot (V44).
+                        self.depart_request(d);
                     }
                 } else if dr.spot != Some(Spot::Parking) {
                     self.depart_request(d);

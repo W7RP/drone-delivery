@@ -396,6 +396,7 @@ presence sensor instead of declaring silence (A12).
 | V41 | DRONE_SILENT | CLOSED | PC | `PC_RESPONSE_TIMEOUT` | the spot sensor shows the spot empty | The silent drone has left. If it was DEPARTING, act as V36 (outcome COMPLETED); otherwise free the spot, outcome LOST_CONTACT. | In: none needed; the trigger is the sensor check on `PC_RESPONSE_TIMEOUT`. |
 | V42 | (none) | per V06 to V10 | PC | `LANDED` from a drone with no open visit at this pad (its grant timed out just before touchdown, V14, or it is back in service after a repair, D25) | the spot sensor shows that drone on the spot and the PC holds no other drone or reservation there | Adopt it: create the visit and continue as V06 to V10. | In: `LANDED`. Out: as the matching row V06 to V10 (`RELEASE_CMD`, `LATCH_CMD`, `CHARGE_START` or `SERVICE_COMPLETE`). |
 | V43 | READY | HOPPING | PC | `DEPART_REQUEST` mission PICKUP with `dest_pad` = this pad | the drone is on an OUT spot, latched no pod in this visit, and its pickup pod waits on another drone-free OUT spot (A72) | Reserve that spot. The drone hops there on the ground instead of taking off and queueing to land again; V24 follows on landing. | In: `DEPART_REQUEST`. Out: `HOP_CMD` naming the spot. |
+| V44 | READY | HOPPING | PC | `DEPART_REQUEST` mission PARK with `dest_pad` = this pad | the drone is on IN and the parking area has no room (A74) | Hop to a free OUT spot (lowest index) and reserve it; with none free, answer as to a duplicate and wait for the drone's next request. V24 to V26 follow on landing. | In: `DEPART_REQUEST`. Out: `HOP_CMD` naming the spot. |
 
 `LANDING_CANCEL` or `APPROACH_ABORT` for a drone with no open visit is ignored; `LANDED` is
 handled by V42 and `DEPART_REQUEST` by V40. The visit
@@ -807,6 +808,11 @@ Default NEAREST_UNCLAIMED:
   back to OUT for the new pod), or, while the pad reports a marker fault, REPOSITION as for
   inbound (A35). Cause = inbound: REPOSITION to the nearest unclaimed pad. Pads reporting a
   marker fault are never REPOSITION targets.
+- With `policy.yield_on_request` (A74), FM also moves an idle, empty drone off a spot whenever a
+  drone holds over its pad, or a shipment or pod return there waits for an OUT spot: to a
+  parking slot with room (PARK), else from IN to a free OUT spot (PARK, which the pad turns into
+  a hop, V44), else REPOSITION as for cause inbound. For a waiting pod the last resort is the
+  local yield (YIELD_LOCAL).
 
 With `drone.fleet_size` <= the sum of `slots(p)` (rule R5) an unclaimed pad always exists for
 a yielding drone, because the other drones hold at most `fleet_size - 1` claims (A08).
@@ -1017,6 +1023,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | policy.marker_hold_s | s | Hold between marker approach cycles. |
 | policy.marker_max_hold_cycles | count | Marker hold cycles before divert. |
 | policy.pod_min_per_pad | count | Pod rebalancing threshold. |
+| policy.yield_on_request | - | 1.7.0, optional, default false. An idle drone on a spot makes room for a drone holding over its pad, or for a pod waiting for an OUT spot (A74). |
 | demand.deadline_offset_s | s | Deadline = request + this. |
 | demand.max_backlog_per_pad | count | Optional, 1 to 65535. Shipment requests a pad queues before it rejects new ones (P08, M9). Absent: no cap, the backlog grows without limit when a pad cannot keep up. |
 | demand.pods_per_origin | count | 1.6.0, optional. Every pad that is the origin of a flow with a rate above 0 starts with this many empty pods instead of its own `pads[].initial_empty_pods`; other pads keep theirs (A73). |
@@ -1532,6 +1539,12 @@ that:
 - A73 Pods and fleet are sized by sweeping `demand.pods_per_origin` and `drone.fleet_size` at a
   fixed layout (`analysis/fleet.py`). "Smallest" means the fewest drones, then the fewest pods
   per warehouse, whose mean rejected fraction over five seeds is under 5%.
+- A74 With `policy.yield_on_request`, an idle drone never keeps a spot another drone or a pod
+  needs. Phase 6a found the failure it fixes: a drone that finished its service on IN, too low on
+  charge to fly anywhere and unable to charge there, blocked IN for hours, and loaded drones held
+  over the pad until reserve and made forced landings. Moves go to parking, then to an OUT spot
+  (where it can charge), then away by the rebalancing policy; a waiting pod may also make a drone
+  yield locally. Each drone is moved once until it reports again, so moves cannot loop.
 
 ## 11 Amendments
 
@@ -1547,4 +1560,4 @@ that:
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
-| 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk. |
+| 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
