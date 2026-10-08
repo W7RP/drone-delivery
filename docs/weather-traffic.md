@@ -104,3 +104,37 @@ charger power do more per cost unit.
 The scenario as written (5 drones, 8 pods) sits between the last two. The yield fix removes
 the Phase 6a pattern where more drones meant more rejections: with 2 pods per warehouse and 14
 drones, nothing is rejected.
+
+## 3. Weather data
+
+`pipeline/run.sh` now also writes `configs/weather/pittsburgh/`: `weather.bin` (spec 9.7, 684
+KB), `report.json` and `manifest.json`. The source is the Iowa Environmental Mesonet archive of
+ASOS routine reports, 2023 to 2025 in UTC, for AGC (Allegheny County Airport) and PIT; it needs
+no key. Both CSVs (1.4 MB each) are cached under `pipeline/data/raw/` with their sha256 in the
+manifest, so a rebuild runs offline. Two rebuilds in a row gave byte-identical files, all 19
+pipeline outputs included.
+
+Each hour holds the 10 m wind speed and direction, gust, temperature, visibility, 1 h
+precipitation and present-weather flags (rain, snow, freezing, thunder), in SI. How reports
+become hours (spec A75):
+
+- a report belongs to the nearest whole hour (the hh:53 routine report is hour hh+1);
+- a missing value keeps the last one for up to 3 h, after which the hour is marked missing.
+  It keeps the last value, so a flight in progress still has numbers;
+- no gust group means gust equals wind, a trace or missing 1 h precipitation is 0, and a
+  variable wind keeps the last direction;
+- a wind speed at direction 0 (the calm code) is dropped as impossible: 33 kt on 2023-06-29
+  and 90 kt on 2023-07-01.
+
+| Station | Reports | Hours carried forward | Hours missing | Variable-wind hours |
+|---|---|---|---|---|
+| AGC (used) | 25 981 | 577 | 198 (0.75%) | 1949 |
+
+AGC is used because under 2% of its hours stay missing (placeholder rule); PIT is only the
+fallback. Over the three years at AGC, the 10 m wind has a median of 3.1 m/s, a p90 of 5.7 m/s
+and a maximum of 14.4 m/s; the highest gust is 28.3 m/s. Temperature runs from -20.6 to 35.6
+deg C. There are 389 hours below 1600 m visibility, 1659 with rain and 603 with snow.
+
+The station is not at the lanes (spec A76): AGC is 10 to 12 km south of the five pads, at an
+open airfield. River valleys, building wake and rooftop turbulence are not modelled. Scaling
+the 10 m wind to cruise height happens in the sim (section 4).

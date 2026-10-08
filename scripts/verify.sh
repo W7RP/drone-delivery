@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Whole verification suite; exits non-zero on the first failure.
 #  1. Spec, schemas and configs agree (check_spec.py, via uv; pinned deps in uv's cache only).
-#  2. Offline pipeline unit tests (pipeline/run.sh test; creates pipeline/.venv on first use).
+#  2. Offline pipeline unit tests (pipeline/run.sh test; creates pipeline/.venv on first use),
+#     including the committed weather series against spec 9.7 and its 1 MB limit.
 #  3. PX4 phase offline checks (log reader tests, node unit tests, the committed sample log).
 #     Skip with VERIFY_SKIP_PX4=1.
 #  4. Rust core: formatting, clippy with warnings as errors, all tests (debug build, so the

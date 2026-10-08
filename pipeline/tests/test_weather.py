@@ -8,6 +8,7 @@ import unittest
 import numpy as np
 
 from ddpipe import binfmt
+from ddpipe.paths import WEATHER_DIR
 from ddpipe.weather import parse, wx_flags
 
 HEADER = "station,valid,sknt,drct,gust,tmpf,vsby,p01i,wxcodes\n"
@@ -113,6 +114,22 @@ class WeatherFile(unittest.TestCase):
             binfmt.read_weather(data + bytes(8))
         with self.assertRaises(binfmt.FormatError):
             binfmt.read_weather(data[:-1])
+
+class CommittedSeries(unittest.TestCase):
+    """The committed series meets 9.7 and the Phase 6b limits: under 1 MB, three whole years."""
+    MAX_BYTES = 1 << 20
+    YEARS_2023_2025_H = (365 + 366 + 365) * 24
+    MAX_MISSING_FRACTION = 0.02
+
+    def test_committed_file(self):
+        data = (WEATHER_DIR / "weather.bin").read_bytes()
+        self.assertLess(len(data), self.MAX_BYTES)
+        w, _ = binfmt.read_weather(data)
+        start = dt.datetime.fromtimestamp(w.start_unix_h * 3600, dt.UTC)
+        self.assertEqual(start, dt.datetime(2023, 1, 1, tzinfo=dt.UTC))
+        self.assertEqual(len(w.wind_mps), self.YEARS_2023_2025_H)
+        self.assertLessEqual(w.missing.mean(), self.MAX_MISSING_FRACTION)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -288,7 +288,7 @@
    "truck_snap_m": 32.4
   }
  ],
- "pipeline_git": "69320f75d1c5",
+ "pipeline_git": "ec302fd8b19c",
  "scenario": {
   "fleet_size": 5,
   "flows": [
