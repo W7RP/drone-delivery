@@ -182,3 +182,72 @@ doubling the tail. Over a placeholder Pittsburgh week (seeds 1-5), latch aborts 
 to 2.2 per run; door-to-door (1199 s against 1179 s) and deliveries per hour (7.80 against
 7.61) move by less than the spread between seeds. Each attempt draws anew, so the one retry
 usually saves the pickup (A71). Marker detection stays at 0.97.
+
+## 7. Charging and pad layout at 1370 Wh
+
+Phase 5 found the 1370 Wh scenario 4.4 times slower than the truck. Every pad has one OUT spot,
+and a drone that latched a pod charges on it for up to 46 minutes at 1.5 kW. New layout keys
+(A72) let a scenario change that:
+
+- `pad_ops.out_spots`: 1 to 3 OUT spots per pad, each taking a pod and a drone;
+- `pad_ops.parking_capacity`: parking slots per pad;
+- parked charging: with `charging.charge_while_parked`, a drone with nothing to latch charges in
+  a free parking slot instead of holding OUT.
+
+`uv run analysis/sweep.py` runs the grid in about 7 s:
+
+- **Grid:** charger 1.5, 3, 6, 12 kW; parking 0 to 3, charging whenever there is parking; 1 to 3
+  OUT spots; every pad alike.
+- **Runs:** seeds 1 to 5 per point. Repair (A69, 2 h ± 1 h) is on at every point, because without
+  it a single release fault closes a pad for the week and swamps the layout's effect.
+- **Base:** the 1370 Wh scenario, as it stands (section 1: no coupled battery serves its longest
+  lane).
+
+The cost proxy per pad, in placeholder units, is: 100 + 20 per spot (IN and OUT) + 10 per
+charger kW per charging point (each OUT spot, plus each parking slot when it charges) + 15 per
+parking slot. The table is `analysis/out/sweep.md`; the data are in `analysis/out/sweep.json`.
+16 points cannot load: one parking slot per pad, or no parking with one OUT spot, gives 9 slots
+for 10 drones (R4).
+
+Before and after (door-to-door and pod wait are means over seeds ± standard deviation; the
+truck is timed on the same delivered orders):
+
+| Scenario | Cost (cu) | Door-to-door (s) | Pod wait (s) | Rejected | Truck (s) |
+|---|---|---|---|---|---|
+| 1370 Wh as in Phase 5 (1.5 kW, 1 OUT, hub 4 / others 2 parking, no parked charging) | 1695 | 9710 ± 1370 | 8658 ± 1348 | 8.0% | 2274 |
+| The same with repair | 1695 | 9984 ± 1550 | 8933 ± 1526 | 6.6% | 2272 |
+| Chosen: 6 kW, 2 OUT spots, no parking, with repair | 2520 | 735 ± 17 | 82 ± 3 | 0.0% | 2271 |
+
+The chosen layout is the cheapest within 10% of the best mean door-to-door (683 s, at 12 kW
+with 3 OUT spots and no parking). It is now `configs/parts_logistics_pittsburgh_1370wh_layout`,
+and `verify.sh` runs it within the release budget. The drone goes from 4.3 times slower than the
+truck to 3.1 times faster.
+
+The Pareto set (lowest door-to-door for its cost):
+
+| Charger (kW) | Parking | OUT spots | Cost (cu) | Door-to-door (s) | Pod wait (s) |
+|---|---|---|---|---|---|
+| 1.5 | 0 | 2 | 1710 | 3352 ± 3298 | 2157 ± 3032 |
+| 3 | 0 | 2 | 1980 | 858 ± 43 | 119 ± 31 |
+| 3 | 0 | 3 | 2430 | 769 ± 15 | 70 ± 2 |
+| 6 | 0 | 2 | 2520 | 735 ± 17 | 82 ± 3 |
+| 6 | 0 | 3 | 3240 | 708 ± 15 | 69 ± 9 |
+| 12 | 0 | 3 | 4860 | 683 ± 13 | 64 ± 0 |
+
+- A second OUT spot does most of the work. It lets a pod be placed while another drone charges,
+  so pod wait drops from hours to about a minute. The charger then sets the pace up to about
+  6 kW.
+- Parking with charging never makes the Pareto set. At equal door-to-door, a second OUT spot is
+  cheaper than parking slots with chargers. A drone that has just latched a pod still charges
+  on OUT, because pods never enter parking.
+- 1.5 kW with no parking and 2 OUT spots is cheap but unstable. On some seeds the Oakland pads
+  gridlock: idle and energy-stranded drones fill the spots, and arriving drones hold until no
+  pad is within reach and make forced landings (7 of 10 drones at seed 2). It stays in the
+  Pareto set only because nothing cheaper can load.
+- The sweep found a protocol gap. With several OUT spots, a drone on one spot could be given a
+  pickup whose pod waited on another spot of the same pad. Its only move was to take off and
+  queue to land again, which led to forced landings at the hub. The pad now hops it there on
+  the ground (V43). A first version of that hop also exposed two bugs: an endless resend loop
+  with a drone that already held a pod, and a deadlock with a drone parked on OUT. Both are
+  fixed and covered by `sim/tests/pad_layout.rs`; the sweep stops on any run that does not
+  finish in 60 s.
