@@ -282,8 +282,8 @@ pods, three of the five seeds deliver nothing in the window.
 | ... and faster than the truck on the same orders (2271 s) | 4 | 4 | 2028 ± 366 | 0.0% |
 | ... and within 10% of the best (713 s) | 8 | 6 | 762 ± 15 | 0.0% |
 
-The scenario as written (10 drones, 8 pods) gives 735 s. Two drones with eight pods could
-match it.
+The scenario as written (10 drones, 8 pods) gives 735 s. Eight drones with six pods per
+warehouse come within 4% of that.
 
 - Rejection alone is a weak test. Four drones keep the backlog under its cap, but an order waits
   over an hour, mostly for its pod.
@@ -296,3 +296,23 @@ match it.
   yield policy; the same effect causes the occasional bad seeds at 4 to 6 pods with large
   fleets.
 - Beyond about 8 pods per warehouse, more pods change nothing.
+
+## Deviations and open issues
+
+- **No coupled 1370 Wh scenario.** Battery mass makes the longest lane unreachable at 5 kg
+  (section 1), so the sweeps run on the existing 1370 Wh scenario, which is 2.35 kg too light
+  under A68. The layout result is about chargers and OUT spots, not mass.
+- **Opt-in behaviour.** Repair, the marker self-check, the reorder window, the derived latch
+  probability and the pad layout are opt-in keys rather than new defaults. The brief asked for
+  the committed scenarios and the golden outputs to stay unchanged, and the A-B golden scenario
+  has a marker-fault window. Only the chosen-layout scenario turns any of them on (layout and
+  repair).
+- **Yield policy gap.** A drone parked on an OUT spot yields only to a new shipment request, never
+  to a pod waiting to go home, so networks with no parking and a fleet near the OUT-spot count
+  can gridlock (sections 7 and 8). It needs a change to the yield policy (6.4), not made in this phase.
+- **Forced landings in gridlock.** When pads gridlock, drones hold until reserve and land off the
+  network (7 of 10 at 1.5 kW, no parking, seed 2). The holding policy diverts only to pads within
+  `divert_ok`, and when there are none it holds to reserve. That behaviour comes from Phase 2 and
+  is unchanged here.
+- **Ranking.** Pareto sets and chosen points rank by means over five seeds. The spread on the
+  unstable points is large, so a point near a gridlock can rank well on its mean.
