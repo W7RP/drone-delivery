@@ -11,3 +11,4 @@ OUT = PIPELINE / "out"
 SCENARIO_NAME = "parts_logistics_pittsburgh"
 SCENARIO_DIR = REPO / "configs" / SCENARIO_NAME
 DERIVED = SCENARIO_DIR / "derived"
+WEATHER_DIR = REPO / "configs" / "weather" / "pittsburgh"

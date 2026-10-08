@@ -55,3 +55,15 @@ scenarios:
     description: "The anchor preset with the fitted flight profile and a 1370 Wh battery, enough for its longest legal lane at 5 kg, seven days."
     drone:
       battery_capacity_j: { value: 4932000.0, unit: "J", assumption: true }
+
+weather:
+  # Hourly series (ddpipe/weather.py, spec 9.7): the primary station unless more than
+  # max_missing_fraction of its hours stay missing after gap filling, then the fallback.
+  primary_source: iem_asos_agc
+  fallback_source: iem_asos_pit
+  max_missing_fraction: { value: 0.02, unit: "1", assumption: true }
+  # A missing field takes the last observed value for at most this many hours.
+  carry_forward_h: { value: 3, unit: "h", assumption: true }
+  # UTC, start inclusive and end exclusive; the sources' URLs ask for the same span.
+  start_utc: "2023-01-01T00:00"
+  end_utc: "2026-01-01T00:00"

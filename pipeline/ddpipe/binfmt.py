@@ -1,5 +1,5 @@
-"""Writers and readers for the binary network files of spec section 9 (lanes.csr.bin 9.1,
-truck_matrix.bin 9.2). The readers re-check every rule a reader must reject, so the sanity step
+"""Writers and readers for the binary pipeline files of spec section 9 (lanes.csr.bin 9.1,
+truck_matrix.bin 9.2, weather.bin 9.7). The readers re-check every rule a reader must reject, so the sanity step
 does not trust the writers."""
 
 import struct
@@ -15,6 +15,16 @@ LANES_MAGIC = b"DDLANES\0"
 LANES_MINOR = 1
 TRUCK_MAGIC = b"DDTRUCK\0"
 TRUCK_MINOR = 1
+WEATHER_MAGIC = b"DDWTHR\0\0"
+WEATHER_MINOR = 0
+WX_RAIN = 1
+WX_SNOW = 2
+WX_FREEZING = 4
+WX_THUNDER = 8
+WX_ALL = WX_RAIN | WX_SNOW | WX_FREEZING | WX_THUNDER
+# Surface air temperature bounds a reader accepts (beyond any record on Earth).
+TEMP_MIN_C = -90.0
+TEMP_MAX_C = 60.0
 
 
 def fnv1a64(data: bytes) -> int:
@@ -160,3 +170,52 @@ def read_truck(data: bytes) -> tuple[np.ndarray, np.ndarray, int]:
         if np.any(np.diag(a) != 0) or np.any(a[off] <= 0):
             raise FormatError(f"{name}: diagonal must be 0 and off-diagonal > 0")
     return ff, road, source_hash
+
+
+@dataclass
+class WeatherSeries:
+    """Hourly surface weather at one station (spec 9.7). Hour i covers
+    [start_unix_h + i, start_unix_h + i + 1) hours since 1970-01-01T00:00Z."""
+    start_unix_h: int
+    wind_mps: np.ndarray
+    wind_from_deg: np.ndarray
+    gust_mps: np.ndarray
+    temp_c: np.ndarray
+    visibility_m: np.ndarray
+    precip_mm_h: np.ndarray
+    wx_flags: np.ndarray
+    missing: np.ndarray
+
+    def arrays(self) -> list[np.ndarray]:
+        return [self.wind_mps.astype(np.float32), self.wind_from_deg.astype(np.float32),
+                self.gust_mps.astype(np.float32), self.temp_c.astype(np.float32),
+                self.visibility_m.astype(np.float32), self.precip_mm_h.astype(np.float32),
+                self.wx_flags.astype(np.uint8), self.missing.astype(np.uint8)]
+
+
+def write_weather(w: WeatherSeries, source_hash: int) -> bytes:
+    return _pack(WEATHER_MAGIC, WEATHER_MINOR, len(w.wind_mps), w.start_unix_h, source_hash,
+                 w.arrays())
+
+
+def read_weather(data: bytes) -> tuple[WeatherSeries, int]:
+    minor, start, n, start_unix_h, source_hash = _header(data, WEATHER_MAGIC, WEATHER_MINOR)
+    if n == 0:
+        raise FormatError("no hours")
+    arrays = _arrays(data, start, [("f4", n)] * 6 + [("u1", n)] * 2,
+                     exact=minor == WEATHER_MINOR)
+    w = WeatherSeries(start_unix_h, *arrays)
+    for name, a in zip(("wind_mps", "wind_from_deg", "gust_mps", "temp_c", "visibility_m",
+                        "precip_mm_h"), arrays):
+        _finite(name, a)
+    if np.any(w.wind_mps < 0) or np.any(w.gust_mps < w.wind_mps):
+        raise FormatError("wind_mps must be >= 0 and gust_mps >= wind_mps")
+    if np.any(w.wind_from_deg < 0) or np.any(w.wind_from_deg >= 360):
+        raise FormatError("wind_from_deg outside [0, 360)")
+    if np.any(w.temp_c < TEMP_MIN_C) or np.any(w.temp_c > TEMP_MAX_C):
+        raise FormatError(f"temp_c outside [{TEMP_MIN_C}, {TEMP_MAX_C}]")
+    if np.any(w.visibility_m < 0) or np.any(w.precip_mm_h < 0):
+        raise FormatError("visibility_m and precip_mm_h must be >= 0")
+    if np.any(w.wx_flags & ~np.uint8(WX_ALL)) or np.any(w.missing > 1):
+        raise FormatError("unknown wx_flags bits or missing not 0/1")
+    return w, source_hash

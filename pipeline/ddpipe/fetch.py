@@ -41,7 +41,11 @@ MAGIC = {
     ".tif": b"II*\x00",
     ".zip": b"PK\x03\x04",
     ".geojson": b"{",
+    ".csv": b"station,",
 }
+
+# The only CSV source is the IEM ASOS archive, with the fields its URL asks for.
+CSV_HEADER = "station,valid,sknt,drct,gust,tmpf,vsby,p01i,wxcodes"
 
 
 def _check_content(path: Path, suffix: str) -> None:
@@ -56,6 +60,11 @@ def _check_content(path: Path, suffix: str) -> None:
         )
         if doc.get("type") != "FeatureCollection" or truncated:
             raise RuntimeError(f"{path.name}: not a complete FeatureCollection")
+    if suffix == ".csv":
+        with open(path) as f:
+            header = f.readline().strip()
+        if header != CSV_HEADER:
+            raise RuntimeError(f"{path.name}: header {header!r}, expected {CSV_HEADER!r}")
 
 
 def _download(url: str, dest: Path) -> None:

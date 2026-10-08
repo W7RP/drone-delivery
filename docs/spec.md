@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.7.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.8.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -1099,6 +1099,10 @@ runs/<scenario>/<run_id>/                  written by the core, git-ignored
     events.bin                             section 9.4, streamed while running
     deliveries.csv                         one row per order (columns below)
 calib/<scenario>/flight_log.bin            PX4 SITL flights, source = PX4_SITL, git-ignored
+configs/weather/<area>/                    written by the offline pipeline, committed
+    weather.bin                            section 9.7, hourly series of one station
+    report.json                            station chosen, gap-fill counts, summary
+    manifest.json                          source file: URL, retrieval date, license, sha256
 ```
 
 `run_id` = `seed<sim.seed>_rep<r>`. The core refuses derived files whose `source_hash` does
@@ -1189,7 +1193,7 @@ energy a config's model gives.
   bytes of the file that defines what the data is indexed by: the `scenario.toml` for files the
   core writes (`flight_log.bin`, `events.bin`), the `derived/pads.toml` catalog for the
   pipeline's `lanes.csr.bin` and `truck_matrix.bin` (so every scenario using one catalog shares
-  one network), 0 for PX4 calibration logs.
+  one network), the raw station CSV for `weather.bin`, 0 for PX4 calibration logs.
 - Readers reject: wrong magic, different `version_major`, a `version_minor` below the one that
   introduced the arrays they read, `header_bytes` < 32, file shorter than the layout implies,
   bytes beyond the layout when `version_minor` is the one they read, any NaN or infinity, any
@@ -1310,6 +1314,24 @@ before the run (a drone parked on OUT, 3.3) appears as row INIT from (none) to R
 `visits.json` holds `state_durations` (machine instance, state, entry time, seconds in the
 state) and `landings` (pad, spot, touchdown ground truth, `error_cm`: horizontal distance from
 the spot centre). `px4/tools/flightlog.py validate` checks all of 9.3, 9.5 and 9.6 for a run.
+
+### 9.7 weather.bin
+
+Hourly surface weather at one station (A75, A76), written by the pipeline
+(`pipeline/ddpipe/weather.py`). magic `DDWTHR\0\0`, version_minor 0, count_a = n_hours (> 0),
+count_b = start of hour 0 in whole hours since 1970-01-01T00:00Z. Hour i covers
+`[count_b + i, count_b + i + 1)` hours since that epoch, in UTC.
+
+| Array | Type | Length | Meaning |
+|---|---|---|---|
+| wind_mps | f32 | n_hours | Sustained wind at the 10 m anemometer, m/s, >= 0. |
+| wind_from_deg | f32 | n_hours | Direction the wind blows from, degrees clockwise from true north, [0, 360). 0 when calm. |
+| gust_mps | f32 | n_hours | Peak gust at 10 m, m/s, >= wind_mps; equal to it when no gust was reported. |
+| temp_c | f32 | n_hours | Air temperature, deg C, [-90, 60]. |
+| visibility_m | f32 | n_hours | Horizontal visibility, m, >= 0 (ASOS reports cap at 16 093 m). |
+| precip_mm_h | f32 | n_hours | Precipitation over the hour, mm, >= 0; a trace is 0. |
+| wx_flags | u8 | n_hours | Present weather at the station: bit 0 rain (RA, DZ, UP), bit 1 snow (SN, SG, PL, GS, GR, IC), bit 2 freezing precipitation, bit 3 thunder. Other bits 0. Vicinity codes are ignored. |
+| missing | u8 | n_hours | 1 when a field could not be filled (A75); the hour then repeats the last value. 0 otherwise. |
 
 ## 10 Assumptions
 
@@ -1545,6 +1567,20 @@ that:
   over the pad until reserve and made forced landings. Moves go to parking, then to an OUT spot
   (where it can charge), then away by the rebalancing policy; a waiting pod may also make a drone
   yield locally. Each drone is moved once until it reports again, so moves cannot loop.
+- A75 Weather is the hourly routine METAR of one ASOS station from the Iowa Environmental
+  Mesonet archive (`pipeline/sources.yaml`), converted to SI at the pipeline boundary. A report
+  belongs to the nearest whole UTC hour (the routine report at hh:53 is hour hh+1); of two, the
+  one closer to the hour wins. Values a report cannot hold are dropped (a speed at direction 0,
+  values out of range). A missing field keeps the last value for up to 3 h
+  (`weather.carry_forward_h` in `pipeline/params.yaml`); past that the hour is marked missing.
+  No gust group means gust = wind, a missing or trace 1 h precipitation is 0, and a variable
+  wind keeps the last direction. AGC (Allegheny County Airport) is used unless more than 2% of
+  its hours stay missing (placeholder), then PIT. Over 2023 to 2025 AGC has 198 missing hours
+  (0.75%).
+- A76 One station stands for every pad and lane: AGC (40.3547 N, 79.9217 W, 382 m, IEM station
+  metadata) is 10 to 12 km south of the five pads of the 900 Wh network, PIT 21 to 24 km west,
+  and local effects (river valleys, building wake, rooftop turbulence) are not
+  modelled. Wind is measured at 10 m above an open airfield.
 
 ## 11 Amendments
 
@@ -1561,3 +1597,4 @@ that:
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
+| 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files. |
