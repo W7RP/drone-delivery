@@ -77,3 +77,31 @@ differences between scenarios are all on the ground. The fitted 900 Wh network p
 demand on these six flows with five drones, so pod wait grows and varies a lot from seed to seed.
 At 1370 Wh, pod wait reaches 2.4 hours (section 7). The truck takes 1940 s in every scenario,
 because its time does not depend on the drone network.
+
+## 3. Repair after a release fault
+
+A release fault that outlasts its retries (V20) grounds the drone on IN with its pod and takes
+the pad out of service. Before this phase that was for the rest of the run. With
+`pad_ops.repair_mean_s` and `pad_ops.repair_spread_s` (A69), the pad is repaired after a time
+drawn uniformly from mean ± spread (a new REPAIR random stream, so no other draw moves). At
+`REPAIR_DONE`:
+
+- the stuck pod goes into the pad's inventory (P09); its order stays FAILED;
+- the pad comes back ONLINE (M06), unless a scheduled out-of-service window is still open;
+- the drone is back ON_PAD (D25) and reports its landing again. The PC adopts it (V42) and it
+  carries on as an empty drone on IN.
+
+The RELEASE_FAULT and PAD_OUT_OF_SERVICE alerts are raised as before. The test
+`sim/tests/repair.rs` forces the fault and checks this sequence, the repair time, and that B
+takes deliveries again.
+
+Placeholder Pittsburgh week at 1x demand, repair mean 2 h, spread 1 h (`analysis/repair.py`):
+
+| Release fault | Seed 42: rejected | Seeds 1-5: rejected fraction |
+|---|---|---|
+| Pad out for good (Phase 3) | 187 of 1373 (13.6%) | 0.0% |
+| Repaired | 0 of 1373 (0.0%) | 0.0% |
+
+All 187 rejections at seed 42 came from that one grounding, and with a repair there are none.
+None of the other seeds rejects anything either way. Seed 1 has a release fault, and repair
+lowers its mean door-to-door from 1316 s to 1220 s.

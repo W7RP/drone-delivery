@@ -182,6 +182,13 @@ pub fn first_time(r: &Run, label: &str, drone: u16) -> u64 {
         .unwrap_or_else(|| panic!("{label} for drone {drone} not found"))
 }
 
+/// An alert with this code was written to OPS.
+pub fn has_alert(r: &Run, code: &str) -> bool {
+    r.alerts
+        .lines()
+        .any(|l| l.contains(&format!("\"code\":\"{code}\"")))
+}
+
 pub fn delivery_rows(r: &Run) -> Vec<Vec<String>> {
     r.deliveries
         .lines()

@@ -67,6 +67,9 @@ pub struct PadSt {
     /// End time of the active PC fault; a FAULT_END at another time is ignored (A37).
     pub fault_end: TimeMs,
     pub oos_pending: bool,
+    /// A scheduled OUT_OF_SERVICE window is open; a repair does not end it (A69).
+    pub oos_window: bool,
+    /// A drone grounded on IN keeps the pad out of service until it is repaired.
     pub permanent_oos: bool,
     pub has_charger: bool,
     pub service_mode: ServiceMode,
@@ -282,6 +285,7 @@ impl World {
                 mode_since: 0,
                 fault_end: NO_TIME,
                 oos_pending: false,
+                oos_window: false,
                 permanent_oos: false,
                 has_charger: cfg.has_charger(pad),
                 service_mode: p.service_mode,
@@ -785,6 +789,7 @@ impl World {
             }
             Ev::FaultStart { kind, pad, random } => self.fault_start(kind, pad, random),
             Ev::FaultEnd { kind, pad } => self.fault_end(kind, pad),
+            Ev::RepairDone { pad, drone } => self.repair_done(pad, drone),
             Ev::Timer {
                 timer,
                 owner_kind,

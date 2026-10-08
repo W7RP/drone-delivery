@@ -24,10 +24,12 @@ pub const SCHEMA_VERSION: &str = "1.6.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 3] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 5] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
+    ("pad_ops", "repair_mean_s", "1.6.0"),
+    ("pad_ops", "repair_spread_s", "1.6.0"),
 ];
 
 /// Schema versions are "1.<minor>.0"; compare by minor.
@@ -208,6 +210,15 @@ pub struct PadOpsCfg {
     pub out_empty_wait_ms: TimeMs,
     pub pc_fault_rate_per_s: f64,
     pub pc_fault_duration_ms: TimeMs,
+    /// Repair after a release fault (A69); None keeps the pad out of service for the run.
+    pub repair: Option<RepairCfg>,
+}
+
+/// Repair duration, uniform on [mean - spread, mean + spread] seconds (A69).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RepairCfg {
+    pub mean_s: f64,
+    pub spread_s: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1101,9 +1112,24 @@ fn parse_pad_ops(p: &Section<'_>) -> Result<PadOpsCfg> {
         "out_empty_wait_timeout_s",
         "pc_fault_rate_per_h",
         "pc_fault_duration_s",
+        "repair_mean_s",
+        "repair_spread_s",
     ])?;
     let ms = |key: &str, r: Range| p.quantity(key, "s", r).map(ms_from_s);
+    let repair = match (p.has("repair_mean_s"), p.has("repair_spread_s")) {
+        (false, false) => None,
+        (true, true) => {
+            let mean_s = p.quantity("repair_mean_s", "s", Range::Pos)?;
+            let spread_s = p.quantity("repair_spread_s", "s", Range::NonNeg)?;
+            if spread_s > mean_s {
+                return err("pad_ops.repair_spread_s: must not exceed repair_mean_s");
+            }
+            Some(RepairCfg { mean_s, spread_s })
+        }
+        _ => return err("pad_ops: give repair_mean_s and repair_spread_s together"),
+    };
     Ok(PadOpsCfg {
+        repair,
         pod_place_ms: ms("pod_place_s", Range::NonNeg)?,
         pod_remove_ms: ms("pod_remove_s", Range::NonNeg)?,
         release_ms: ms("release_s", Range::Pos)?,

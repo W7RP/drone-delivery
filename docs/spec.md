@@ -290,6 +290,7 @@ Spot availability terms used in guards:
 | M03 | ONLINE | OUT_OF_SERVICE | FI or PC | `FAULT_START` kind OUT_OF_SERVICE, or V20 (drone grounded on IN) | mode = ONLINE | Every HELD visit goes to CLOSED outcome REFUSED. Visits already granted or on the pad continue to completion. No new grants, no new placements. | Out: `PAD_STATUS` mode OUT_OF_SERVICE to FM; `LANDING_REFUSED` reason OUT_OF_SERVICE to each HELD drone; on V20 also `ALERT` PAD_OUT_OF_SERVICE (CRITICAL). |
 | M04 | OUT_OF_SERVICE | ONLINE | FI | `FAULT_END` kind OUT_OF_SERVICE | no grounded drone on a spot | Resume grants and placements. | Out: `PAD_STATUS` mode ONLINE to FM. |
 | M05 | OUT_OF_SERVICE | OUT_OF_SERVICE | FI | `FAULT_START` kind PC_FAULT while OUT_OF_SERVICE | mode != ONLINE | Suppressed. The random draw is still consumed (5.4). | Out: none; the suppressed fault is logged in the event trace as a `FAULT_START` with no effect. |
+| M06 | OUT_OF_SERVICE | ONLINE | FI | `REPAIR_DONE` (A69) | no scheduled OUT_OF_SERVICE window is open | The pad no longer counts as grounded. The PC drops its record of the repaired drone on IN, which re-registers (V42); the presence sensor keeps IN from being granted until then. Resume grants and placements. | Out: `PAD_STATUS` mode ONLINE to FM. |
 
 Fault windows of different kinds on the same pad must not overlap (rule R10), so no other
 combinations exist. In LANDING_REQUEST handling, mode OUT_OF_SERVICE answers `LANDING_REFUSED`
@@ -307,6 +308,7 @@ reason OUT_OF_SERVICE (transition V00).
 | P06 | PC | `POD_RETURN_REQUEST` (FM) | pod is in this pad's inventory | Mark pod reserved (`empty_pods` -= 1), append to return queue. Try P02. | In: `POD_RETURN_REQUEST`. Out: `PAD_STATUS` to FM. |
 | P07 | PC | `PICKUP_ASSIGNED` (FM) | `out_pod` or the placement in progress is that pod | Record pickup for the drone's visit (or for its next visit if it has none yet). Re-evaluate V21. | In: `PICKUP_ASSIGNED`. |
 | P08 | PC | `SHIPMENT_REQUEST` (DG) | backlog holds `demand.max_backlog_per_pad` requests | Reject the request: nothing is queued and no order will exist. Counts in M9, and as a stockout if `empty_pods` = 0 (M6). | In: `SHIPMENT_REQUEST`. |
+| P09 | PC | `REPAIR_DONE` (A69) | the repaired drone still carries its pod | The pod comes off the drone into this pad's inventory as an empty pod (`empty_pods` += 1). Its order stays FAILED. | Out: `POD_REMOVED` to FM. |
 
 FM owns the decision to return a pod (6.5). The PC only places what it is told to place.
 
@@ -368,7 +370,7 @@ presence sensor instead of declaring silence (A12).
 | V17 | RELEASING, HOPPING, LATCHING, DEPARTING | DRONE_SILENT | PC | `PC_RESPONSE_TIMEOUT` | no retries left; sensor fallback not applicable or sensor shows the drone still on its original spot | Remember the state left; spot stays blocked; arm `PC_RESPONSE_TIMEOUT` every `handshake.response_timeout_s` to watch the spot sensor (V41). | Out: `ALERT` DRONE_SILENT (WARNING). |
 | V18 | VERIFY_RELEASE | WAIT_OUT | PC | `PC_VERIFY_RELEASE_DONE` | `latch_open` and IN pod sensor shows a pod | `in_pod` = pod; pod location PAD_IN, `loaded` stays true until removal; arm `PC_OUT_WAIT_TIMEOUT`; evaluate V21. **Delivery measurement point.** | Out: `POD_DELIVERED` to FM. |
 | V19 | VERIFY_RELEASE | RELEASING | PC | `PC_VERIFY_RELEASE_DONE` | release not verified; attempt <= `pad_ops.release_max_retries` | attempt += 1. | Out: `RELEASE_CMD` (new attempt). |
-| V20 | VERIFY_RELEASE | CLOSED | PC | `PC_VERIFY_RELEASE_DONE` | release not verified; attempt > `pad_ops.release_max_retries` | outcome DRONE_GROUNDED; drone stays on IN with its pod; pad mode goes OUT_OF_SERVICE for the rest of the run (M03). | Out: `ALERT` RELEASE_FAULT (CRITICAL); `SERVICE_COMPLETE` outcome RELEASE_FAILED to the drone. |
+| V20 | VERIFY_RELEASE | CLOSED | PC | `PC_VERIFY_RELEASE_DONE` | release not verified; attempt > `pad_ops.release_max_retries` | outcome DRONE_GROUNDED; drone stays on IN with its pod; pad mode goes OUT_OF_SERVICE (M03) until a repair (A69), or for the rest of the run without `pad_ops.repair_mean_s`. With it, schedule `REPAIR_DONE` after one REPAIR draw. | Out: `ALERT` RELEASE_FAULT (CRITICAL); `SERVICE_COMPLETE` outcome RELEASE_FAILED to the drone. |
 | V21 | WAIT_OUT | HOPPING | PC | Evaluated on WAIT_OUT entry, on P03, P07, any OUT change, and `PC_OUT_WAIT_TIMEOUT` | OUT drone-free, and either `out_pod` = `pickup_pod`, or `out_pod` = NONE and (`pad_ops.out_empty_policy` = DEPART_EMPTY or the out-wait timer has expired) | Reserve OUT. | Out: `HOP_CMD`. |
 | V22 | WAIT_OUT | READY | PC | `PC_OUT_WAIT_TIMEOUT` | V21 guard false (OUT holds another drone or another drone's pod) | Drone will depart from IN without charging. | Out: `SERVICE_COMPLETE` outcome NO_POD, spot IN. |
 | V23 | HOPPING | HOPPING | PC | `PC_RESPONSE_TIMEOUT` | OUT sensor empty; retries left | Retry rule. | Out: `HOP_CMD` re-sent. |
@@ -390,7 +392,7 @@ presence sensor instead of declaring silence (A12).
 | V39 | READY | READY | PC | P01 adds to the backlog | visit is on OUT with no pickup (a drone parked on OUT looks like this to the PC) | none; FM decides whether the drone yields (6.4) | Out: `SHIPMENT_PENDING` (pad_id, out_drone) to FM. |
 | V40 | (none) | READY | PC | `DEPART_REQUEST` from a drone with no open visit | the parking sensor shows the drone in the parking area | Create a visit at spot PARKING, then apply V34 at once. | In: `DEPART_REQUEST`. Out: `DEPART_CLEAR` (via V34). |
 | V41 | DRONE_SILENT | CLOSED | PC | `PC_RESPONSE_TIMEOUT` | the spot sensor shows the spot empty | The silent drone has left. If it was DEPARTING, act as V36 (outcome COMPLETED); otherwise free the spot, outcome LOST_CONTACT. | In: none needed; the trigger is the sensor check on `PC_RESPONSE_TIMEOUT`. |
-| V42 | (none) | per V06 to V10 | PC | `LANDED` from a drone with no open visit at this pad (its grant timed out just before touchdown, V14) | the spot sensor shows that drone on the spot and the PC holds no other drone or reservation there | Adopt it: create the visit and continue as V06 to V10. | In: `LANDED`. Out: as the matching row V06 to V10 (`RELEASE_CMD`, `LATCH_CMD`, `CHARGE_START` or `SERVICE_COMPLETE`). |
+| V42 | (none) | per V06 to V10 | PC | `LANDED` from a drone with no open visit at this pad (its grant timed out just before touchdown, V14, or it is back in service after a repair, D25) | the spot sensor shows that drone on the spot and the PC holds no other drone or reservation there | Adopt it: create the visit and continue as V06 to V10. | In: `LANDED`. Out: as the matching row V06 to V10 (`RELEASE_CMD`, `LATCH_CMD`, `CHARGE_START` or `SERVICE_COMPLETE`). |
 
 `LANDING_CANCEL` or `APPROACH_ABORT` for a drone with no open visit is ignored; `LANDED` is
 handled by V42 and `DEPART_REQUEST` by V40. The visit
@@ -419,7 +421,7 @@ Each listed failure branch, where it lives in the machine, the handshake and the
 | Marker not detected: go-around, then hold | D at `APPROACH_DONE` (MARKER stream) | V12 closes the visit after the last go-around | D05, D06, D21; FM holding policy (6.3) | `APPROACH_ABORT`, `HOLD_REPORT` reason MARKER_NOT_DETECTED, `HOLD_CONTINUE` or `MISSION_ASSIGN` DIVERT | `pad_ops.p_marker_detect`, `pad_ops.max_go_arounds`, `drone.go_around_s`, `policy.marker_hold_s`, `policy.marker_max_hold_cycles`, `faults[].kind` MARKER_NOT_DETECTED |
 | Pad controller fault: divert to alternate pad | D by `D_RESPONSE_TIMEOUT` after retries | M01, M02 | D10 in the air, D16 on the ground; FM diverts on PC_SILENT | `HOLD_REPORT` reason PC_SILENT, `MISSION_ASSIGN` DIVERT, `ALERT` PC_SILENT | `pad_ops.pc_fault_rate_per_h`, `pad_ops.pc_fault_duration_s`, `handshake.response_timeout_s`, `handshake.max_retries`, `handshake.pc_silence_alert_s`, `faults[].kind` PC_FAULT |
 | IN occupied: hold or divert | PC at request (3.5) | V02, V03, V04 | D07; FM hold limit or immediate divert | `LANDING_HOLD`, `HOLD_REPORT` reason IN_OCCUPIED, `HOLD_CONTINUE` or `MISSION_ASSIGN` DIVERT | `policy.in_occupied_action`, `policy.max_hold_s`, `handshake.hold_retry_s` |
-| Release fault: retry once, then alert | PC at `PC_VERIFY_RELEASE_DONE` | V19 (retry), V20 (alert, ground, pad out of service) | D13 to GROUNDED; FM marks order FAILED | `RELEASE_CMD`, `RELEASE_REPORT`, `SERVICE_COMPLETE` RELEASE_FAILED, `ALERT` RELEASE_FAULT | `drone.p_release_fault`, `pad_ops.release_max_retries`, `pad_ops.release_verify_s`, `faults[].kind` RELEASE_FAULT |
+| Release fault: retry once, then alert | PC at `PC_VERIFY_RELEASE_DONE` | V19 (retry), V20 (alert, ground, pad out of service), then after a repair P09, M06, V42 | D13 to GROUNDED; FM marks order FAILED; D25 after a repair | `RELEASE_CMD`, `RELEASE_REPORT`, `SERVICE_COMPLETE` RELEASE_FAILED, `ALERT` RELEASE_FAULT | `drone.p_release_fault`, `pad_ops.release_max_retries`, `pad_ops.release_verify_s`, `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `faults[].kind` RELEASE_FAULT |
 | OUT empty: wait up to timeout or depart empty | PC in WAIT_OUT | V21 (hop when pod arrives, or empty after timeout / immediately), V22 | FM gives a non-pickup mission | `HOP_CMD`, `SERVICE_COMPLETE` NO_POD | `pad_ops.out_empty_policy`, `pad_ops.out_empty_wait_timeout_s` |
 | Latch fail: retry once, then depart empty and alert | PC at `PC_VERIFY_LOCK_DONE` | V29 (retry), V30 (alert, depart empty) | FM re-opens the order (6.1) | `LATCH_CMD`, `LATCH_REPORT`, `SERVICE_COMPLETE` LATCH_FAILED, `ALERT` LATCH_FAULT | `drone.p_latch_fault`, `pad_ops.latch_max_retries`, `pad_ops.latch_verify_s`, `faults[].kind` LATCH_FAULT |
 | Pad out of service: reroute inbound | FI or V20 | M03, M04, V00 | FM re-missions every drone whose `dest_pad` is the pad (6.6); D11 if refused at the fix | `PAD_STATUS`, `LANDING_REFUSED`, `HOLD_REPORT` reason OUT_OF_SERVICE, `MISSION_ASSIGN` DIVERT | `faults[].kind` OUT_OF_SERVICE, `faults[].start_s`, `faults[].duration_s` |
@@ -546,7 +548,7 @@ on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until 
 | D10 | HOLDING | HOLDING | `D_RESPONSE_TIMEOUT` | no retries left | Treat PC as silent; keep re-requesting every `handshake.hold_retry_s` until FM decides. | Out: `HOLD_REPORT` reason PC_SILENT. |
 | D11 | HOLDING | HOLDING | `LANDING_REFUSED` | none | Wait for FM. | Out: `HOLD_REPORT` reason OUT_OF_SERVICE. |
 | D12 | HOLDING | EN_ROUTE | `MISSION_ASSIGN` DIVERT (or any mission with a new `dest_pad`) | none | Apply hold energy; route to the new pad. In other modes a new `dest_pad` is handled by D24. | Out: `LANDING_CANCEL` to the old PC; `DRONE_STATUS`. |
-| D13 | ON_PAD | GROUNDED | `SERVICE_COMPLETE` outcome RELEASE_FAILED | none | Drone and pod stay on IN for the rest of the run. | Out: `DRONE_STATUS` GROUNDED. |
+| D13 | ON_PAD | GROUNDED | `SERVICE_COMPLETE` outcome RELEASE_FAILED | none | Drone and pod stay on IN until a repair (D25), or for the rest of the run without one. | Out: `DRONE_STATUS` GROUNDED. |
 | D14 | HOLDING | GROUNDED | `D_ENERGY_RESERVE` | none | Forced landing off the network. Pod location LOST. | Out: `LANDING_CANCEL`; `DRONE_STATUS` GROUNDED; `ALERT` DRONE_GROUNDED (CRITICAL). |
 | D15 | ON_PAD | ON_PAD or HOPPING | `RELEASE_CMD`, `RELEASE_DONE`, `HOP_CMD`, `HOP_DONE`, `LATCH_CMD`, `LATCH_DONE`, `CHARGE_START` | none | Execute: `RELEASE_DONE` after release duration (draw RELEASE: open with p = 1 - `drone.p_release_fault`, or 0 inside a RELEASE_FAULT window). `HOP_DONE` after `drone.hop_s` (mode HOPPING, back to ON_PAD at `HOP_DONE`). `LATCH_DONE` after latch duration (draw LATCH: locked with p = 1 - `drone.p_latch_fault`, or 0 inside a LATCH_FAULT window). | Out at completion: `RELEASE_REPORT`, `LANDED` spot OUT, `LATCH_REPORT`. |
 | D16 | ON_PAD or PARKED | same | `D_RESPONSE_TIMEOUT` waiting for the PC | none | Re-send the last message every `handshake.response_timeout_s`, indefinitely. Never take off without `DEPART_CLEAR` (A17). After `handshake.pc_silence_alert_s` of silence, alert once. | Out: last message re-sent; `ALERT` PC_SILENT (WARNING) from `D_PC_SILENCE_ALERT`. |
@@ -558,6 +560,7 @@ on the reply. `D_ENERGY_RESERVE` is armed on every entry to HOLDING (time until 
 | D22 | EN_ROUTE or HOLDING | same | `MISSION_ASSIGN` with the same `dest_pad` | none | Update `pickup_order_id` only (a pickup added or moved while in flight, 6.1). | In: `MISSION_ASSIGN`. |
 | D23 | TAKEOFF | PARKED | `TAKEOFF_DONE` | mission = PARK | Drone is in the parking area of the same pad. | Out: `DEPARTED` (spot it left); `DRONE_STATUS` PARKED. |
 | D24 | EN_ROUTE, TAKEOFF, APPROACH or GO_AROUND | same | `MISSION_ASSIGN` with a new `dest_pad` | none | EN_ROUTE: store the new mission; the route is recomputed at the next `LANE_DONE` from that lane's end pad. TAKEOFF: store it and apply it at `TAKEOFF_DONE`. APPROACH or GO_AROUND: ignore it; the drone already holds a grant and FM reconciles on the next `DRONE_STATUS` or `HOLD_REPORT` (A38). | In: `MISSION_ASSIGN`. |
+| D25 | GROUNDED | ON_PAD | `REPAIR_DONE` (A69) | the drone was grounded on IN by D13 | Its pod has gone to the pad (P09); clear its order, pickup and service state. Report the landing again, empty, so the PC adopts it (V42) and the ground watchdog runs as after any landing. | Out: `LANDED` spot IN; `DRONE_STATUS` ON_PAD. |
 
 #### 4.4.1 Ground watchdog
 
@@ -616,6 +619,7 @@ envelope. Exact payloads are in `events.schema.json`. The 30 message kinds are l
 | LATCH_DONE | COMPLETION | `drone_id, pad_id` | D (D15) | D (D15) |
 | FAULT_START | STATE_CHANGE | `fault, pad_id` | FI (from `faults[]` at load; random PC faults one pending per pad) | PC (M01, M03, M05); D reads marker/release/latch windows |
 | FAULT_END | STATE_CHANGE | `fault, pad_id` | FI | PC (M02, M04) |
+| REPAIR_DONE | STATE_CHANGE | `pad_id, drone_id` | PC at V20 when `pad_ops.repair_mean_s` is set | PC (P09, M06), D (D25) |
 | TIMER | TIMER | `timer, owner_kind, owner_id, subject_id, gen` | the owner | the owner; dropped if `gen` is stale |
 
 Timer kinds: PC_LANDING_TIMEOUT, PC_RESPONSE_TIMEOUT, PC_VERIFY_RELEASE_DONE,
@@ -666,6 +670,7 @@ reason for the timer goes away. A popped TIMER whose `gen` differs is discarded.
   | PC_FAULT | 5 | pad_id | exponential inter-fault time, rate `pad_ops.pc_fault_rate_per_h / 3600` per s |
   | MSG_LOSS | 6 | `(sender EntityKind code << 16) OR sender id` | loss per message on the D <-> PC link |
   | NETWORK | 7 | 0 | MESH pad positions (8.6); seeded from the config `sim.seed`, replication 0 |
+  | REPAIR | 8 | pad_id | repair duration per V20, uniform on `pad_ops.repair_mean_s` +- `pad_ops.repair_spread_s` (A69) |
 
 - Uniform draw: `u = (next_u64 >> 11) * 2^-53`. Bernoulli(p): success iff `u < p`.
   Exponential(rate): `-ln(1 - u) / rate`, converted to ms by the rule in section 0.
@@ -957,6 +962,8 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | pad_ops.out_empty_wait_timeout_s | s | WAIT limit on IN. |
 | pad_ops.pc_fault_rate_per_h | 1/h | Random PC fault rate per pad. |
 | pad_ops.pc_fault_duration_s | s | Random PC fault length. |
+| pad_ops.repair_mean_s | s | 1.6.0, optional, with `pad_ops.repair_spread_s`. Mean time to repair a pad grounded by a release fault (V20, A69). Absent: the pad stays out of service for the run. |
+| pad_ops.repair_spread_s | s | 1.6.0, with `pad_ops.repair_mean_s`, at most the mean. Repair time is uniform on mean +- spread. |
 | handshake.local_latency_s | s | D <-> PC latency. |
 | handshake.fm_latency_s | s | Latency on links touching FM. |
 | handshake.p_msg_loss | 1 | D <-> PC loss probability per message. |
@@ -1301,7 +1308,8 @@ that:
 - A17 A PC fault is an outage with state retained (process hang or network partition), not a
   reboot with state loss. Drones on the ground never take off without `DEPART_CLEAR`.
 - A18 A release failure after retries grounds the drone on IN with its pod, and the pad goes
-  out of service for the rest of the run. Fail-safe choice; repair is not modelled.
+  out of service. Fail-safe choice. Without the repair keys (A69) it stays so for the rest of
+  the run.
 - A19 Diversion delivers the pod at the alternate pad and closes the order as DIVERTED. Onward
   transfer is left to remote ops and not modelled.
 - A20 FM is a single reliable service. FM links have fixed latency and no loss. Only the D <->
@@ -1449,6 +1457,13 @@ that:
   its coupled form run identically. Scenarios that give `drone.empty_mass_kg` keep a mass that
   does not depend on the battery; the 1370 Wh scenario (A66) is one, and under A68 it is light by
   2.35 kg.
+- A69 A pad grounded by a release fault is repaired after a time uniform on
+  `pad_ops.repair_mean_s` +- `pad_ops.repair_spread_s` (placeholders), one REPAIR draw per
+  grounding. The technician takes the stuck pod off the drone into the pad's inventory; the
+  shipment inside is handled outside the sim and its order stays FAILED. The drone resumes
+  service empty on IN. A repair does not end a scheduled OUT_OF_SERVICE window that is still
+  open. The RELEASE_FAULT and PAD_OUT_OF_SERVICE alerts are raised as before; remote ops still
+  takes no action in the sim.
 
 ## 11 Amendments
 
@@ -1463,4 +1478,4 @@ that:
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
 | 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
-| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. | Phase 6a: a bigger battery must cost mass, payload margin and energy. |
+| 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections. |

@@ -9,12 +9,6 @@ const A: u16 = 0;
 const B: u16 = 1;
 const D0: u16 = 0;
 
-fn has_alert(r: &Run, code: &str) -> bool {
-    r.alerts
-        .lines()
-        .any(|l| l.contains(&format!("\"code\":\"{code}\"")))
-}
-
 fn order_status(r: &Run, order: usize) -> (String, String) {
     let row = &delivery_rows(r)[order];
     (row[2].clone(), row[3].clone())

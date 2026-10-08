@@ -475,7 +475,21 @@
         },
         "pc_fault_duration_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "repair_mean_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "repair_spread_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
         }
+      },
+      "dependentRequired": {
+        "repair_mean_s": [
+          "repair_spread_s"
+        ],
+        "repair_spread_s": [
+          "repair_mean_s"
+        ]
       }
     },
     "handshake": {

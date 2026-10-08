@@ -541,6 +541,11 @@ pub enum Ev {
         kind: FaultKind,
         pad: PadId,
     },
+    /// A technician has repaired a pad grounded by a release fault, and its drone (A69).
+    RepairDone {
+        pad: PadId,
+        drone: DroneId,
+    },
     Timer {
         timer: TimerKind,
         owner_kind: EntityKind,
@@ -555,7 +560,9 @@ impl Ev {
         match self {
             Ev::Message { .. } => EventClass::Message,
             Ev::ShipmentRequest { .. } => EventClass::Arrival,
-            Ev::FaultStart { .. } | Ev::FaultEnd { .. } => EventClass::StateChange,
+            Ev::FaultStart { .. } | Ev::FaultEnd { .. } | Ev::RepairDone { .. } => {
+                EventClass::StateChange
+            }
             Ev::Timer { .. } => EventClass::Timer,
             _ => EventClass::Completion,
         }
@@ -577,6 +584,7 @@ impl Ev {
             Ev::FaultStart { .. } => 40,
             Ev::FaultEnd { .. } => 41,
             Ev::Timer { .. } => 42,
+            Ev::RepairDone { .. } => 43,
         }
     }
 
@@ -609,6 +617,9 @@ impl Ev {
             }
             Ev::FaultStart { kind, pad, .. } | Ev::FaultEnd { kind, pad } => {
                 a.u8(kind.code()).u16(pad);
+            }
+            Ev::RepairDone { pad, drone } => {
+                a.u16(pad).u16(drone);
             }
             Ev::Timer {
                 timer,

@@ -72,7 +72,8 @@
         "LATCH_DONE",
         "FAULT_START",
         "FAULT_END",
-        "TIMER"
+        "TIMER",
+        "REPAIR_DONE"
       ],
       "x-type": "u16",
       "x-unit": "-"
@@ -803,6 +804,25 @@
         },
         "payload": {
           "$ref": "#/$defs/TIMER"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "REPAIR_DONE"
+        },
+        "class": {
+          "const": "STATE_CHANGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/REPAIR_DONE"
         }
       },
       "required": [],
@@ -1902,6 +1922,23 @@
         }
       },
       "x-class": "TIMER"
+    },
+    "REPAIR_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "STATE_CHANGE"
     }
   }
 }

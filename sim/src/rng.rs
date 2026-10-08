@@ -78,6 +78,7 @@ pub enum StreamKind {
     PcFault = 5,
     MsgLoss = 6,
     Network = 7,
+    Repair = 8,
 }
 
 /// `master_r` of spec 5.4: first SplitMix64 output of `seed + replication`.
@@ -98,6 +99,7 @@ pub struct Streams {
     pub pc_fault: Vec<Xoshiro256>,
     pub loss_pad: Vec<Xoshiro256>,
     pub loss_drone: Vec<Xoshiro256>,
+    pub repair: Vec<Xoshiro256>,
 }
 
 impl Streams {
@@ -116,6 +118,7 @@ impl Streams {
             pc_fault: make(StreamKind::PcFault, n_pads, 0),
             loss_pad: make(StreamKind::MsgLoss, n_pads, 0),
             loss_drone: make(StreamKind::MsgLoss, n_drones, 1 << 16),
+            repair: make(StreamKind::Repair, n_pads, 0),
         }
     }
 }

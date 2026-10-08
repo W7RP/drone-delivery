@@ -788,6 +788,25 @@ impl World {
         }
     }
 
+    /// D25: back in service after a repair (A69), empty and still on IN. The drone reports its
+    /// landing again so the PC adopts it (V42) and the ground watchdog runs as after any landing.
+    pub(crate) fn drone_repaired(&mut self, d: DroneId, pad: PadId) {
+        let dr = self.dr_mut(d);
+        dr.busy = false;
+        dr.service_done = false;
+        dr.done_release_attempt = 0;
+        dr.done_latch_attempt = 0;
+        dr.last_report = None;
+        dr.order = NO_ORDER;
+        dr.pickup_order = NO_ORDER;
+        dr.mission = MissionKind::None;
+        dr.go_arounds = 0;
+        dr.hold_cycles = 0;
+        self.drone_to(d, tcode::d(25), DroneMode::OnPad);
+        self.landed(d, pad, Spot::In);
+        self.status(d);
+    }
+
     /// D14: reserve reached while holding; land off the network, pod lost.
     fn forced_landing(&mut self, d: DroneId) {
         let pad = self.dr(d).pad;

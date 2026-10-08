@@ -781,6 +781,12 @@ impl World {
             if self.pad(p).mode == PadMode::Online {
                 self.go_out_of_service(p, true);
             }
+            if let Some(r) = self.cfg.pad_ops.repair {
+                // One REPAIR draw per grounding, uniform on mean +- spread (A69).
+                let u = self.rng.repair[usize::from(p)].uniform();
+                let repair_s = r.mean_s - r.spread_s + 2.0 * r.spread_s * u;
+                self.after(ms_from_s(repair_s), Ev::RepairDone { pad: p, drone: d });
+            }
         }
     }
 
@@ -1095,11 +1101,14 @@ impl World {
                 }
                 self.set_mode(p, tcode::m(1), PadMode::ControllerFault);
             }
-            FaultKind::OutOfService => match mode {
-                PadMode::Online => self.go_out_of_service(p, false),
-                PadMode::ControllerFault => self.pad_mut(p).oos_pending = true,
-                PadMode::OutOfService => {}
-            },
+            FaultKind::OutOfService => {
+                self.pad_mut(p).oos_window = true;
+                match mode {
+                    PadMode::Online => self.go_out_of_service(p, false),
+                    PadMode::ControllerFault => self.pad_mut(p).oos_pending = true,
+                    PadMode::OutOfService => {}
+                }
+            }
             FaultKind::MarkerNotDetected => self.pad_mut(p).marker_fault = true,
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = true,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = true,
@@ -1116,6 +1125,7 @@ impl World {
             }
             FaultKind::OutOfService => {
                 self.pad_mut(p).oos_pending = false;
+                self.pad_mut(p).oos_window = false;
                 if self.pad(p).mode == PadMode::OutOfService && !self.pad(p).permanent_oos {
                     self.set_mode(p, tcode::m(4), PadMode::Online);
                     self.pad_status(p);
@@ -1126,6 +1136,35 @@ impl World {
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = false,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = false,
         }
+    }
+
+    /// REPAIR_DONE (A69): the technician takes the stuck pod off the grounded drone into the
+    /// pad's inventory (P09), the pad comes back (M06) unless a scheduled out-of-service window is
+    /// still open, and the drone, empty on IN, reports its landing again (D25), which the PC
+    /// adopts as V42.
+    pub(crate) fn repair_done(&mut self, p: PadId, d: DroneId) {
+        let pod = self.drones[usize::from(d)].pod;
+        if pod != NO_POD {
+            let dr = &mut self.drones[usize::from(d)];
+            dr.pod = NO_POD;
+            dr.payload_kg = 0.0;
+            self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_empty_mass_kg);
+            self.pad_mut(p).inventory.push(pod);
+            let n = self.pad(p).empty_pods + 1;
+            self.set_empty_pods(p, n);
+            self.log_transition(tcode::p(9), p, d, NO_STATE, NO_STATE);
+            self.send(Msg::PodRemoved { pad: p, pod });
+        }
+        // Only the PC's record goes: the drone never left IN, so its occupancy metric stays set
+        // and the presence sensor keeps IN from being granted until the drone is adopted.
+        self.pad_mut(p).in_drone = NO_DRONE;
+        self.pad_mut(p).permanent_oos = false;
+        if self.pad(p).mode == PadMode::OutOfService && !self.pad(p).oos_window {
+            self.set_mode(p, tcode::m(6), PadMode::Online);
+            self.pad_status(p);
+        }
+        self.drone_repaired(d, p);
+        self.pad_tick(p);
     }
 
     /// M02: held events in order, re-send each open visit's command, then status and guards.
