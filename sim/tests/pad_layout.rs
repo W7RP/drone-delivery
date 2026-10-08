@@ -166,3 +166,19 @@ fn a_drone_on_one_out_spot_hops_to_its_pod_on_another() {
     assert!(!has_alert(&r, "DRONE_SILENT"), "the drone answers the hop");
     assert!(r.summary["deliveries_per_h"].as_f64().expect("rate") > 0.0);
 }
+
+#[test]
+fn pods_per_origin_sets_only_the_pads_that_ship() {
+    // base(): one flow, A -> B; both pads start with the example's own pods.
+    let own = drone_sim::scenario::Scenario::from_toml(&toml::to_string(&base()).unwrap())
+        .expect("base loads");
+    let b_own = own.cfg.pads[1].initial_empty_pods;
+    let mut t = layout(base(), 1, None);
+    let Value::Table(demand) = t.get_mut("demand").expect("demand") else {
+        unreachable!()
+    };
+    demand.insert("pods_per_origin".into(), quantity(5, "count"));
+    let s = drone_sim::scenario::Scenario::from_toml(&toml::to_string(&t).unwrap()).expect("loads");
+    assert_eq!(s.cfg.pads[0].initial_empty_pods, 5, "A ships");
+    assert_eq!(s.cfg.pads[1].initial_empty_pods, b_own, "B only receives");
+}

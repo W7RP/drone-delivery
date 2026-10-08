@@ -682,6 +682,9 @@
         },
         "hub_weight": {
           "$ref": "common.schema.json#/$defs/q_factor"
+        },
+        "pods_per_origin": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
         }
       },
       "oneOf": [

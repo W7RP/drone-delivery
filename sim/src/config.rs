@@ -24,7 +24,7 @@ pub const SCHEMA_VERSION: &str = "1.6.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 12] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -37,6 +37,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 12] = [
     ("drone", "out_landing_error_sigma_m", "1.6.0"),
     ("pad_ops", "out_spots", "1.6.0"),
     ("pad_ops", "parking_capacity", "1.6.0"),
+    ("demand", "pods_per_origin", "1.6.0"),
 ];
 const LATCH_DERIVATION_KEYS: [&str; 3] = [
     "latch_capture_radius_m",
@@ -707,6 +708,16 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     } else {
         None
     };
+    // `demand.pods_per_origin` (A73): every pad that ships starts with this many empty pods.
+    if demand.has("pods_per_origin") {
+        let pods: u32 = narrow(
+            demand.count("pods_per_origin", 0, i64::from(u32::MAX))?,
+            "demand.pods_per_origin",
+        )?;
+        for f in flows.iter().filter(|f| f.rate_per_s > 0.0) {
+            pads[usize::from(f.origin)].initial_empty_pods = pods;
+        }
+    }
     let truck = parse_truck(&top.section("truck")?)?;
     if truck.matrix_source == MatrixSource::File {
         let Some(files) = network_files.as_mut() else {
@@ -1320,6 +1331,7 @@ fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(T
     d.allow(&[
         "deadline_offset_s",
         "max_backlog_per_pad",
+        "pods_per_origin",
         "flows",
         "rate_per_pad_per_h",
         "hub_weight",
