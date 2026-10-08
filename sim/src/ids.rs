@@ -95,7 +95,7 @@ code_enum!(MissionKind {
 code_enum!(OrderKind { Shipment = "SHIPMENT", PodReturn = "POD_RETURN" });
 code_enum!(OrderStatus {
     Created = "CREATED", Assigned = "ASSIGNED", Latched = "LATCHED", InTransit = "IN_TRANSIT",
-    Delivered = "DELIVERED", Diverted = "DIVERTED", Failed = "FAILED",
+    Delivered = "DELIVERED", Diverted = "DIVERTED", Failed = "FAILED", Trucked = "TRUCKED",
 });
 code_enum!(PodLocation {
     PadInventory = "PAD_INVENTORY", PadOut = "PAD_OUT", PadIn = "PAD_IN", OnDrone = "ON_DRONE",
@@ -103,7 +103,7 @@ code_enum!(PodLocation {
 });
 code_enum!(HoldReason {
     InOccupied = "IN_OCCUPIED", AwaitOut = "AWAIT_OUT", MarkerNotDetected = "MARKER_NOT_DETECTED",
-    PcSilent = "PC_SILENT", OutOfService = "OUT_OF_SERVICE",
+    PcSilent = "PC_SILENT", OutOfService = "OUT_OF_SERVICE", Weather = "WEATHER",
 });
 code_enum!(ServiceOutcome {
     Normal = "NORMAL", NoPod = "NO_POD", ReleaseFailed = "RELEASE_FAILED", LatchFailed = "LATCH_FAILED",
@@ -127,7 +127,7 @@ code_enum!(TimerKind {
     DResponseTimeout = "D_RESPONSE_TIMEOUT", DHoldRetry = "D_HOLD_RETRY",
     DPcSilenceAlert = "D_PC_SILENCE_ALERT", DEnergyReserve = "D_ENERGY_RESERVE",
     FmHoldLimit = "FM_HOLD_LIMIT", EndOfRun = "END_OF_RUN", FmPadRecheck = "FM_PAD_RECHECK",
-    ReorderRelease = "REORDER_RELEASE",
+    ReorderRelease = "REORDER_RELEASE", FmWeatherFallback = "FM_WEATHER_FALLBACK",
 });
 code_enum!(FlightSource { Des = "DES", Px4Sitl = "PX4_SITL" });
 code_enum!(ServiceMode { Auto = "AUTO", Manual = "MANUAL" });
@@ -135,6 +135,7 @@ code_enum!(ReturnPolicy { KeepLocal = "KEEP_LOCAL", ReturnHome = "RETURN_HOME" }
 code_enum!(ChargingMode { OutContacts = "OUT_CONTACTS", HubOnly = "HUB_ONLY" });
 code_enum!(OutEmptyPolicy { Wait = "WAIT", DepartEmpty = "DEPART_EMPTY" });
 code_enum!(InOccupiedAction { Hold = "HOLD", Divert = "DIVERT" });
+code_enum!(WeatherHoldPolicy { Wait = "WAIT", TruckFallback = "TRUCK_FALLBACK" });
 code_enum!(FaultKind {
     MarkerNotDetected = "MARKER_NOT_DETECTED", PcFault = "PC_FAULT", OutOfService = "OUT_OF_SERVICE",
     ReleaseFault = "RELEASE_FAULT", LatchFault = "LATCH_FAULT",

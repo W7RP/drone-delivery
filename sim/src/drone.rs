@@ -33,8 +33,9 @@ impl World {
         }
     }
 
+    /// Charge comes off the usable capacity, which weather may derate (A81).
     fn drain(&mut self, d: DroneId, joules: f64) {
-        let cap = self.cfg.drone.battery_capacity_j;
+        let cap = self.energy.capacity_j;
         let dr = self.dr_mut(d);
         let soc = dr.soc64() - joules / cap;
         dr.set_soc(soc);
@@ -121,9 +122,8 @@ impl World {
         dr.hold_since = now;
         dr.gen_reserve = dr.gen_reserve.wrapping_add(1);
         let generation = dr.gen_reserve;
-        let usable_j = ((dr.soc64() - self.cfg.drone.reserve_soc)
-            * self.cfg.drone.battery_capacity_j)
-            .max(0.0);
+        let usable_j =
+            ((dr.soc64() - self.cfg.drone.reserve_soc) * self.energy.capacity_j).max(0.0);
         self.timer(
             ms_from_s(usable_j / p_hover),
             TimerKind::DEnergyReserve,
@@ -175,13 +175,16 @@ impl World {
     fn start_lane(&mut self, d: DroneId, from: PadId) {
         let dest = self.dr(d).dest;
         let lane = self.net.next_lane(from, dest);
-        let len = f64::from(self.net.lane_len_m[lane as usize]);
-        let (time_s, _) = self.energy.model.segment(len, self.dr(d).payload64());
+        // The lane is flown in the wind of the hour it starts in (A78).
+        let (time_s, energy_j) =
+            self.energy
+                .lane_flight(&self.net, lane as usize, self.dr(d).payload64());
         let now = self.now;
         #[allow(clippy::cast_possible_truncation)]
         let soc = self.dr(d).soc;
         let dr = self.dr_mut(d);
         dr.lane = lane;
+        dr.lane_energy_j = energy_j;
         dr.lane_start = now;
         dr.lane_soc_start = soc;
         dr.pad = NO_PAD;
@@ -216,11 +219,13 @@ impl World {
                     },
                 );
             }
-            Msg::LandingHold { pad, .. } if mode == DroneMode::Holding && self.dr(d).pad == pad => {
+            Msg::LandingHold { pad, reason, .. }
+                if mode == DroneMode::Holding && self.dr(d).pad == pad =>
+            {
                 self.disarm_response(d);
                 self.drone_to(d, tcode::d(7), DroneMode::Holding);
-                if self.dr(d).last_hold_report != Some(HoldReason::InOccupied) {
-                    self.hold_report(d, HoldReason::InOccupied);
+                if self.dr(d).last_hold_report != Some(reason) {
+                    self.hold_report(d, reason);
                 }
                 let ms = self.cfg.handshake.hold_retry_ms;
                 self.arm_hold_retry(d, ms);
@@ -600,9 +605,7 @@ impl World {
     }
 
     fn lane_done(&mut self, d: DroneId, lane: u32) {
-        let len = f64::from(self.net.lane_len_m[lane as usize]);
-        let payload = self.dr(d).payload64();
-        let (_, energy_j) = self.energy.model.segment(len, payload);
+        let energy_j = self.dr(d).lane_energy_j;
         self.drain(d, energy_j);
         self.flight_record(d, lane, energy_j);
         let order = self.dr(d).order;
@@ -647,6 +650,7 @@ impl World {
             0.0
         } else {
             self.cfg.pad_ops.p_marker_detect
+                * self.weather.as_ref().map_or(1.0, |w| w.marker_factor)
         };
         let detected = self.rng.marker[usize::from(pad)].bernoulli(p);
         let go_around = !detected && self.dr(d).go_arounds < self.cfg.pad_ops.max_go_arounds;
@@ -714,10 +718,14 @@ impl World {
     }
 
     fn latch_done(&mut self, d: DroneId, pad: PadId) {
+        let p_latch_fault = self
+            .weather
+            .as_ref()
+            .map_or(self.cfg.drone.p_latch_fault, |w| w.p_latch_fault);
         let p_ok = if self.pads[usize::from(pad)].latch_fault {
             0.0
         } else {
-            1.0 - self.cfg.drone.p_latch_fault
+            1.0 - p_latch_fault
         };
         let locked = self.rng.latch[usize::from(d)].bernoulli(p_ok);
         let k = self.dr(d).spot.and_then(Spot::out_index).unwrap_or(0);

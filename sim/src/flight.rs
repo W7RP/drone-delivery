@@ -5,6 +5,7 @@
 use crate::config::Config;
 use crate::ids::PadId;
 use crate::network::Network;
+use crate::weather::CruiseWind;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FlightModel {
@@ -40,6 +41,10 @@ impl FlightModel {
             time_s,
             self.cruise_power_ref_w * self.mass_factor(payload_kg) * time_s,
         )
+    }
+
+    pub fn cruise_power_w(&self, payload_kg: f64) -> f64 {
+        self.cruise_power_ref_w * self.mass_factor(payload_kg)
     }
 
     pub fn hover_power_w(&self, payload_kg: f64) -> f64 {
@@ -133,11 +138,14 @@ impl VisitEstimate {
     }
 }
 
-/// Derived durations of spec 3.7 and 6 plus the battery limits the energy guards use.
+/// Derived durations of spec 3.7 and 6 plus the battery limits the energy guards use. With
+/// weather (2.10) the world sets the hour's wind and its usable capacity here, so every guard
+/// and every flight sees the same hour.
 #[derive(Debug, Clone, Copy)]
 pub struct EnergyRules {
     pub model: FlightModel,
     pub capacity_j: f64,
+    pub wind: Option<CruiseWind>,
     pub reserve_soc: f64,
     pub charge_target_soc: f64,
     pub takeoff_s: f64,
@@ -156,6 +164,7 @@ impl EnergyRules {
         Self {
             model: FlightModel::from_config(cfg),
             capacity_j: d.battery_capacity_j,
+            wind: None,
             reserve_soc: d.reserve_soc,
             charge_target_soc: d.charge_target_soc,
             takeoff_s: d.takeoff_s,
@@ -164,11 +173,49 @@ impl EnergyRules {
         }
     }
 
+    /// Time and energy of one directed lane: the fitted model, or in wind (A78) the lane's
+    /// own track through the hour's wind.
+    pub fn lane_flight(&self, net: &Network, lane: usize, payload_kg: f64) -> (f64, f64) {
+        let len = f64::from(net.lane_len_m[lane]);
+        let Some(wind) = self.wind else {
+            return self.model.segment(len, payload_kg);
+        };
+        let (xa, ya) = net.pos_m[usize::from(net.lane_from[lane])];
+        let (xb, yb) = net.pos_m[usize::from(net.lane_to[lane])];
+        let straight = (xb - xa).hypot(yb - ya);
+        let (ue, un) = if straight > 0.0 {
+            ((xb - xa) / straight, (yb - ya) / straight)
+        } else {
+            (0.0, 0.0)
+        };
+        wind.lane(len, ue, un, payload_kg)
+    }
+
+    /// Sum of `lane_flight` over the route a -> b.
+    fn route_flight(&self, net: &Network, a: PadId, b: PadId, payload_kg: f64) -> (f64, f64) {
+        let (mut time_s, mut energy_j) = (0.0, 0.0);
+        let mut at = a;
+        while at != b {
+            let lane = net.next_lane(at, b) as usize;
+            let (t, e) = self.lane_flight(net, lane, payload_kg);
+            time_s += t;
+            energy_j += e;
+            at = net.lane_to[lane];
+        }
+        (time_s, energy_j)
+    }
+
     pub fn route_energy(&self, net: &Network, a: PadId, b: PadId, payload_kg: f64) -> f64 {
+        if self.wind.is_some() {
+            return self.route_flight(net, a, b, payload_kg).1;
+        }
         self.model.segment(net.route_len(a, b), payload_kg).1
     }
 
     pub fn route_time_s(&self, net: &Network, a: PadId, b: PadId) -> f64 {
+        if self.wind.is_some() {
+            return self.route_flight(net, a, b, 0.0).0;
+        }
         net.route_len(a, b) / self.model.cruise_speed_mps
     }
 

@@ -195,7 +195,8 @@
         "IN_TRANSIT",
         "DELIVERED",
         "DIVERTED",
-        "FAILED"
+        "FAILED",
+        "TRUCKED"
       ]
     },
     "PodLocation": {
@@ -213,7 +214,8 @@
         "AWAIT_OUT",
         "MARKER_NOT_DETECTED",
         "PC_SILENT",
-        "OUT_OF_SERVICE"
+        "OUT_OF_SERVICE",
+        "WEATHER"
       ]
     },
     "ServiceOutcome": {
@@ -275,7 +277,8 @@
         "FM_HOLD_LIMIT",
         "END_OF_RUN",
         "FM_PAD_RECHECK",
-        "REORDER_RELEASE"
+        "REORDER_RELEASE",
+        "FM_WEATHER_FALLBACK"
       ]
     },
     "FlightSource": {
@@ -312,6 +315,12 @@
       "enum": [
         "HOLD",
         "DIVERT"
+      ]
+    },
+    "WeatherHoldPolicy": {
+      "enum": [
+        "WAIT",
+        "TRUCK_FALLBACK"
       ]
     },
     "FaultKind": {
@@ -612,6 +621,69 @@
       "properties": {
         "unit": {
           "const": "m"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_mps_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m/s"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_m2_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m2"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_kg_per_m3_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "kg/m3"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_mm_per_h_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "mm/h"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_degC": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "degC"
+        }
+      }
+    },
+    "q_ratio_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "1"
         },
         "value": {
           "minimum": 0

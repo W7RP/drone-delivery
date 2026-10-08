@@ -21,6 +21,7 @@ use crate::metrics::{CostInputs, Metrics};
 use crate::network::Network;
 use crate::output::Outputs;
 use crate::rng::{Streams, master_seed};
+use crate::weather::{CruiseCurve, MS_PER_HOUR, WeatherNow};
 
 /// An ID printed as JSON: the number, or `null` for its NONE value. Formats without allocating.
 struct OptId(u64, u64);
@@ -211,6 +212,8 @@ pub struct DroneSt {
     pub lane: LaneId,
     pub lane_start: TimeMs,
     pub lane_soc_start: f32,
+    /// Energy of the lane in flight, fixed when it starts (A78).
+    pub lane_energy_j: f64,
     pub pod: PodId,
     pub order: OrderId,
     pub pickup_order: OrderId,
@@ -340,6 +343,8 @@ pub struct World {
     pub pc_return_dest: Vec<PadId>,
     pub links: Links,
     pub ended: bool,
+    /// The current weather hour (2.10); None without `[weather]`.
+    pub weather: Option<WeatherNow>,
     #[cfg(debug_assertions)]
     scratch: Vec<u8>,
 }
@@ -350,7 +355,17 @@ impl World {
         let n_drones = usize::from(cfg.drone.fleet_size);
         let master = master_seed(cfg.seed, replication);
         let rng = Streams::new(master, cfg.flows.len(), n_pads, n_drones);
-        let energy = EnergyRules::from_config(&cfg);
+        let mut energy = EnergyRules::from_config(&cfg);
+        let weather = cfg.weather.as_ref().map(|w| {
+            let curve = CruiseCurve::new(energy.model, w.air_density_kgpm3, w.rotor_disc_area_m2)
+                .expect("R20 checked at load");
+            let latch = cfg.drone.latch_derivation.expect("R19 checked at load");
+            WeatherNow::at(w, curve, latch, 0, None)
+        });
+        if let Some(now) = &weather {
+            energy.wind = Some(now.wind);
+            energy.capacity_j = cfg.drone.battery_capacity_j * now.capacity_factor;
+        }
         let metrics = Metrics::new(
             (cfg.warmup_ms, cfg.duration_ms),
             cfg.hist_bin_ms,
@@ -415,6 +430,7 @@ impl World {
                 lane: NO_LANE,
                 lane_start: 0,
                 lane_soc_start: 0.0,
+                lane_energy_j: 0.0,
                 pod: NO_POD,
                 order: NO_ORDER,
                 pickup_order: NO_ORDER,
@@ -474,6 +490,7 @@ impl World {
             rng,
             out,
             ended: false,
+            weather,
             #[cfg(debug_assertions)]
             scratch: vec![0; total_pods.max(n_pads * SPOT_CODES)],
             net,
@@ -564,6 +581,77 @@ impl World {
         for p in 0..self.pads.len() {
             self.schedule_next_random_fault(PadId::try_from(p).expect("validated pad count"));
         }
+        if let Some(w) = self.weather {
+            self.schedule_next_weather_hour();
+            if !w.flyable {
+                self.schedule_truck_fallback(0);
+            }
+        }
+    }
+
+    fn schedule_next_weather_hour(&mut self) {
+        let next = (self.now / MS_PER_HOUR + 1) * MS_PER_HOUR;
+        if next < self.cfg.duration_ms {
+            let w = self.cfg.weather.as_ref().expect("weather configured");
+            let hour = u32::try_from(w.hour_index(next)).expect("R18 bounds the series");
+            self.schedule(next, Ev::WeatherHour { hour });
+        }
+    }
+
+    /// TRUCK_FALLBACK (A83): look again once an order requested at `requested` has been
+    /// blocked for the timeout.
+    pub(crate) fn schedule_truck_fallback(&mut self, requested: TimeMs) {
+        let w = self.cfg.weather.as_ref().expect("weather configured");
+        if w.hold_policy != crate::ids::WeatherHoldPolicy::TruckFallback {
+            return;
+        }
+        let Some(since) = self.weather.and_then(|n| n.blocked_since) else {
+            return;
+        };
+        let due = requested.max(since) + w.truck_fallback_timeout_ms;
+        self.timer(
+            due.saturating_sub(self.now),
+            TimerKind::FmWeatherFallback,
+            EntityKind::FleetManager,
+            0,
+            0,
+            0,
+        );
+    }
+
+    /// WEATHER_HOUR (2.10): apply the new hour to flight energy and the battery, and give
+    /// everything the old hour held back another chance.
+    fn weather_hour(&mut self) {
+        let prev = self.weather.expect("WEATHER_HOUR only runs with weather");
+        let w = self.cfg.weather.as_ref().expect("weather configured");
+        let latch = self
+            .cfg
+            .drone
+            .latch_derivation
+            .expect("R19 checked at load");
+        let now = WeatherNow::at(w, prev.wind.curve, latch, self.now, Some(&prev));
+        self.energy.wind = Some(now.wind);
+        self.energy.capacity_j = self.cfg.drone.battery_capacity_j * now.capacity_factor;
+        self.weather = Some(now);
+        self.schedule_next_weather_hour();
+        if now.blocked_since == Some(self.now) {
+            self.schedule_truck_fallback(self.now);
+        }
+        if now.landing_ok && !prev.landing_ok {
+            for p in 0..self.pads.len() {
+                self.pad_tick(PadId::try_from(p).expect("validated pad count"));
+            }
+        }
+        if now.flyable {
+            self.fm_run_assignment();
+            self.fm_retry_waiting();
+            self.fm_make_room();
+        }
+    }
+
+    /// Flights from one pad to another are not dispatched this hour (A79).
+    pub(crate) fn flights_blocked(&self) -> bool {
+        self.weather.is_some_and(|w| !w.flyable)
     }
 
     pub fn schedule_next_shipment(&mut self, flow: u32) {
@@ -837,7 +925,30 @@ impl World {
         summary["source_hash"] = Value::from(format!("{:016x}", self.cfg.source_hash));
         summary["fleet_size"] = Value::from(d.fleet_size);
         summary["pads"] = Value::from(self.pads.len());
+        if let Some(w) = self.weather {
+            summary["weather"] = self
+                .metrics
+                .weather_summary(self.flyable_hour_fraction(), w.aborts);
+        }
         Ok(summary)
+    }
+
+    /// M10: share of the measurement window in hours that allow dispatch.
+    fn flyable_hour_fraction(&self) -> Option<f64> {
+        let w = self.cfg.weather.as_ref()?;
+        let (start, end) = self.metrics.window;
+        let (mut flyable_ms, mut total_ms) = (0, 0);
+        let mut t = start - start % MS_PER_HOUR;
+        while t < end {
+            let span = (t + MS_PER_HOUR).min(end) - t.max(start);
+            total_ms += span;
+            if w.flyable(&w.hour(w.hour_index(t))) {
+                flyable_ms += span;
+            }
+            t += MS_PER_HOUR;
+        }
+        #[allow(clippy::cast_precision_loss)]
+        (total_ms > 0).then(|| flyable_ms as f64 / total_ms as f64)
     }
 
     fn finish_run(&mut self) {
@@ -901,7 +1012,7 @@ impl World {
                     }
             }
             EntityKind::FleetManager => match timer {
-                TimerKind::EndOfRun => true,
+                TimerKind::EndOfRun | TimerKind::FmWeatherFallback => true,
                 TimerKind::FmPadRecheck => self.fm.pad_gen[usize::from(subject)] == generation,
                 _ => self.fm.hold_gen[usize::from(subject)] == generation,
             },
@@ -1043,6 +1154,9 @@ impl World {
                 self.pc_shipment_request(pad, dest, deadline);
                 self.pad_tick(pad);
                 self.schedule_next_shipment(flow);
+                if self.flights_blocked() {
+                    self.schedule_truck_fallback(self.now);
+                }
             }
             Ev::PodPlaceDone { pad, pod } => {
                 self.pc_pod_place_done(pad, pod);
@@ -1055,6 +1169,7 @@ impl World {
             Ev::FaultStart { kind, pad, random } => self.fault_start(kind, pad, random),
             Ev::FaultEnd { kind, pad } => self.fault_end(kind, pad),
             Ev::RepairDone { pad, drone } => self.repair_done(pad, drone),
+            Ev::WeatherHour { .. } => self.weather_hour(),
             Ev::Timer {
                 timer: TimerKind::ReorderRelease,
                 owner_kind,
@@ -1077,6 +1192,7 @@ impl World {
                 EntityKind::FleetManager => match timer {
                     TimerKind::EndOfRun => self.ended = true,
                     TimerKind::FmPadRecheck => self.fm_pad_recheck(subject),
+                    TimerKind::FmWeatherFallback => self.weather_truck_fallback(),
                     _ => self.fm_hold_limit(subject),
                 },
             },
@@ -1233,7 +1349,7 @@ impl World {
         use crate::ids::OrderStatus;
         for o in &self.fm.orders {
             match o.status {
-                OrderStatus::Delivered | OrderStatus::Diverted => {
+                OrderStatus::Delivered | OrderStatus::Diverted | OrderStatus::Trucked => {
                     assert!(o.delivered_pad != NO_PAD)
                 }
                 OrderStatus::Failed => assert!(o.fail_reason.is_some()),

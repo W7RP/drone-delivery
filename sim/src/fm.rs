@@ -111,7 +111,10 @@ impl Order {
     fn is_closed(&self) -> bool {
         matches!(
             self.status,
-            OrderStatus::Delivered | OrderStatus::Diverted | OrderStatus::Failed
+            OrderStatus::Delivered
+                | OrderStatus::Diverted
+                | OrderStatus::Failed
+                | OrderStatus::Trucked
         )
     }
 }
@@ -164,6 +167,8 @@ pub struct FleetView<'a> {
     pub net: &'a Network,
     pub energy: &'a EnergyRules,
     pub now: TimeMs,
+    /// Weather blocks flights between pads this hour (A79): policies assign and move nothing.
+    pub flights_blocked: bool,
 }
 
 pub trait AssignmentPolicy {
@@ -438,6 +443,9 @@ pub struct MinEta;
 
 impl AssignmentPolicy for MinEta {
     fn assign(&self, v: &FleetView<'_>, o: OrderId) -> Option<DroneId> {
+        if v.flights_blocked {
+            return None;
+        }
         let ord = &v.fm.orders[o as usize];
         let (p, q, m) = (ord.origin_pad, ord.dest_pad, f64::from(ord.payload_kg));
         if !v.online(p) {
@@ -504,6 +512,9 @@ pub struct Immediate;
 
 impl DispatchPolicy for Immediate {
     fn mission_for(&self, v: &FleetView<'_>, d: DroneId) -> Option<Mission> {
+        if v.flights_blocked {
+            return None;
+        }
         let fd = v.drone(d);
         if fd.pod != NO_POD {
             let order = v.fm.pod_order(fd.pod);
@@ -589,7 +600,7 @@ impl HoldingPolicy for BoundedHold {
             {
                 HoldDecision::Divert
             }
-            HoldReason::InOccupied | HoldReason::AwaitOut => {
+            HoldReason::InOccupied | HoldReason::AwaitOut | HoldReason::Weather => {
                 let Some(q) = alt else {
                     return HoldDecision::Continue {
                         retry_after_ms: v.cfg.handshake.hold_retry_ms,
@@ -646,6 +657,9 @@ impl DroneRebalancingPolicy for NearestUnclaimed {
     }
 
     fn yield_for(&self, v: &FleetView<'_>, parked: DroneId, cause: YieldCause) -> Option<Mission> {
+        if v.flights_blocked {
+            return None;
+        }
         let fd = v.drone(parked);
         match cause {
             // Yielding locally means landing here again, which a marker fault rules out (A35).
@@ -778,6 +792,7 @@ impl DiversionPolicy for NearestFeasible {
 }
 
 /// Truck baseline (spec 7): completion time and cost for an order requested at `requested`.
+/// With weather, the departure hour's weather slows the truck too (A82).
 pub fn truck_baseline(
     cfg: &Config,
     net: &Network,
@@ -790,7 +805,11 @@ pub fn truck_baseline(
     let tod_s = (cfg.start_time_of_day_s + s_from_ms(t_dep)).rem_euclid(SECONDS_PER_DAY);
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     let hour = ((tod_s / SECONDS_PER_HOUR).floor() as usize).min(23);
-    let drive_ms = ms_from_s(net.truck_s(origin, dest) / t.tod_speed_factors[hour]);
+    let weather = cfg.weather.as_ref().map_or(1.0, |w| {
+        w.truck_factor(&w.hour(w.hour_index_clamped(t_dep)))
+    });
+    let speed_factor = t.tod_speed_factors[hour] * weather;
+    let drive_ms = ms_from_s(net.truck_s(origin, dest) / speed_factor);
     let delivered = t_dep + drive_ms + ms_from_s(t.unload_s);
     let cost = cfg.costs.truck_per_m * net.road(origin, dest)
         + cfg.costs.truck_per_s * (t.load_s + s_from_ms(drive_ms) + t.unload_s);
@@ -805,6 +824,7 @@ impl World {
             net: &self.net,
             energy: &self.energy,
             now: self.now,
+            flights_blocked: self.flights_blocked(),
         }
     }
 
@@ -878,7 +898,7 @@ impl World {
     /// holds over its pad, or when a pod there waits for an OUT spot. It moves to a free parking
     /// slot, else (from IN) to a free OUT spot, else away by the rebalancing policy. One move
     /// per pad per pass; a drone is moved again only after it reports.
-    fn fm_make_room(&mut self) {
+    pub(crate) fn fm_make_room(&mut self) {
         if !self.cfg.policy.yield_on_request || self.fm.making_room {
             return;
         }
@@ -1009,34 +1029,8 @@ impl World {
         deadline: TimeMs,
         payload_kg: f32,
     ) {
-        let order_id = OrderId::try_from(self.fm.orders.len()).expect("order count fits u32");
-        let (truck_delivered, truck_cost) =
-            truck_baseline(&self.cfg, &self.net, pad, dest, requested);
-        self.fm.orders.push(Order {
-            order_id,
-            kind,
-            status: OrderStatus::Created,
-            pod_id: pod,
-            origin_pad: pad,
-            dest_pad: dest,
-            delivered_pad: NO_PAD,
-            drone_id: NO_DRONE,
-            payload_kg,
-            requested_t_ms: requested,
-            placed_t_ms: sent,
-            deadline_t_ms: deadline,
-            assigned_t_ms: NO_TIME,
-            latched_t_ms: NO_TIME,
-            departed_t_ms: NO_TIME,
-            delivered_t_ms: NO_TIME,
-            truck_delivered_t_ms: truck_delivered,
-            truck_cost,
-            fail_reason: None,
-            latch_start_t_ms: NO_TIME,
-            flight_ms: 0,
-            hold_ms: 0,
-            excluded_drone: NO_DRONE,
-        });
+        let order_id = self.fm_new_order(pad, pod, kind, dest, requested, deadline, sent);
+        self.fm.orders[order_id as usize].payload_kg = payload_kg;
         let rec = &mut self.fm.pods[pod as usize];
         rec.location = PodLocation::PadOut;
         rec.pad = pad;
@@ -1046,6 +1040,10 @@ impl World {
         self.fm.unassigned.push(order_id);
         self.fm_run_assignment();
         self.fm_rebalance_pods(pad, None);
+        // A83: a shipment that was being placed when its check ran is checked again now.
+        if kind == OrderKind::Shipment && self.flights_blocked() {
+            self.schedule_truck_fallback(requested);
+        }
     }
 
     fn fm_pod_latched(&mut self, sent: TimeMs, pod: PodId, drone: DroneId) {
@@ -1319,13 +1317,18 @@ impl World {
                 let pickup = fd.pickup_order;
                 if pickup != NO_ORDER {
                     let origin = self.fm.orders[pickup as usize].origin_pad;
-                    let m = Mission {
-                        kind: MissionKind::Pickup,
-                        dest: origin,
-                        order: NO_ORDER,
-                        pickup_order: pickup,
-                    };
-                    self.fm_send_mission(d, m);
+                    if origin != pad && self.flights_blocked() {
+                        // A79: no flight now; the order goes back to be assigned later.
+                        self.fm_unassign(pickup);
+                    } else {
+                        let m = Mission {
+                            kind: MissionKind::Pickup,
+                            dest: origin,
+                            order: NO_ORDER,
+                            pickup_order: pickup,
+                        };
+                        self.fm_send_mission(d, m);
+                    }
                 }
                 self.fm_run_assignment();
                 self.fm_retry_waiting();
@@ -1397,6 +1400,10 @@ impl World {
     /// Decide a mission for a drone that asked for one (6.2, then 6.4). Called again by
     /// `fm_retry_waiting` while the drone is still waiting.
     fn fm_dispatch_waiting(&mut self, d: DroneId) {
+        // A79: the drone keeps waiting; the next WEATHER_HOUR that allows flight retries it.
+        if self.flights_blocked() {
+            return;
+        }
         let pad = self.fm.drones[usize::from(d)].pad;
         // A35: a loaded drone whose destination reports a marker fault waits where it is; FM
         // retries it on the PAD_STATUS that clears the fault.
@@ -1462,7 +1469,7 @@ impl World {
 
     /// A24 amendment: drones left waiting for a mission are retried whenever FM's view
     /// changes, so a blocked drone is never forgotten.
-    fn fm_retry_waiting(&mut self) {
+    pub(crate) fn fm_retry_waiting(&mut self) {
         if self.fm.retrying {
             return;
         }
@@ -1562,7 +1569,7 @@ impl World {
         }
     }
 
-    fn fm_run_assignment(&mut self) {
+    pub(crate) fn fm_run_assignment(&mut self) {
         let mut i = 0;
         while i < self.fm.unassigned.len() {
             let order = self.fm.unassigned[i];
@@ -1825,6 +1832,50 @@ impl World {
         );
     }
 
+    /// A new CREATED order with its truck baseline; `placed` is NO_TIME for one that never
+    /// had a pod placed (A83).
+    #[allow(clippy::too_many_arguments)]
+    fn fm_new_order(
+        &mut self,
+        pad: PadId,
+        pod: PodId,
+        kind: OrderKind,
+        dest: PadId,
+        requested: TimeMs,
+        deadline: TimeMs,
+        placed: TimeMs,
+    ) -> OrderId {
+        let order_id = OrderId::try_from(self.fm.orders.len()).expect("order count fits u32");
+        let (truck_delivered, truck_cost) =
+            truck_baseline(&self.cfg, &self.net, pad, dest, requested);
+        self.fm.orders.push(Order {
+            order_id,
+            kind,
+            status: OrderStatus::Created,
+            pod_id: pod,
+            origin_pad: pad,
+            dest_pad: dest,
+            delivered_pad: NO_PAD,
+            drone_id: NO_DRONE,
+            payload_kg: 0.0,
+            requested_t_ms: requested,
+            placed_t_ms: placed,
+            deadline_t_ms: deadline,
+            assigned_t_ms: NO_TIME,
+            latched_t_ms: NO_TIME,
+            departed_t_ms: NO_TIME,
+            delivered_t_ms: NO_TIME,
+            truck_delivered_t_ms: truck_delivered,
+            truck_cost,
+            fail_reason: None,
+            latch_start_t_ms: NO_TIME,
+            flight_ms: 0,
+            hold_ms: 0,
+            excluded_drone: NO_DRONE,
+        });
+        order_id
+    }
+
     fn fm_close_order(
         &mut self,
         order: OrderId,
@@ -1842,7 +1893,9 @@ impl World {
         o.delivered_t_ms = t;
         o.fail_reason = reason;
         let o = *o;
-        if o.kind == OrderKind::Shipment {
+        if status == OrderStatus::Trucked {
+            self.metrics.shipment_trucked(o.requested_t_ms);
+        } else if o.kind == OrderKind::Shipment {
             let closed = ClosedOrder {
                 requested_ms: o.requested_t_ms,
                 placed_ms: o.placed_t_ms,
@@ -1896,6 +1949,77 @@ impl World {
             part(|s| s.pad_service_ms),
             part(|s| s.flight_ms),
         ));
+    }
+
+    /// TRUCK_FALLBACK (A83): with dispatch blocked, every shipment that has waited the
+    /// timeout since it was requested or since the block began, whichever is later, goes by
+    /// truck from now. A shipment still in a pad's backlog leaves it; one whose pod waits on
+    /// a free OUT spot with no drone assigned is unpacked into the truck and the pod goes back
+    /// to inventory empty. Operations do this on the ground, outside the radio protocol (like
+    /// the demand generator), and update FM's records directly.
+    pub(crate) fn weather_truck_fallback(&mut self) {
+        let Some(since) = self.weather.and_then(|w| w.blocked_since) else {
+            return;
+        };
+        let w = self.cfg.weather.as_ref().expect("weather configured");
+        if w.hold_policy != crate::ids::WeatherHoldPolicy::TruckFallback
+            || self.now < since + w.truck_fallback_timeout_ms
+        {
+            return;
+        }
+        let cutoff = self.now - w.truck_fallback_timeout_ms;
+        for p in 0..self.pads.len() {
+            let pad = PadId::try_from(p).expect("pad count fits u16");
+            if self.pads[p].mode == PadMode::ControllerFault {
+                continue;
+            }
+            for ship in self.pc_truck_backlog(pad, cutoff) {
+                let order = self.fm_new_order(
+                    pad,
+                    NO_POD,
+                    OrderKind::Shipment,
+                    ship.dest,
+                    ship.requested,
+                    ship.deadline,
+                    NO_TIME,
+                );
+                self.fm_close_trucked(order);
+            }
+            let waiting: Vec<OrderId> = self
+                .fm
+                .orders
+                .iter()
+                .filter(|o| {
+                    o.status == OrderStatus::Created
+                        && o.kind == OrderKind::Shipment
+                        && o.origin_pad == pad
+                        && o.requested_t_ms <= cutoff
+                })
+                .map(|o| o.order_id)
+                .collect();
+            for order in waiting {
+                let pod = self.fm.orders[order as usize].pod_id;
+                if self.pc_truck_out_pod(pad, pod) {
+                    for slot in &mut self.fm.pads[p].out_pods {
+                        if *slot == pod {
+                            *slot = NO_POD;
+                        }
+                    }
+                    self.fm_close_trucked(order);
+                    self.fm_pod_removed(pad, pod);
+                }
+            }
+            self.pad_status(pad);
+            self.pad_tick(pad);
+        }
+    }
+
+    /// A trucked order leaves now and arrives after the same dwell as the truck baseline.
+    fn fm_close_trucked(&mut self, order: OrderId) {
+        let o = self.fm.orders[order as usize];
+        let (arrives, _) = truck_baseline(&self.cfg, &self.net, o.origin_pad, o.dest_pad, self.now);
+        self.fm.unassigned.retain(|&x| x != order);
+        self.fm_close_order(order, OrderStatus::Trucked, o.dest_pad, arrives, None);
     }
 
     pub(crate) fn fm_write_open_orders(&mut self) {

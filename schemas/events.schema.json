@@ -73,7 +73,8 @@
         "FAULT_START",
         "FAULT_END",
         "TIMER",
-        "REPAIR_DONE"
+        "REPAIR_DONE",
+        "WEATHER_HOUR"
       ],
       "x-type": "u16",
       "x-unit": "-"
@@ -823,6 +824,25 @@
         },
         "payload": {
           "$ref": "#/$defs/REPAIR_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "WEATHER_HOUR"
+        },
+        "class": {
+          "const": "STATE_CHANGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/WEATHER_HOUR"
         }
       },
       "required": [],
@@ -1956,6 +1976,24 @@
         },
         "drone_id": {
           "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "STATE_CHANGE"
+    },
+    "WEATHER_HOUR": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hour"
+      ],
+      "properties": {
+        "hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295,
+          "x-type": "u32",
+          "x-unit": "-",
+          "description": "Index into the weather series (spec 9.7)."
         }
       },
       "x-class": "STATE_CHANGE"

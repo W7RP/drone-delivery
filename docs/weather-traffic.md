@@ -138,3 +138,63 @@ deg C. There are 389 hours below 1600 m visibility, 1659 with rain and 603 with 
 The station is not at the lanes (spec A76): AGC is 10 to 12 km south of the five pads, at an
 open airfield. River valleys, building wake and rooftop turbulence are not modelled. Scaling
 the 10 m wind to cruise height happens in the sim (section 4).
+
+## 4. Weather in the sim
+
+A scenario with a `[weather]` section (spec 2.10, schema 1.8.0) reads `weather.bin` and steps
+through it hour by hour from `weather.start_hour`. Without the section nothing changes: the 35
+seed-42 output files of the Phase 5 scenarios and both 900 Wh sweep tables are byte-identical.
+Every value in the section is a placeholder (assumption = true); the landing and marker
+effects are uncalibrated and should be validated with PX4 wind flights.
+
+What one hour does:
+
+- Flight (A77, A78). The 10 m wind is scaled to cruise height (power law, exponent 0.2) and
+  split along and across each lane's track, so the two directions of a lane cost different
+  energy. The drone holds its fitted ground speed. If the airspeed that needs exceeds
+  `max_airspeed_mps`, it flies at that airspeed and slows over the ground. Cruise power
+  against airspeed is ideal momentum theory with the Phase 5 audit's air density and disc
+  area, plus a parasitic term chosen so the curve passes through the fitted 2108 W at
+  15.03 m/s. In still air it reduces to the fitted model exactly. Takeoff, approach and hop
+  stay as fitted. The energy guards use the same numbers, so a headwind can strand a drone
+  that a calm hour would have sent.
+- Operating limits (A79). Outside the wind, gust, visibility, precipitation or temperature
+  limits FM assigns nothing and sends no drone to another pad. An hour missing from the series
+  blocks dispatch too. Landing clearance has its own wind and gust limits, at or above the
+  dispatch ones. Beyond them pads clear no landings: a drone that wants to land holds, reports
+  WEATHER, and the existing hold and divert logic takes over.
+- Landing (A80). Gusts widen the OUT landing error that the Phase 6a latch-fail model is
+  derived from, and rain, snow or low visibility cut marker detection.
+- Battery (A81). Usable capacity follows a derate table against air temperature.
+- Truck (A82). Rain, snow and low visibility slow the truck, in the baseline as well, so both
+  modes see the same weather.
+- Hold policy (A83). `WAIT` keeps blocked orders waiting. With `TRUCK_FALLBACK`, a shipment
+  that has waited the timeout during a block goes by truck: from the backlog, or unpacked from
+  its pod on an OUT spot if no drone is assigned yet. It is closed TRUCKED with the truck's
+  arrival time.
+- Metrics (spec M10, only with weather): flyable-hour fraction, orders flown and trucked and
+  their shares, and weather aborts (landing requests held for weather).
+
+`sim/tests/weather.rs` forces each behaviour against a control run on a hand-written series.
+Each test has a control, so it would fail if the behaviour were missing:
+
+- a gale blocks every lane (a calm series flies);
+- a gusty hour clears no landing and makes the drone hold (a calm series has no aborts);
+- TRUCK_FALLBACK trucks shipments at the timeout, or when a placement under way at that moment
+  finishes (WAIT trucks none);
+- at -20 deg C, with a 0.7 derate, range drops below 80% of the warm range.
+
+Separate landing limits are a change from the brief, which asked for one set of limits checked
+at dispatch and at landing. Hourly data switch the weather at the top of the hour. With one
+set, every drone in the air when a windier hour began could not land. It held, diverted to a
+pad with the same weather, and was forced down at its reserve. In a January 2025 week of the
+900 Wh layout this grounded all five drones. With landing limits of 14 m/s wind and 20 m/s gust
+(dispatch: 10 and 15, all placeholders) that week has no forced landing. A drone still meets
+that fate when an hour exceeds the landing limits; the gust test shows it with a one-drone
+fleet.
+
+The same trial week (2025-01-06, mean -6 deg C, low -14 deg C) shows how much the 900 Wh drone
+depends on usable capacity. With a flat derate and no limits, it delivers normally at 0.9 of
+capacity (1319 deliveries, 523 s mean). At 0.85 it manages 615, with 808 diversions. At 0.8 it
+delivers nothing: no route passes the energy guard. The derate table is a placeholder, so how
+winter weeks come out depends on it; section 7 varies it.
