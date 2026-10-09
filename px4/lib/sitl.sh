@@ -7,7 +7,14 @@ PX4_DIR="${PX4_DIR:-$HOME/PX4-Autopilot}"
 PX4_BUILD="$PX4_DIR/build/px4_sitl_default"
 DD_PX4="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORLD_NAME="dd_corridor"
-X500_AIRFRAME=4001
+# AIRFRAME=quad (PX4 4001, x500) or vtol (4004, standard VTOL; Phase 7). The model name is
+# the one tools/make_vehicle.py writes for it.
+AIRFRAME="${AIRFRAME:-quad}"
+case "$AIRFRAME" in
+  quad) PX4_AIRFRAME=4001; DRONE_MODEL=dd_quad ;;
+  vtol) PX4_AIRFRAME=4004; DRONE_MODEL=dd_vtol ;;
+  *) echo "unknown AIRFRAME $AIRFRAME" >&2; exit 2 ;;
+esac
 SITL_PIDS=()
 
 sitl_log() { printf '[sitl %s] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
@@ -24,8 +31,8 @@ sitl_env() {
   export GZ_SIM_SERVER_CONFIG_PATH="$DD_PX4/sim/server.config"
   export GZ_IP=127.0.0.1
   export PX4_GZ_WORLD="$WORLD_NAME"
-  export PX4_GZ_MODEL_NAME="dd_quad"
-  export PX4_SYS_AUTOSTART="$X500_AIRFRAME"
+  export PX4_GZ_MODEL_NAME="$DRONE_MODEL"
+  export PX4_SYS_AUTOSTART="$PX4_AIRFRAME"
   export HEADLESS=1
   unset PX4_SIM_MODEL
 }
@@ -79,7 +86,7 @@ sitl_start_px4() {
     [[ -z "$name" || "$name" == \#* ]] && continue
     params+=("$name=$value")
     export "PX4_PARAM_$name=$value"
-  done < "$DD_PX4/params/sitl.params"
+  done < <(cat "$DD_PX4/params/sitl.params"; [[ "$AIRFRAME" == vtol ]] && cat "$DD_PX4/params/sitl_vtol.params")
   mkdir -p "$run/px4"
   export PX4_SIM_SPEED_FACTOR="$speed"
   ( cd "$run/px4" && exec "$PX4_BUILD/bin/px4" -d "$PX4_BUILD/etc" ) > "$run/px4.log" 2>&1 &
@@ -111,7 +118,10 @@ sitl_spawn_scene() {
   local state="$run/pod2_joint_state.txt"
   timeout 30 gz topic -e -t /dd/dd_pod_2/state > "$state" 2>/dev/null &
   sleep 0.5
-  for name in dd_quad dd_pod_2 dd_pod_1; do
+  local names="$DRONE_MODEL dd_pod_2 dd_pod_1"
+  [[ "$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['pods']))" "$run/vehicle.json")" == 0 ]] \
+    && names="$DRONE_MODEL"
+  for name in $names; do
     spec="$(python3 -c "import json,sys; print(*json.load(open(sys.argv[1]))['spawn'][sys.argv[2]])" "$run/vehicle.json" "$name")"
     # shellcheck disable=SC2086
     sitl_spawn "$name" "$run/models/$name/model.sdf" $spec || { sitl_log "could not spawn $name"; return 1; }
@@ -125,7 +135,7 @@ sitl_spawn_scene() {
       grep -q '"detached"' "$state" || { sitl_log "pod 2 did not detach"; return 1; }
     fi
   done
-  sitl_log "spawned dd_quad, dd_pod_2 (detached, confirmed), dd_pod_1 (latched)"
+  sitl_log "spawned $names"
 }
 
 sitl_stop() {
