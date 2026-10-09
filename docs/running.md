@@ -127,11 +127,16 @@ the results. Steps 4 and 5 are covered by tests (`sim/tests/marker_fault.rs`,
 ```
 uv run analysis/sweep.py --base 900   # 2: charging and pad layout at 900 Wh (writes the chosen scenario)
 uv run analysis/fleet.py --base 900   # 2: pods and fleet at that layout
+uv run analysis/weather_year.py        # 7: the demo over 156 weeks of weather, about 160 s
 sim/target/release/sim run <scenario.toml> --seed N --out <dir> --no-event-log
 ```
 
 `--no-event-log` skips `events.bin`; the analysis scripts always pass it and refuse to start
-with less than 20 GB free. `docs/weather-traffic.md` has the results.
+with less than 20 GB free. `pipeline/run.sh` also rebuilds the weather series
+(`configs/weather/pittsburgh/`) and the truck matrices with road-class fractions, offline from
+the cached downloads. The numbers are the section numbers of `docs/weather-traffic.md`, which
+has the results; steps 0, 1 and 3 to 6 are covered by `sim/tests/run_guards.rs`,
+`yield_fix.rs`, `weather.rs`, `traffic.rs` and the pipeline tests.
 
 ## Test and verify
 

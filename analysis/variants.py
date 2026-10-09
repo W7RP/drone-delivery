@@ -1,8 +1,9 @@
 """Shared helpers for the Phase 6a analysis scripts: read a committed scenario, change keys in a
 copy, write the copy where `sim run` can load it, and run the release sim.
 
-A copy keeps its scenario's network and flight profile: `network_files.dir` and
-`flight_profile.file` are rewritten as absolute paths, so the copy can live anywhere. The copy's
+A copy keeps its scenario's network, flight profile and weather: `network_files.dir`,
+`flight_profile.file` and `weather.series_file` are rewritten as absolute paths, so the copy can
+live anywhere. The copy's
 directory is named after its `meta.name` (spec R14). Committed scenario files are never edited.
 """
 
@@ -33,6 +34,8 @@ def absolute_paths(cfg: dict, source_dir: Path) -> dict:
         cfg["network_files"]["dir"] = str((source_dir / cfg["network_files"]["dir"]).resolve())
     if "flight_profile" in cfg:
         cfg["flight_profile"]["file"] = str((source_dir / cfg["flight_profile"]["file"]).resolve())
+    if "weather" in cfg:
+        cfg["weather"]["series_file"] = str((source_dir / cfg["weather"]["series_file"]).resolve())
     return cfg
 
 

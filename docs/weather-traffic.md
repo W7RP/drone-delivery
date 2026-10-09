@@ -243,3 +243,71 @@ against 1926 s by truck, 97% of hours flyable, no weather aborts and no forced l
 TRUCK_FALLBACK only covers hours the operating limits block. Drones that cold has left too
 short of usable capacity to pass the energy guard are not blocked by the limits, so their
 orders wait (in the week of 2025-01-06, 6 shipments flown and 431 trucked with fallback on).
+
+## 7. A year of weather, 2023 to 2025
+
+`uv run analysis/weather_year.py` runs the demo over every complete week of the series: 156
+weeks from Monday 2023-01-02 to Monday 2025-12-22, each starting at local midnight, seeds 1 to
+3, under both hold policies. It then runs the WAIT sensitivity sweep, 4680 runs in all. It
+takes about 160 s with 16 runs in parallel. It deletes every run's outputs once read, so temp use peaks
+around 17 MB. A second run writes byte-identical tables (`analysis/out/weather_year.md`,
+`.json`).
+
+The ratio is the network's mean door-to-door over the truck baseline's on the same orders:
+shipments requested in the window and completed, either flown and delivered or trucked. Below
+1 the network is faster. Orders still waiting at the end of the week, diverted or failed, and
+requests turned away at the backlog cap, are not in the ratio; the completed share counts
+them. A week's value is the mean of its three seeds; mean, p10, median and p90 are over weeks.
+
+| Policy | Ratio mean | p10 | Median | p90 | Flyable hours | Trucked share | Completed share | Weeks without a completed order |
+|---|---|---|---|---|---|---|---|---|
+| WAIT | 3.17 | 0.26 | 0.56 | 6.61 | 94% | 0% | 87% | 2 |
+| TRUCK_FALLBACK | 2.14 | 0.26 | 0.41 | 6.31 | 94% | 7% | 91% | 0 |
+
+| Week | Rule | Wind mean (m/s) | Gust max | Temp mean (C) | Snow h | Policy | Network (s) | Pod wait | Queue | Pad service | Flight | Truck, same flown orders (s) | Ratio | Flyable | Trucked | Completed |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2023-10-23 | median wind | 3.1 | 10.8 | 15.2 | 0 | WAIT | 569 | 108 | 161 | 149 | 152 | 1919 | 0.30 | 90% | 0% | 91% |
+| 2023-10-23 | median wind | 3.1 | 10.8 | 15.2 | 0 | TRUCK_FALLBACK | 920 | 108 | 161 | 149 | 152 | 1919 | 0.48 | 90% | 7% | 98% |
+| 2024-01-08 | windiest | 6.0 | 26.2 | 1.4 | 20 | WAIT | 21390 | 18007 | 2994 | 237 | 153 | 1922 | 11.13 | 78% | 0% | 40% |
+| 2024-01-08 | windiest | 6.0 | 26.2 | 1.4 | 20 | TRUCK_FALLBACK | 24915 | 10785 | 2682 | 232 | 152 | 1950 | 12.81 | 78% | 50% | 56% |
+| 2025-01-20 | coldest | 3.9 | 13.9 | -8.6 | 10 | WAIT | 77039 | 73541 | 3149 | 200 | 149 | 1892 | 40.72 | 51% | 0% | 18% |
+| 2025-01-20 | coldest | 3.9 | 13.9 | -8.6 | 10 | TRUCK_FALLBACK | 13220 | 6550 | 1385 | 205 | 148 | 1882 | 6.89 | 51% | 72% | 72% |
+
+| Sensitivity (WAIT) | Ratio mean | Change | p10 | Median | p90 | Completed share |
+|---|---|---|---|---|---|---|
+| wind limits x0.5 | 8.28 | 5.110 | 0.64 | 3.58 | 15.97 | 72% |
+| cold derate depth x1.5 | 7.12 | 3.947 | 0.26 | 0.87 | 16.16 | 76% |
+| cold derate depth x0.5 | 0.80 | -2.367 | 0.26 | 0.40 | 1.66 | 96% |
+| wind limits x1.5 | 3.02 | -0.149 | 0.26 | 0.53 | 5.96 | 88% |
+| traffic peak delay x0.5 | 3.20 | 0.028 | 0.26 | 0.56 | 6.68 | 87% |
+| traffic peak delay x1.5 | 3.14 | -0.027 | 0.26 | 0.55 | 6.55 | 87% |
+| landing gust k x1.5 | 3.19 | 0.020 | 0.26 | 0.56 | 6.95 | 87% |
+| landing gust k x0.5 | 3.16 | -0.010 | 0.25 | 0.55 | 6.48 | 88% |
+
+What it shows, every number resting on placeholders (A77 to A86):
+
+- In a typical week the network beats the truck. The median week takes 0.56 of the truck's
+  time under WAIT and 0.41 with TRUCK_FALLBACK, and the best tenth of weeks 0.26 (about four
+  times faster). On average 94% of hours are flyable.
+- The mean is dominated by bad weeks. The worst tenth of weeks are more than six times slower
+  than the truck. There, cold derates the marginal 900 Wh battery below what the energy guard
+  accepts, and hours over the limits stop dispatch, so orders wait for days.
+- TRUCK_FALLBACK trucks 7% of orders over the three years, lifts the completed share from 87%
+  to 91%, and cuts the mean ratio from 3.17 to 2.14. In the coldest week it trucks 72% and
+  takes the ratio from 40.7 to 6.9. It cannot help when cold strands drones without crossing a
+  limit (section 6). In a mild week it makes the ratio worse (0.30 to 0.48): orders that would
+  have waited out a short block and still beaten the truck go by truck instead, while WAIT
+  simply leaves the ones it never finishes out of the ratio.
+- In the windiest and coldest weeks flight time stays near 150 s and pad service grows from
+  149 s to 200-237 s. The losses are pod wait and queue: shipments waiting through blocked
+  hours for a pod and a drone.
+- Most sensitive: the wind limits. Halving them takes the median week from 0.56 to 3.58 and
+  the completed share from 87% to 72%; raising them by half helps little. The cold-derate
+  depth comes next: half as deep gives a mean of 0.80 and 96% completed, half again as deep a
+  mean of 7.12 and 76% completed. The gust term of the landing error and the traffic peak delays move the mean by
+  0.03 or less. Most of the truck's routes on this network run on minor roads (section 5), and
+  latch faults cost a retry, not a week.
+
+Week alignment (spec A87): a week is 168 consecutive series hours from a local Monday midnight.
+Traffic reads local time from the sim clock with the offset at the start of the week, so in
+the two weeks a year with a daylight-saving change its peaks are an hour off after the change.
