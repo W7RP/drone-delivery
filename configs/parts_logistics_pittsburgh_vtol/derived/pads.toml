@@ -1,0 +1,103 @@
+# Pad catalog of parts_logistics_pittsburgh in the form of a scenario's pads[] (spec 8.2),
+# written by pipeline/run.sh; do not edit. Coordinates are OSM data (assumption = false);
+# the other fields are placeholders from pipeline/sites.yaml. lanes.csr.bin and
+# truck_matrix.bin carry the FNV-1a 64 hash of this file as their source_hash (spec 9.0).
+
+[[pads]]
+# OSM w282851316 "Consumer Fresh Produce": strip_district, WAREHOUSE, footprint 8012 m2
+name = "Consumer_Fresh_Produce"
+lat_deg = { value = 40.4538893, unit = "deg", assumption = false }
+lon_deg = { value = -79.9849779, unit = "deg", assumption = false }
+is_hub = true
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 8, unit = "count", assumption = true }
+parking_capacity = { value = 4, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w535064127 "Achieva Mailing Service": strip_district, WAREHOUSE, footprint 4106 m2
+name = "Achieva_Mailing_Service"
+lat_deg = { value = 40.4557433, unit = "deg", assumption = false }
+lon_deg = { value = -79.9785678, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 8, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w334630150 "UPMC Oakland": oakland, HOSPITAL_LAB, footprint 105383 m2
+name = "UPMC_Oakland"
+lat_deg = { value = 40.4413173, unit = "deg", assumption = false }
+lon_deg = { value = -79.9618018, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w330452670 "UPMC Magee-Womens Hospital": oakland, HOSPITAL_LAB, footprint 54840 m2
+name = "UPMC_Magee_Womens_Hospital"
+lat_deg = { value = 40.4373688, unit = "deg", assumption = false }
+lon_deg = { value = -79.9612807, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w552407663 "VA Pittsburgh Healthcare System - University Drive": oakland, HOSPITAL_LAB, footprint 54772 m2
+name = "VA_Pittsburgh_Healthcare_System"
+lat_deg = { value = 40.4467786, unit = "deg", assumption = false }
+lon_deg = { value = -79.9620709, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w301885540 "Mon Valley Works - Edgar Thomson Plant": braddock, INDUSTRIAL, footprint 804578 m2
+name = "Mon_Valley_Works_Edgar_Thomson_P"
+lat_deg = { value = 40.3939599, unit = "deg", assumption = false }
+lon_deg = { value = -79.8545533, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w642352504 "Josh Steel": braddock, INDUSTRIAL, footprint 31419 m2
+name = "Josh_Steel"
+lat_deg = { value = 40.4013169, unit = "deg", assumption = false }
+lon_deg = { value = -79.8729619, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w308524950 "Mon Valley Works - Clairton Plant": clairton, INDUSTRIAL, footprint 1583164 m2
+name = "Mon_Valley_Works_Clairton_Plant"
+lat_deg = { value = 40.2995669, unit = "deg", assumption = false }
+lon_deg = { value = -79.8715045, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }
+
+[[pads]]
+# OSM w864215006 "Old Koppers Area": clairton, INDUSTRIAL, footprint 54123 m2
+name = "Old_Koppers_Area"
+lat_deg = { value = 40.3062718, unit = "deg", assumption = false }
+lon_deg = { value = -79.8822951, unit = "deg", assumption = false }
+is_hub = false
+service_mode = "AUTO"
+pod_return_policy = "RETURN_HOME"
+initial_empty_pods = { value = 0, unit = "count", assumption = true }
+parking_capacity = { value = 2, unit = "count", assumption = true }

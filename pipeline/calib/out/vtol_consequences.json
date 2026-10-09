@@ -1,0 +1,126 @@
+{
+ "battery": {
+  "lane": {
+   "from": "Consumer_Fresh_Produce",
+   "route_m": 12895.5634765625,
+   "to": "Mon_Valley_Works_Edgar_Thomson_P"
+  },
+  "payload_kg": 5.0,
+  "required_capacity_wh": 619.4,
+  "rounded_wh": 620.0,
+  "rounded_passes": true,
+  "within_mtow": true,
+  "empty_mass_kg": 7.6,
+  "iterations": 14
+ },
+ "payload_range": [
+  {
+   "payload_kg": 2.0,
+   "vtol_max_lane_m": 36301.6,
+   "vtol_empty_mass_kg": 7.6,
+   "multirotor_900wh_max_lane_m": 12802.1
+  },
+  {
+   "payload_kg": 5.0,
+   "vtol_max_lane_m": 14689.8,
+   "vtol_empty_mass_kg": 7.6,
+   "multirotor_900wh_max_lane_m": 5661.5
+  }
+ ],
+ "network": {
+  "pads": [
+   "Achieva_Mailing_Service",
+   "Consumer_Fresh_Produce",
+   "Josh_Steel",
+   "Mon_Valley_Works_Clairton_Plant",
+   "Mon_Valley_Works_Edgar_Thomson_P",
+   "Old_Koppers_Area",
+   "UPMC_Magee_Womens_Hospital",
+   "UPMC_Oakland",
+   "VA_Pittsburgh_Healthcare_System"
+  ],
+  "pads_gained": [
+   "Josh_Steel",
+   "Mon_Valley_Works_Clairton_Plant",
+   "Mon_Valley_Works_Edgar_Thomson_P",
+   "Old_Koppers_Area"
+  ],
+  "pads_lost": [],
+  "pads_left_out": [],
+  "lanes": 24,
+  "lanes_gained": [
+   [
+    "Achieva_Mailing_Service",
+    "Josh_Steel"
+   ],
+   [
+    "Achieva_Mailing_Service",
+    "Mon_Valley_Works_Edgar_Thomson_P"
+   ],
+   [
+    "Consumer_Fresh_Produce",
+    "Josh_Steel"
+   ],
+   [
+    "Consumer_Fresh_Produce",
+    "Mon_Valley_Works_Edgar_Thomson_P"
+   ],
+   [
+    "Josh_Steel",
+    "Mon_Valley_Works_Edgar_Thomson_P"
+   ],
+   [
+    "Josh_Steel",
+    "UPMC_Magee_Womens_Hospital"
+   ],
+   [
+    "Josh_Steel",
+    "UPMC_Oakland"
+   ],
+   [
+    "Josh_Steel",
+    "VA_Pittsburgh_Healthcare_System"
+   ],
+   [
+    "Mon_Valley_Works_Clairton_Plant",
+    "Mon_Valley_Works_Edgar_Thomson_P"
+   ],
+   [
+    "Mon_Valley_Works_Clairton_Plant",
+    "Old_Koppers_Area"
+   ],
+   [
+    "Mon_Valley_Works_Edgar_Thomson_P",
+    "Old_Koppers_Area"
+   ],
+   [
+    "Mon_Valley_Works_Edgar_Thomson_P",
+    "UPMC_Magee_Womens_Hospital"
+   ],
+   [
+    "Mon_Valley_Works_Edgar_Thomson_P",
+    "UPMC_Oakland"
+   ],
+   [
+    "Mon_Valley_Works_Edgar_Thomson_P",
+    "VA_Pittsburgh_Healthcare_System"
+   ]
+  ],
+  "lanes_lost": [],
+  "lane_range_m": 14689.8,
+  "clairton_in_network": true,
+  "clairton_flows": [],
+  "clairton_flows_left_out": [
+   {
+    "destination": "Mon_Valley_Works_Clairton_Plant",
+    "need_j": 1997099.3,
+    "origin": "Consumer_Fresh_Produce"
+   },
+   {
+    "destination": "Mon_Valley_Works_Clairton_Plant",
+    "need_j": 1985774.3,
+    "origin": "Achieva_Mailing_Service"
+   }
+  ]
+ }
+}
