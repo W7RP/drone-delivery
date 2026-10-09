@@ -68,3 +68,53 @@ bytes).
 The energy proxy over lane 3 (D02 to D03, transitions included) is 117 kJ, against 314 kJ for
 the multirotor flown the same day. The multirotor still completes its fit-lane visit after
 the node changes and passes the validator, and so does the committed Phase 4 sample log.
+
+## 3. Calibration flights
+
+`px4/tools/run_batch.sh vtol_cal vtol_0_1 vtol_0_2 vtol_2_1 vtol_2_2 vtol_5_1 vtol_5_2
+vtol1x_5_1` flies the fit lane (3, 2093 m) with 0, 2 and 5 kg, two seeds each at 2x real time,
+and 5 kg once at 1x. All seven completed, pass the validator, peak at 688 MB RSS and carry one
+px4/ revision (`2549e822e0ac`, recorded in each run.json). A first batch mixed two runner
+versions after an edit during the batch: one changed only run.json metadata, not the flight. It
+was discarded and the whole batch re-flown. `pipeline/calib/vtol_phases.py` refuses a batch with
+mixed or uncommitted versions.
+
+That script reduces the logs to `pipeline/calib/vtol_phases.json` (committed; the raw logs are
+not), one row per run and phase. Distances are along the line from the start to the holding
+fix on the ground-truth track. Energy is the proxy (A57, A92). Mean of the two 2x runs per
+payload:
+
+| Phase | 0 kg: s, m/s, m along, kJ | 2 kg | 5 kg |
+|---|---|---|---|
+| MC takeoff and climb | 25.9, 0.0, 0, 22.6 | 26.2, 0.0, 0, 29.6 | 26.5, 0.0, 0, 41.9 |
+| Transition to FW | 5.6, 5.9, 33, 6.5 | 6.7, 6.0, 40, 8.9 | 8.4, 6.2, 49, 13.8 |
+| FW cruise | 125.5, 15.2, 1909, 42.2 | 125.8, 15.1, 1901, 52.5 | 125.0, 15.2, 1893, 69.8 |
+| Back-transition and MC to the fix | 19.2, 7.8, 149, 17.6 | 19.3, 7.8, 149, 22.2 | 20.4, 7.4, 148, 33.1 |
+| Approach and landing on IN | 50.0, 0.1, -2, 42.5 | 49.2, 0.2, -2, 55.8 | 50.5, 0.1, -2, 81.1 |
+| Hop IN to OUT (empty) | 23.7, 0.4, 4, 16.4 | 25.4, 0.4, 4, 18.0 | 23.4, 0.4, 4, 16.0 |
+
+Mean cruise power is 336, 418 and 559 W at 0, 2 and 5 kg; multicopter phases run at about
+three times that.
+
+Energy proxy. The four lift rotors use A57's induced power from their commanded speeds. The
+pusher uses ideal momentum theory for a propeller in axial flight: thrust T = k w^2, induced
+velocity v_i = -V/2 + sqrt(V^2/4 + T/(2 rho A)), power T (V + v_i), with V the speed along the
+body x axis (no wind) and the scaled stock disc areas (A92).
+
+Cross-check against the simulator. In steady cruise the pusher thrust should balance the
+wing drag of Gazebo's lift-drag model. That drag is 1/2 rho V^2 A cd per surface, with
+cd = cda (alpha + a0), alpha from the ground-truth velocity in the body frame and PX4's
+attitude. The reference power is drag times speed over the ideal propeller efficiency,
+D (V + v_i). Over the middle half of each cruise, the pusher thrust from its commands matches
+that drag within the noise of the differentiated track: 14.4 N against 13.9 to 16.5 N at 0 kg,
+21.7 N against 20.5 to 23.3 N at 5 kg. The proxy cruise power over the reference is 0.81 to
+1.24, mean 1.00 over the seven runs. It is still a proxy: SITL has no power model, and
+propeller, motor and ESC losses are left out.
+
+1x against 2x (5 kg, seed 1): the lane (D02 to D03, transitions included) took 152.1 s and
+112.3 kJ at 1x, and 151.8 s and 115.0 kJ at 2x (-0.2% and +2.3%). The cruise plateau was
+14.99 and 15.46 m/s. The second 2x seed took 155.6 s and 118.4 kJ, so the speed factor's
+effect is within the seed-to-seed spread.
+
+`px4/samples/vtol_5_1/` keeps the logs of the first 5 kg run; the others are deleted once
+summarized.
