@@ -198,3 +198,136 @@ them and at the calibration's `2549e822e0ac`.
 ![Predicted against measured visit time and energy](media/vtol_pred_vs_meas.png)
 
 ![Mean proxy power per phase class against mass](media/vtol_power_vs_mass.png)
+
+## 6. Wind check
+
+`px4/tools/run_batch.sh vtol_wind vtolwind_0_1 ... vtolwind_8_2` flies the fit lane at 5 kg and
+2x with a wind from 22 deg, square across the lane (bearing 112 deg) from the left, at 0, 5 and
+8 m/s with gusts of 50%, seeds 1 and 2. `pipeline/run.sh calib vtol_wind` writes
+`pipeline/calib/out/vtol_wind.json`. It informs the limitations only; nothing is fitted to it.
+
+The wind model (spec A94):
+
+- the wind sits in the Gazebo world, and the wing surfaces (LiftDrag) fly relative to it;
+- WindEffects adds a drag of mass x k x (wind - velocity) on the vehicle's links, with
+  k = 0.033 /s, a linear fit of a placeholder body drag (CdA 0.1 m2 at 8 m/s);
+- the gust is Gaussian noise of 50% of the wind on the magnitude, drawn every physics step;
+- the calm level flies with the same systems on, at 0 m/s.
+
+| Wind | Visits completed | Landing error IN (cm) | Landing error OUT (cm) | Crab in cruise | Ground speed in cruise | Tilt on approach |
+|---|---|---|---|---|---|---|
+| 0 m/s | 2 of 2 | 12.0, 7.4 | 6.5, 7.5 | +10.9, -3.1 deg | 15.25, 15.01 m/s | 0.5, 0.5 deg |
+| 5 m/s | 1 of 2 | 5.7, 2.7 | 25.9, 14.3 | -18.4, -16.5 deg | 15.78, 15.63 m/s | 1.8, 1.6 deg |
+| 8 m/s | 0 of 2 | 29.0, 27.5 | 42.3, 39.1 | -25.4, -21.8 deg | 16.60, 15.95 m/s | 1.8, 2.0 deg |
+
+All 12 landings happened. The three failed visits stopped at the latch: the drone landed on
+OUT more than the 15 cm capture radius (A71) from the waiting pod, and the pad could not verify
+the lock (V29/V30). Each run's outcome is in the JSON; all six ran px4/ revision `3ad599cedf98`.
+
+The vehicle feels the wind:
+
+- in cruise it crabs into it, 17 to 18 deg at 5 m/s and 22 to 25 deg at 8 m/s (the calm runs
+  show -3 to +11 deg, the measure's noise and sideslip);
+- on approach it leans 1.6 to 2.0 deg into it, against 0.5 deg in calm;
+- the landing error on OUT grows from 7 cm in calm to 14 to 26 cm at 5 m/s and 39 to 42 cm at
+  8 m/s.
+
+What this check does not show (limitations):
+
+- Gazebo's airspeed sensor ignores the wind, so PX4's airspeed is ground speed along the body
+  axis. PX4 held that at about 15 m/s, so ground speed along the track rose with the crab angle,
+  and the true airspeed was higher than PX4 thought. A headwind would have the opposite, unsafe
+  sign. The sim's weather model (2.10) assumes a correct airspeed.
+- The rotors (MulticopterMotorModel) do not see the wind, only the wing surfaces and the body
+  drag do; the body drag coefficient is a placeholder.
+- The gust is white noise at the physics rate, which the vehicle's inertia averages out. It is
+  not a gust spectrum, and the effects above come from the steady wind.
+- Landing on OUT in a crosswind is the weak point. The sim's derived latch fault widens the OUT
+  error with gusts (A80), but nothing in it is calibrated against this check.
+
+Two earlier batches did not produce results. In the first, Gazebo never came up with wind:
+the world named a system, so it lost the server config's defaults. In the second, Gazebo's
+default drag of 1 /s kept the VTOL below transition airspeed, and every windy run aborted the
+transition (PX4 quad-chute). Both were fixed in px4/ and the whole batch re-flown; their
+partial logs were deleted. The first batch's calm seed-2 run had failed the same latch check,
+with 15.5 cm on OUT.
+
+## 7. The profile in the sim
+
+`pipeline/run.sh calib vtol` writes `configs/flight_profiles/px4_sitl_vtol_proxy.toml`
+(`source = "px4-sitl-proxy"`, every value `assumption = true`) from the fitted parameters. The
+VTOL keys (spec 8.7, A93) are optional, so every earlier profile and scenario loads and runs as
+before:
+
+- `airframe = "VTOL"` and its own `mtow_kg` (16 kg); R20 (cruise power at least the rotors'
+  induced power under weather) applies to multirotors only;
+- `transition_s` and `transition_power_ref_w`, charged once per flight, with the first lane from
+  a pad or a hold; the energy guards add one transition to the dispatch need and one to a
+  diversion;
+- `cruise_mass_exponent` (1.21) in place of the multirotor's 1.5.
+
+Battery-mass coupling is A68's: 4.5 kg airframe (placeholder), 200 Wh/kg. Under weather, a VTOL's
+cruise power is proportional to airspeed: the SITL wing's level-flight drag does not change
+with speed, so thrust power is drag times airspeed (A93).
+
+## 8. Battery, range and network
+
+`pipeline/run.sh calib vtol` (step `vtol_consequences`) sizes the battery with the core's own
+energy guard (`sim battery`). The target is hub to Edgar Thomson, 12 896 m, the longest legal
+lane of Phase 3's catalog, at 5 kg with the battery's mass coupled to it. The fixed point is
+619.4 Wh after 14 iterations, rounded to 620 Wh (2.232 MJ). Empty mass is 7.6 kg, so 5 kg plus
+the 0.6 kg latch stays under the 16 kg MTOW.
+
+Longest one-way lane `dispatch_ok` accepts (no diversion leg, an upper bound):
+
+| Payload | VTOL, 620 Wh coupled | Multirotor, 900 Wh coupled (Phase 6b) |
+|---|---|---|
+| 2 kg | 36.3 km | 12.8 km |
+| 5 kg | 14.7 km | 5.7 km |
+
+The pipeline builds `parts_logistics_pittsburgh_vtol` (params.yaml) with the VTOL profile and
+that battery. Against the 900 Wh multirotor network it has:
+
+- 9 pads instead of 5: Edgar Thomson, Josh Steel, Clairton and Old Koppers are gained, none
+  lost;
+- 24 lanes instead of 10: 14 gained, none lost;
+- 10 flows, Edgar Thomson and Josh Steel from both warehouses among them.
+
+Clairton is in the network, with lanes, but gets no flow. Its route from either warehouse runs
+through Edgar Thomson and needs 1.99 to 2.00 MJ. The usable energy is (0.95 - 0.20) x 2.232 =
+1.67 MJ. Old Koppers is left out for the same reason. Serving them would take a bigger
+battery, a relay pad or battery swap, none of which this phase adds.
+
+## 9. Scenarios
+
+`uv run analysis/sweep.py --base vtol` runs the Phase 6a layout sweep on the VTOL scenario:
+
+- charger power 1.5, 3, 6 and 12 kW;
+- parking 0 to 2;
+- OUT spots 1 to 4 (OUT_4 is new in schema 1.9.0);
+- seeds 1 to 5.
+
+It uses the same cost proxy (per pad: 100 + 20 per spot + 10 per charger kW + 15 per parking
+slot) and the same rule: the cheapest layout within 10% of the best mean door-to-door. The best
+is 689 s; the chosen layout is 1.5 kW, no parking and 4 OUT spots at 2340 cu, 738 +- 18 s, with
+no request rejected. `configs/parts_logistics_pittsburgh_vtol_layout` is that scenario.
+
+`uv run analysis/fleet.py --base vtol` sweeps fleet size and pods per warehouse at that layout:
+
+| Criterion | Fleet | Pods per warehouse | Door-to-door (s) | Rejected |
+|---|---|---|---|---|
+| Smallest with under 5% rejected | 4 | 2 | 5648 +- 1134 | 0.7% |
+| ... and faster than the truck (2271 s) | 6 | 4 | 864 +- 52 | 0.0% |
+| ... and within 10% of the best (704 s) | 8 | 6 | 726 +- 20 | 0.0% |
+
+`configs/parts_logistics_pittsburgh_vtol_demo` is the layout scenario (fleet 7 as built by the
+pipeline) with every realism key on:
+
+- repair, yield on request, derived latch fault, marker self-check and reorder window (6a);
+- the hourly AGC weather with the per-route energy guard, under TRUCK_FALLBACK (Part A showed
+  that WAIT fills the backlog cap in bad weeks);
+- traffic in local time (`traffic.start_unix_s`);
+- order outcomes.
+
+For weather, the four lift rotors' disc area is 0.40 m2 and the airspeed limit is
+`FW_AIRSPD_MAX` (22 m/s). The other weather limits stay the 6b demo's placeholders.

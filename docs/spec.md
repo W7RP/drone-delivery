@@ -1769,9 +1769,14 @@ that:
   is proportional to airspeed: in the SITL wing (Gazebo lift-drag, drag coefficient linear in
   lift coefficient) level-flight drag does not change with speed, so thrust power is drag
   times airspeed.
-- A94 The SITL wind check uses Gazebo's WindEffects: a constant wind, the same at every height,
-  with Gaussian noise of a given fraction on its magnitude as the gust, acting on the vehicle
-  links that enable it. It informs the limitations only; nothing is calibrated from it.
+- A94 The SITL wind check puts a constant wind, the same at every height, in the Gazebo world.
+  The wing surfaces (LiftDrag) fly in the air relative to it. Gazebo's WindEffects adds
+  mass x k x (wind - velocity) on every link that enables wind, with k a linear fit of a
+  placeholder body drag (CdA 0.1 m2 at 8 m/s, 14.6 kg: 0.033 /s; Gazebo's default of 1 /s
+  kept the VTOL below transition airspeed). The gust is Gaussian noise of standard deviation
+  gust fraction x wind on the magnitude, drawn every physics step. Gazebo's airspeed sensor
+  ignores the wind, so PX4's airspeed is ground speed along the body axis. The check informs
+  the limitations only; nothing is calibrated from it.
 
 ## 11 Amendments
 

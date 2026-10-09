@@ -10,7 +10,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 STEPS = ["audit", "phases", "residuals", "fit", "profile", "consequences", "heldout", "scenarios", "plots"]
-VTOL_STEPS = ["vtol_phases", "vtol_fit", "vtol_profile", "vtol_consequences", "vtol_heldout", "vtol_plots"]
+VTOL_STEPS = ["vtol_phases", "vtol_fit", "vtol_profile", "vtol_consequences", "vtol_heldout", "vtol_wind", "vtol_plots"]
 
 
 def main() -> int:
