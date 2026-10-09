@@ -416,3 +416,26 @@ with the guard and TRUCK_FALLBACK, the multirotor demo also completes 98 to 99% 
   in a crosswind (section 6). Nothing in the sim is calibrated from it.
 - The scaled airframe keeps the stock model's geometry and gains (A91). It is not a real
   product.
+
+## 12. Assumptions
+
+Choices made where the brief left an option open, the simplest each time. Model assumptions
+are in the spec (A88 to A94).
+
+- Airframe: PX4's standard VTOL scaled by one factor on mass, inertia, motor constants and
+  surfaces (A91). Airspeeds stall 7, min 10, trim 15, max 22 m/s (`px4/params/sitl_vtol.params`).
+- Back-transition 150 m before the holding fix; the transition is charged once per flight (A93).
+- Calibration at 2x real time; the 1x run is a check, not fitted.
+- Battery: A68's coupling (4.5 kg airframe, 200 Wh/kg), sized for the longest legal lane at
+  5 kg in still air at 20 C, with no margin for wind or cold.
+- Held-out lanes: lane 4 (hub to Edgar Thomson, the longest legal under the VTOL profile) and
+  lane 45 (Clairton to Old Koppers, the shortest with a Mon Valley pad).
+- Wind check: the fit lane, wind from 22 deg (square across it), body drag CdA 0.1 m2, gusts
+  as Gazebo's per-step noise; the calm level flies with the same systems on.
+- VTOL demo: TRUCK_FALLBACK with the energy route guard; the lift rotors' disc area (0.40 m2)
+  and FW_AIRSPD_MAX (22 m/s) for the weather keys; every other weather and traffic value as in
+  the 6b demo. Fleet 7 as the pipeline sized it, not the fleet sweep's 8.
+- Mon Valley flows: flows to or from a pad the VTOL network has and the multirotor's lacks.
+- Layout sweep: OUT spots up to 4, which needs schema 1.9.0.
+- Commits outside px4/ while a batch flew do not change its flight code; `vtol_heldout` checks
+  this against git.
