@@ -838,7 +838,7 @@ pub fn truck_baseline(
 }
 
 impl World {
-    fn view(&self) -> FleetView<'_> {
+    pub(crate) fn view(&self) -> FleetView<'_> {
         FleetView {
             fm: &self.fm,
             cfg: &self.cfg,

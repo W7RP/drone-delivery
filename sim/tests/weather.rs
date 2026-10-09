@@ -271,3 +271,51 @@ fn cold_cuts_range() {
         "cold {cold_m:.0} m should be well short of warm {warm_m:.0} m"
     );
 }
+
+/// `with_weather` with M11 order outcomes on (schema 1.9.0).
+fn with_outcomes(hours: usize, rate_per_h: f64, hold_policy: &str) -> Table {
+    let mut t = with_weather(hours, rate_per_h, hold_policy);
+    set(&mut t, "schema_version", "1.9.0");
+    let Some(Value::Table(m)) = t.get_mut("metrics") else {
+        panic!("metrics section")
+    };
+    m.insert("order_outcomes".into(), true.into());
+    t
+}
+
+fn outcome(r: &Outcome, class: &str) -> u64 {
+    r.summary["order_outcomes"][class].as_u64().expect(class)
+}
+
+const CLASSES: [&str; 8] = [
+    "delivered_drone",
+    "delivered_truck",
+    "rejected_cap",
+    "blocked_weather",
+    "blocked_energy",
+    "in_flight",
+    "waiting",
+    "diverted_or_failed",
+];
+
+#[test]
+fn order_outcomes_account_for_every_request() {
+    let dir = series_dir("outcomes", &[CALM, GALE, GALE]);
+    let r = run_in(&with_outcomes(3, 12.0, "WAIT"), &dir);
+    let total: u64 = CLASSES.iter().map(|c| outcome(&r, c)).sum();
+    assert_eq!(total, outcome(&r, "requests"));
+    assert!(outcome(&r, "delivered_drone") > 0, "the calm hour delivers");
+    assert!(
+        outcome(&r, "blocked_weather") > 0,
+        "the gale leaves orders blocked"
+    );
+    let o = &r.summary["order_outcomes"];
+    // Unfinished orders counted at their elapsed time can only add network time.
+    assert!(o["sums_s"]["unfinished_elapsed"].as_f64().expect("s") > 0.0);
+    let off = run_in(&with_weather(3, 12.0, "WAIT"), &dir);
+    assert!(
+        off.summary.get("order_outcomes").is_none(),
+        "off by default"
+    );
+    assert_eq!(off.lanes_flown, r.lanes_flown, "measurement only");
+}

@@ -311,3 +311,53 @@ What it shows, every number resting on placeholders (A77 to A86):
 Week alignment (spec A87): a week is 168 consecutive series hours from a local Monday midnight.
 Traffic reads local time from the sim clock with the offset at the start of the week, so in
 the two weeks a year with a daylight-saving change its peaks are an hour off after the change.
+
+## 8. Completion-aware results (Phase 7)
+
+The section 7 ratio averaged only finished orders. A week where most requests were turned
+away at the backlog cap, or were still waiting at the end, could look no worse than one where
+they were served. With `metrics.order_outcomes` (spec M11, schema 1.9.0) the sim now puts every
+shipment requested in the window into one class at the horizon: delivered by drone, delivered
+by truck fallback, rejected at the cap, blocked by weather, blocked by energy (a fully charged
+drone fails the energy guard for that route this hour), in flight, waiting, or diverted/failed.
+It reports two order-weighted ratios: over delivered orders, and with every unfinished order
+counted at its elapsed time at the horizon (a lower bound on what it will take). The
+completion rate sits beside both.
+
+`uv run analysis/completion.py` reruns the three named weeks of section 7 on the 6b demo,
+pooling seeds 1 to 3, and then the fallback timeout at three values:
+
+Named weeks of the 6b demo, seeds 1 to 3 pooled (requests summed over seeds).
+
+| Week | Rule | Policy | 6b ratio | Drone | Truck fallback | Rejected | Blocked weather | Blocked energy | In flight | Waiting | Diverted/failed | Completion | Ratio, delivered | Ratio, lower bound |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2023-10-23 | median wind | WAIT | 0.30 | 3603 | 0 | 178 | 129 | 0 | 0 | 0 | 60 | 90.8% | 0.30 | 0.90 |
+| 2023-10-23 | median wind | TRUCK_FALLBACK | 0.48 | 3603 | 275 | 0 | 32 | 0 | 0 | 0 | 60 | 97.7% | 0.48 | 0.50 |
+| 2024-01-08 | windiest | WAIT | 11.13 | 1586 | 0 | 2216 | 138 | 0 | 0 | 0 | 30 | 39.9% | 11.20 | 19.67 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 12.81 | 1087 | 1113 | 1708 | 30 | 0 | 0 | 0 | 32 | 55.4% | 12.78 | 12.63 |
+| 2025-01-20 | coldest | WAIT | 40.72 | 733 | 0 | 3133 | 0 | 74 | 0 | 15 | 15 | 18.5% | 40.68 | 36.74 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 6.89 | 776 | 2064 | 1023 | 0 | 74 | 0 | 15 | 18 | 71.5% | 6.89 | 6.81 |
+
+Truck-fallback timeout, TRUCK_FALLBACK.
+
+| Week | Rule | Timeout (s) | Drone | Truck fallback | Rejected | Blocked weather | Blocked energy | In flight | Waiting | Diverted/failed | Completion | Ratio, delivered | Ratio, lower bound |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2024-01-08 | windiest | 1800 | 1612 | 1680 | 628 | 17 | 0 | 0 | 0 | 33 | 82.9% | 5.33 | 5.33 |
+| 2024-01-08 | windiest | 3600 | 1087 | 1113 | 1708 | 30 | 0 | 0 | 0 | 32 | 55.4% | 12.78 | 12.63 |
+| 2024-01-08 | windiest | 7200 | 1772 | 673 | 1356 | 133 | 0 | 0 | 0 | 36 | 61.6% | 10.80 | 11.33 |
+| 2025-01-20 | coldest | 1800 | 772 | 2101 | 986 | 0 | 74 | 0 | 15 | 22 | 72.4% | 6.06 | 6.00 |
+| 2025-01-20 | coldest | 3600 | 776 | 2064 | 1023 | 0 | 74 | 0 | 15 | 18 | 71.5% | 6.89 | 6.81 |
+| 2025-01-20 | coldest | 7200 | 778 | 1972 | 1114 | 0 | 74 | 0 | 15 | 17 | 69.3% | 8.56 | 8.43 |
+
+- The 6b ratio of the windiest and coldest weeks rested on 40% and 18% of requests. Most of
+  the rest were rejected at the backlog cap (pads hold at most so many queued requests),
+  not waiting. Even the median-wind week turned away 5% under WAIT.
+- Counting unfinished orders shows how much WAIT hid: in the median-wind week the ratio goes
+  from 0.30 to 0.90 once the 129 orders still blocked at the end are counted.
+- In the coldest week every order still open at the end is energy-blocked or waiting, none
+  weather-blocked: the cold has made the routes infeasible without crossing a weather limit, so
+  the truck fallback (which acts only on weather blocks) cannot reach them (section 6).
+- Timeout: 1800 s gives the best completion and ratio in both bad weeks (82.9% and 5.33 in the
+  windiest, 72.4% and 6.06 in the coldest). The effect is not monotonic: at 7200 s the windiest
+  week completes more than at 3600 s, because fewer trucked orders change when backlogs fill
+  and requests are rejected.

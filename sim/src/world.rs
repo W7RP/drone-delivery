@@ -928,6 +928,9 @@ impl World {
         summary["source_hash"] = Value::from(format!("{:016x}", self.cfg.source_hash));
         summary["fleet_size"] = Value::from(d.fleet_size);
         summary["pads"] = Value::from(self.pads.len());
+        if self.cfg.order_outcomes {
+            summary["order_outcomes"] = self.order_outcomes();
+        }
         if let Some(w) = self.weather {
             summary["weather"] = self
                 .metrics

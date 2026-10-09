@@ -22,12 +22,12 @@ use crate::network;
 use crate::traffic::{DELAY_CLASSES, TrafficCfg};
 use crate::weather::{CruiseCurve, Limits, WeatherCfg};
 
-pub const SCHEMA_VERSION: &str = "1.8.0";
+pub const SCHEMA_VERSION: &str = "1.9.0";
 /// Earlier minor versions this core still reads. Each later version only added optional keys,
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
-const COMPATIBLE_VERSIONS: [&str; 4] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0"];
+const COMPATIBLE_VERSIONS: [&str; 5] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 19] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -46,6 +46,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
     ("policy", "yield_on_request", "1.7.0"),
     ("", "weather", "1.8.0"),
     ("", "traffic", "1.8.0"),
+    ("metrics", "order_outcomes", "1.9.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
@@ -372,6 +373,8 @@ pub struct Config {
     pub truck: TruckCfg,
     pub hist_bin_ms: TimeMs,
     pub hist_max_ms: TimeMs,
+    /// `metrics.order_outcomes` (M11): classify every request at the horizon.
+    pub order_outcomes: bool,
     pub costs: CostsCfg,
     pub faults: Vec<FaultCfg>,
     /// `[weather]` (2.10); None runs without weather.
@@ -778,9 +781,10 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     }
 
     let m = top.section("metrics")?;
-    m.allow(&["hist_bin_s", "hist_max_s"])?;
+    m.allow(&["hist_bin_s", "hist_max_s", "order_outcomes"])?;
     let hist_bin_ms = ms_from_s(m.quantity("hist_bin_s", "s", Range::Pos)?);
     let hist_max_ms = ms_from_s(m.quantity("hist_max_s", "s", Range::Pos)?);
+    let order_outcomes = m.has("order_outcomes") && m.boolean("order_outcomes")?;
 
     let c = top.section("costs")?;
     c.allow(&["truck_per_m", "truck_per_s", "drone_per_s", "energy_per_j"])?;
@@ -867,6 +871,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         truck,
         hist_bin_ms,
         hist_max_ms,
+        order_outcomes,
         costs,
         faults,
         weather,
