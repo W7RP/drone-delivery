@@ -1062,8 +1062,10 @@ impl World {
         self.fm_run_assignment();
         self.fm_rebalance_pods(pad, None);
         // A83: a shipment that was being placed when its check ran is checked again now.
-        if kind == OrderKind::Shipment && self.flights_blocked() {
-            self.schedule_truck_fallback(requested);
+        if kind == OrderKind::Shipment
+            && let Some(from) = self.route_blocked_from(pad, dest)
+        {
+            self.schedule_truck_fallback(requested, from);
         }
     }
 
@@ -1598,6 +1600,10 @@ impl World {
                 self.fm.unassigned.remove(i);
                 continue;
             }
+            if self.shipment_energy_blocked(order) {
+                i += 1;
+                continue;
+            }
             let pick = {
                 let v = self.view();
                 v.fm.policies.assignment.assign(&v, order)
@@ -1979,22 +1985,33 @@ impl World {
     /// to inventory empty. Operations do this on the ground, outside the radio protocol (like
     /// the demand generator), and update FM's records directly.
     pub(crate) fn weather_truck_fallback(&mut self) {
-        let Some(since) = self.weather.and_then(|w| w.blocked_since) else {
-            return;
-        };
         let w = self.cfg.weather.as_ref().expect("weather configured");
-        if w.hold_policy != crate::ids::WeatherHoldPolicy::TruckFallback
-            || self.now < since + w.truck_fallback_timeout_ms
-        {
+        if w.hold_policy != crate::ids::WeatherHoldPolicy::TruckFallback {
             return;
         }
-        let cutoff = self.now - w.truck_fallback_timeout_ms;
+        let timeout = w.truck_fallback_timeout_ms;
+        let Some(latest) = self.now.checked_sub(timeout) else {
+            return;
+        };
         for p in 0..self.pads.len() {
             let pad = PadId::try_from(p).expect("pad count fits u16");
             if self.pads[p].mode == PadMode::ControllerFault {
                 continue;
             }
-            for ship in self.pc_truck_backlog(pad, cutoff) {
+            // Per destination: requests up to `latest` go, if the route has been blocked for
+            // the whole timeout.
+            let cutoff: Vec<Option<TimeMs>> = (0..self.pads.len())
+                .map(|d| {
+                    let dest = PadId::try_from(d).expect("pad count fits u16");
+                    self.route_blocked_from(pad, dest)
+                        .filter(|&from| from <= latest)
+                        .map(|_| latest)
+                })
+                .collect();
+            if cutoff.iter().all(Option::is_none) {
+                continue;
+            }
+            for ship in self.pc_truck_backlog(pad, &cutoff) {
                 let order = self.fm_new_order(
                     pad,
                     NO_POD,
@@ -2014,7 +2031,7 @@ impl World {
                     o.status == OrderStatus::Created
                         && o.kind == OrderKind::Shipment
                         && o.origin_pad == pad
-                        && o.requested_t_ms <= cutoff
+                        && cutoff[usize::from(o.dest_pad)].is_some_and(|c| o.requested_t_ms <= c)
                 })
                 .map(|o| o.order_id)
                 .collect();
@@ -2048,6 +2065,22 @@ impl World {
         );
         self.fm.unassigned.retain(|&x| x != order);
         self.fm_close_order(order, OrderStatus::Trucked, o.dest_pad, arrives, None);
+    }
+
+    /// A89: with `weather.energy_route_guard`, a shipment whose route a fully charged drone
+    /// cannot fly this hour is not assigned; a drone would latch it and strand.
+    fn shipment_energy_blocked(&self, order: OrderId) -> bool {
+        let o = &self.fm.orders[order as usize];
+        o.kind == OrderKind::Shipment
+            && self.energy_route_guard()
+            && self.route_energy_blocked(o.origin_pad, o.dest_pad)
+    }
+
+    pub(crate) fn energy_route_guard(&self) -> bool {
+        self.cfg
+            .weather
+            .as_ref()
+            .is_some_and(|w| w.energy_route_guard)
     }
 
     pub(crate) fn fm_write_open_orders(&mut self) {

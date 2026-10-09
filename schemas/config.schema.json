@@ -1007,6 +1007,9 @@
         },
         "truck_fallback_timeout_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "energy_route_guard": {
+          "type": "boolean"
         }
       }
     },

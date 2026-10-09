@@ -1069,12 +1069,18 @@ impl World {
     /// Start placing the next pod (backlog, else a return) on OUT spot `k`; false if none.
     fn place_on(&mut self, p: PadId, k: usize) -> bool {
         let s = self.pad(p);
-        let placement = if !s.backlog.is_empty() && s.empty_pods > 0 {
+        // A89: with the energy route guard, the first shipment whose route can be flown now.
+        let guard = self.energy_route_guard();
+        let next = s
+            .backlog
+            .iter()
+            .position(|ship| !guard || !self.route_energy_blocked(p, ship.dest));
+        let placement = if let (Some(i), true) = (next, s.empty_pods > 0) {
             let ship = self
                 .pad_mut(p)
                 .backlog
-                .pop_front()
-                .expect("backlog not empty");
+                .remove(i)
+                .expect("index from the backlog");
             let pod = self.lowest_unreserved_pod(p).expect("empty_pods > 0");
             let n = self.pad(p).empty_pods - 1;
             self.set_empty_pods(p, n);
@@ -1152,10 +1158,15 @@ impl World {
 
     /// TRUCK_FALLBACK (A83, P10): shipments requested at or before `cutoff` leave the backlog
     /// for a truck.
-    pub(crate) fn pc_truck_backlog(&mut self, p: PadId, cutoff: TimeMs) -> Vec<Shipment> {
+    /// `cutoff[dest]` is the latest request time that goes, None where the route is not due.
+    pub(crate) fn pc_truck_backlog(
+        &mut self,
+        p: PadId,
+        cutoff: &[Option<TimeMs>],
+    ) -> Vec<Shipment> {
         let mut taken = Vec::new();
         self.pad_mut(p).backlog.retain(|ship| {
-            let go = ship.requested <= cutoff;
+            let go = cutoff[usize::from(ship.dest)].is_some_and(|c| ship.requested <= c);
             if go {
                 taken.push(*ship);
             }

@@ -27,7 +27,7 @@ pub const SCHEMA_VERSION: &str = "1.9.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 5] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 19] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 20] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -47,6 +47,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 19] = [
     ("", "weather", "1.8.0"),
     ("", "traffic", "1.8.0"),
     ("metrics", "order_outcomes", "1.9.0"),
+    ("weather", "energy_route_guard", "1.9.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
@@ -1451,6 +1452,7 @@ fn parse_weather(
         "truck_factor_low_visibility",
         "hold_policy",
         "truck_fallback_timeout_s",
+        "energy_route_guard",
     ])?;
     let Some(base) = scenario_dir else {
         return err("weather: needs the scenario's directory; load the scenario from its file");
@@ -1525,6 +1527,7 @@ fn parse_weather(
             "s",
             Range::Pos,
         )?),
+        energy_route_guard: w.has("energy_route_guard") && w.boolean("energy_route_guard")?,
     })
 }
 

@@ -325,7 +325,8 @@ counted at its elapsed time at the horizon (a lower bound on what it will take).
 completion rate sits beside both.
 
 `uv run analysis/completion.py` reruns the three named weeks of section 7 on the 6b demo,
-pooling seeds 1 to 3, and then the fallback timeout at three values:
+pooling seeds 1 to 3, then the fallback timeout at three values, then the same two bad weeks
+with the energy route guard of section 9:
 
 Named weeks of the 6b demo, seeds 1 to 3 pooled (requests summed over seeds).
 
@@ -340,14 +341,27 @@ Named weeks of the 6b demo, seeds 1 to 3 pooled (requests summed over seeds).
 
 Truck-fallback timeout, TRUCK_FALLBACK.
 
-| Week | Rule | Timeout (s) | Drone | Truck fallback | Rejected | Blocked weather | Blocked energy | In flight | Waiting | Diverted/failed | Completion | Ratio, delivered | Ratio, lower bound |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2024-01-08 | windiest | 1800 | 1612 | 1680 | 628 | 17 | 0 | 0 | 0 | 33 | 82.9% | 5.33 | 5.33 |
-| 2024-01-08 | windiest | 3600 | 1087 | 1113 | 1708 | 30 | 0 | 0 | 0 | 32 | 55.4% | 12.78 | 12.63 |
-| 2024-01-08 | windiest | 7200 | 1772 | 673 | 1356 | 133 | 0 | 0 | 0 | 36 | 61.6% | 10.80 | 11.33 |
-| 2025-01-20 | coldest | 1800 | 772 | 2101 | 986 | 0 | 74 | 0 | 15 | 22 | 72.4% | 6.06 | 6.00 |
-| 2025-01-20 | coldest | 3600 | 776 | 2064 | 1023 | 0 | 74 | 0 | 15 | 18 | 71.5% | 6.89 | 6.81 |
-| 2025-01-20 | coldest | 7200 | 778 | 1972 | 1114 | 0 | 74 | 0 | 15 | 17 | 69.3% | 8.56 | 8.43 |
+| Week | Rule | Policy | Timeout (s) | Drone | Truck fallback | Rejected | Blocked weather | Blocked energy | In flight | Waiting | Diverted/failed | Completion | Ratio, delivered | Ratio, lower bound |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 1800 | 1612 | 1680 | 628 | 17 | 0 | 0 | 0 | 33 | 82.9% | 5.33 | 5.33 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 3600 | 1087 | 1113 | 1708 | 30 | 0 | 0 | 0 | 32 | 55.4% | 12.78 | 12.63 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 7200 | 1772 | 673 | 1356 | 133 | 0 | 0 | 0 | 36 | 61.6% | 10.80 | 11.33 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 1800 | 772 | 2101 | 986 | 0 | 74 | 0 | 15 | 22 | 72.4% | 6.06 | 6.00 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 3600 | 776 | 2064 | 1023 | 0 | 74 | 0 | 15 | 18 | 71.5% | 6.89 | 6.81 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 7200 | 778 | 1972 | 1114 | 0 | 74 | 0 | 15 | 17 | 69.3% | 8.56 | 8.43 |
+
+With the energy route guard (step 2).
+
+| Week | Rule | Policy | Timeout (s) | Drone | Truck fallback | Rejected | Blocked weather | Blocked energy | In flight | Waiting | Diverted/failed | Completion | Ratio, delivered | Ratio, lower bound |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2024-01-08 | windiest | WAIT | 3600 | 1647 | 0 | 2135 | 134 | 0 | 0 | 0 | 54 | 41.5% | 5.19 | 15.81 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 1800 | 2102 | 1793 | 15 | 16 | 0 | 0 | 0 | 44 | 98.1% | 1.51 | 1.51 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 3600 | 2264 | 1611 | 20 | 31 | 0 | 0 | 0 | 44 | 97.6% | 1.96 | 1.97 |
+| 2024-01-08 | windiest | TRUCK_FALLBACK | 7200 | 2353 | 1441 | 29 | 101 | 0 | 0 | 0 | 46 | 95.6% | 3.29 | 3.32 |
+| 2025-01-20 | coldest | WAIT | 3600 | 848 | 0 | 3045 | 0 | 54 | 1 | 0 | 22 | 21.4% | 27.52 | 26.08 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 1800 | 732 | 3225 | 0 | 0 | 8 | 1 | 0 | 4 | 99.7% | 1.64 | 1.63 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 3600 | 738 | 3199 | 0 | 0 | 17 | 1 | 0 | 15 | 99.2% | 2.41 | 2.40 |
+| 2025-01-20 | coldest | TRUCK_FALLBACK | 7200 | 772 | 3147 | 5 | 0 | 32 | 1 | 0 | 13 | 98.7% | 3.95 | 3.93 |
 
 - The 6b ratio of the windiest and coldest weeks rested on 40% and 18% of requests. Most of
   the rest were rejected at the backlog cap (pads hold at most so many queued requests),
@@ -361,3 +375,31 @@ Truck-fallback timeout, TRUCK_FALLBACK.
   windiest, 72.4% and 6.06 in the coldest). The effect is not monotonic: at 7200 s the windiest
   week completes more than at 3600 s, because fewer trucked orders change when backlogs fill
   and requests are rejected.
+
+## 9. Cold derate: per lane, but global in practice (Phase 7)
+
+The derate itself is per lane. It scales usable capacity, and the energy guard compares each
+route's need, for its own payload, with what is left (`sim/tests/cold_guard.rs` sets the derate
+between two routes' needs). The network still stopped everywhere, for two reasons:
+
+- FM assigned shipments on blocked routes. A drone flew to the warehouse, latched the pod,
+  failed the guard and stayed there holding it (ENERGY_STRANDED).
+- Pads place shipments first in, first out. Pods for blocked routes filled every OUT spot, so
+  shipments that could still fly never reached one, and the backlog cap turned the rest away.
+
+On the 5-pad network at a derate between its routes' needs, one day delivers nothing, not
+even on the routes that still fit. With `weather.energy_route_guard` (spec A89), FM does not
+assign a shipment whose route a fully charged drone cannot fly this hour, and a pad places the
+first shipment in its backlog whose route can be flown. Under TRUCK_FALLBACK, shipments
+blocked this way go by truck after the same timeout as weather blocks. The forced tests check
+that:
+
+- with the guard, only the routes over the line stop;
+- without it, every route starves;
+- with the guard and TRUCK_FALLBACK, blocked routes, and only those, are trucked.
+
+In the two bad weeks of section 8 the guard with TRUCK_FALLBACK at 1800 s completes 98.1% and
+99.7% of requests, against 82.9% and 72.4% without it. The ratios are 1.51 and 1.64. Under WAIT
+the guard alone helps less (41.5% and 21.4% completed). Blocked routes still hold their
+shipments, and the backlog cap rejects most requests. The shortest timeout is again best.
+Shipments already latched when their route becomes blocked stay with their drone (A89).

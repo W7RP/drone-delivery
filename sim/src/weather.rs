@@ -59,6 +59,10 @@ pub struct WeatherCfg {
     pub truck_factor_low_visibility: f64,
     pub hold_policy: WeatherHoldPolicy,
     pub truck_fallback_timeout_ms: TimeMs,
+    /// Routes a fully charged drone cannot fly this hour hold up only their own shipments:
+    /// FM does not assign them, pads place other shipments first, and TRUCK_FALLBACK takes
+    /// them after its timeout (A89).
+    pub energy_route_guard: bool,
 }
 
 /// One hour of the series, in SI, wind and gust at 10 m.

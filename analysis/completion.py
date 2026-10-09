@@ -11,7 +11,8 @@ coldest weeks. Each cell pools its seeds: outcome counts are summed, and both ra
 door-to-door over sums of truck baseline (order-weighted). The 6b ratio of the same cell is shown
 beside it.
 
-Writes analysis/out/completion.json and completion.md. The demo file is not edited: every run is
+Step 2 adds the same two weeks with `weather.energy_route_guard` on: WAIT, and TRUCK_FALLBACK at
+the three timeouts. Writes analysis/out/completion.json and completion.md. The demo file is not edited: every run is
 a copy with `metrics.order_outcomes` on. Run: uv run analysis/completion.py"""
 
 import json
@@ -126,17 +127,30 @@ def report(rows: list[dict]) -> str:
                          f"{counts(r)} | {pct(r['completion_rate'])} | {num(r['ratio_delivered'])} | "
                          f"{num(r['ratio_lower_bound'])} |")
     for part, title in (("timeout", "Truck-fallback timeout, TRUCK_FALLBACK."),
-                        ("energy", "Truck fallback also on energy-blocked orders (step 2).")):
+                        ("energy", "With the energy route guard (step 2).")):
         sel = [r for r in rows if r["part"] == part]
         if not sel:
             continue
-        lines += ["", title, "", "| Week | Rule | Timeout (s) " + head, "|---|---|---" + rule]
+        lines += ["", title, "", "| Week | Rule | Policy | Timeout (s) " + head, "|---|---|---|---" + rule]
         for r in sel:
-            lines.append(f"| {r['monday']} | {r['rule']} | {r['timeout_s']:.0f} | {counts(r)} | "
+            lines.append(f"| {r['monday']} | {r['rule']} | {r['policy']} | {r['timeout_s']:.0f} | {counts(r)} | "
                          f"{pct(r['completion_rate'])} | {num(r['ratio_delivered'])} | "
                          f"{num(r['ratio_lower_bound'])} |")
     return "\n".join(lines) + "\n"
 
 
 if __name__ == "__main__":
-    main()
+    guard = {"weather.energy_route_guard": True}
+    year = json.loads((OUT / "weather_year.json").read_text())
+    named = {rule: year["weeks"][i] for rule, i in year["named_weeks"].items()}
+    extra = []
+    for rule in ("windiest", "coldest"):
+        w = named[rule]
+        for policy, timeouts in (("WAIT", [3600.0]), ("TRUCK_FALLBACK", TIMEOUTS_S)):
+            for timeout in timeouts:
+                extra.append(({"part": "energy", "rule": rule, "monday": w["monday"],
+                               "policy": policy, "timeout_s": timeout},
+                              {**guard, "weather.start_hour": w["start_hour"],
+                               "weather.hold_policy": policy,
+                               "weather.truck_fallback_timeout_s": timeout}))
+    main(extra)
