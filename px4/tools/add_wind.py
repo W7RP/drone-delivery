@@ -15,8 +15,16 @@ import math
 import sys
 from pathlib import Path
 
-# Gazebo's WindEffects force scale (its default); how hard the wind pushes on a link.
-FORCE_SCALE = 1.0
+# WindEffects pushes each wind-enabled link with mass * k * (wind - link velocity). Gazebo's
+# default k = 1 /s is a 1 s drag time constant, which kept the VTOL from ever reaching
+# transition airspeed. The wings already see the wind through LiftDrag; k stands for the drag of
+# the rest of the vehicle, a linear fit of 1/2 rho CdA v^2 at the check's top wind:
+# k = rho CdA v / (2 m). Placeholders: CdA 0.1 m2, 14.6 kg, 8 m/s.
+AIR_DENSITY_KGPM3 = 1.2041
+BODY_CDA_M2 = 0.1
+REF_MASS_KG = 14.6
+REF_SPEED_MPS = 8.0
+FORCE_SCALE = AIR_DENSITY_KGPM3 * BODY_CDA_M2 * REF_SPEED_MPS / (2 * REF_MASS_KG)
 # WindEffects' first-order rise time for magnitude changes, s.
 RISE_TIME_S = 1.0
 
@@ -41,7 +49,7 @@ def main() -> int:
     wind = f"    <wind><linear_velocity>{vx:.4f} {vy:.4f} 0</linear_velocity></wind>\n  </world>"
     a.world.write_text(replace_once(a.world.read_text(), "</world>", wind, a.world))
     system = f"""    <plugin entity_name="*" entity_type="world" filename="gz-sim-wind-effects-system" name="gz::sim::systems::WindEffects">
-      <force_approximation_scaling_factor>{FORCE_SCALE}</force_approximation_scaling_factor>
+      <force_approximation_scaling_factor>{FORCE_SCALE:.6f}</force_approximation_scaling_factor>
       <horizontal>
         <magnitude>
           <time_for_rise>{RISE_TIME_S}</time_for_rise>

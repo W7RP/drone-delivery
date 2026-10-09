@@ -12,7 +12,7 @@
 # --airframe vtol flies the scaled standard VTOL (Phase 7): fixed-wing lane, multicopter at the
 # pads. --timeout defaults to three times the visit's expected wall time; a run that outlasts
 # it is stopped (Gazebo, PX4 and every node) and marked TIMEOUT. The run refuses to start with
-# less than MIN_FREE_GB free.
+# less than MIN_FREE_GB free. --wind-mps, even 0, flies with Gazebo's wind systems on (A94).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MIN_FREE_GB=20
@@ -21,11 +21,11 @@ EXPECTED_FIXED_S=200
 EXPECTED_CRUISE_MPS=15
 
 payload="" seed="" out="" speed=1 timeout_s="" lane_id="" airframe=quad
-wind_mps=0 wind_from=0 gust_frac=0
+wind=false wind_mps=0 wind_from=0 gust_frac=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --airframe) airframe="$2"; shift ;;
-    --wind-mps) wind_mps="$2"; shift ;;
+    --wind-mps) wind=true; wind_mps="$2"; shift ;;
     --wind-from-deg) wind_from="$2"; shift ;;
     --gust-frac) gust_frac="$2"; shift ;;
     --payload-kg) payload="$2"; shift ;;
@@ -57,7 +57,7 @@ if [[ -n "$lane_id" ]]; then
 fi
 
 wind_flag=()
-if [[ "$wind_mps" != 0 ]]; then
+if [[ "$wind" == true ]]; then
   export DD_WIND="$wind_mps $wind_from $gust_frac"
   wind_flag=(--wind)
 fi
@@ -72,8 +72,8 @@ fi
 # batch can be checked to be all one version.
 script_git="$(git -C "$HERE" rev-parse --short=12 HEAD)"
 [[ -z "$(git -C "$HERE" status --porcelain -- . ':!runs')" ]] || script_git="$script_git-dirty"
-printf '{"payload_kg": %s, "seed": %s, "speed": %s, "airframe": "%s", "timeout_s": %s, "wind_mps": %s, "wind_from_deg": %s, "gust_frac": %s, "script_git": "%s", "started_utc": "%s"}\n' \
-  "$payload" "$seed" "$speed" "$airframe" "$timeout_s" "$wind_mps" "$wind_from" "$gust_frac" \
+printf '{"payload_kg": %s, "seed": %s, "speed": %s, "airframe": "%s", "timeout_s": %s, "wind": %s, "wind_mps": %s, "wind_from_deg": %s, "gust_frac": %s, "script_git": "%s", "started_utc": "%s"}\n' \
+  "$payload" "$seed" "$speed" "$airframe" "$timeout_s" "$wind" "$wind_mps" "$wind_from" "$gust_frac" \
   "$script_git" "$(date -u +%FT%TZ)" > "$out/run.json"
 
 python3 "$HERE/tools/rss_monitor.py" $$ "$out/rss.json" &
