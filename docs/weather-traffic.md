@@ -226,3 +226,20 @@ is a placeholder (A84 to A86).
 - the peak slows each route by exactly its class mix, and weekends by their own profile;
 - incidents only add time, repeat within an hour, and hit most hours at a rate of 2 per hour;
 - traffic with time-of-day factors that are not flat is rejected.
+
+## 6. Demo scenario
+
+`configs/parts_logistics_pittsburgh_demo` is the 900 Wh layout (3 kW, 3 OUT spots, no parking,
+coupled mass, repair, yield on request) with every realism key on: the derived latch fault
+(Phase 4 Rice fit), the marker self-check, a 1 s reorder window, weather from the AGC series
+and traffic. It starts at local midnight on Monday 2023-01-02 (series hour 29). The truck's
+time-of-day factors are flat because traffic carries time of day. The 0.955 marker value is
+not applied (`p_marker_detect` stays 0.97), and no existing scenario file changed.
+
+Seed 42, that week: 7.91 deliveries/h, door-to-door mean 1008 s (p50 460 s, p95 5530 s)
+against 1926 s by truck, 97% of hours flyable, no weather aborts and no forced landing.
+`verify.sh` runs it within the release budget.
+
+TRUCK_FALLBACK only covers hours the operating limits block. Drones that cold has left too
+short of usable capacity to pass the energy guard are not blocked by the limits, so their
+orders wait (in the week of 2025-01-06, 6 shipments flown and 431 trucked with fallback on).

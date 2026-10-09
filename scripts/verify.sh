@@ -10,7 +10,7 @@
 #  5. Release budget runs (spec A39: 60 s wall, 200 MB peak RSS each): the 200-drone 7-day scale
 #     case; the 7-day Pittsburgh scenario with each flight profile (fitted, placeholder, and fitted
 #     with the 1370 Wh battery), at 1370 Wh with the Phase 6a pad layout and repair keys, and
-#     the coupled 900 Wh layout of Phase 6b;
+#     the coupled 900 Wh layout of Phase 6b, and the Phase 6b demo with weather and traffic;
 #     and the placeholder Pittsburgh at three times its demand, which must turn requests away at
 #     the backlog cap instead of queueing them without limit.
 #     Skip with VERIFY_SKIP_SCALE=1.
@@ -73,6 +73,8 @@ if [ "${VERIFY_SKIP_SCALE:-0}" != "1" ]; then
     "$out/pittsburgh_1370wh_layout"
   budget_run pittsburgh_900wh_layout configs/parts_logistics_pittsburgh_900wh_layout/scenario.toml \
     "$out/pittsburgh_900wh_layout"
+  budget_run pittsburgh_demo configs/parts_logistics_pittsburgh_demo/scenario.toml \
+    "$out/pittsburgh_demo"
   triple="$(python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh_placeholder/scenario.toml 3 "$out/x3")"
   budget_run pittsburgh_3x "$triple" "$out/pittsburgh_3x"
   python3 - "$out/pittsburgh_3x/metrics.json" <<'PY'
