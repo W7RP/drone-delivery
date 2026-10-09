@@ -287,6 +287,26 @@ whole hour. Without `[weather]` none of this exists and no `WEATHER_HOUR` is sch
 | Truck | Truck speed, in the baseline of 7 and for the fallback, is multiplied by `weather.truck_factor_rain`, `_snow` and `_low_visibility` for each condition present in the departure hour (A82). |
 | Hold policy | `weather.hold_policy` WAIT: blocked orders wait. TRUCK_FALLBACK (A83): a SHIPMENT not yet assigned goes by truck once it has waited `weather.truck_fallback_timeout_s`, counted from its request or from the start of the block if that came after it, and dispatch is still blocked (P10, P11). It closes TRUCKED with `delivered_t_ms` = now plus the truck trip of 7 started now. |
 
+### 2.11 Traffic
+
+Optional: present only with `[traffic]` (8.2, A84 to A86); it changes only the truck. The
+road time of a trip from a to b leaving at `t_dep` becomes
+
+```
+free_flow_s[a][b] * M / w + incidents(a, b, hour of t_dep)
+M = f_mw (1 + d_mw s(h)) + f_pri (1 + d_pri s(h)) + f_oth (1 + d_oth s(h)) + f_str d_str s(h)
+```
+
+with `f_*` the route's road-class and bridge/tunnel fractions (9.2 version_minor 2), `d_*` the
+`traffic.peak_delay_*` keys, `s(h)` the `traffic.weekday_shape` or `traffic.weekend_shape`
+value at local hour h, and w the weather factor of 2.10 (1 without weather). The day of week
+is `(traffic.start_weekday + floor(local_s / 86400)) mod 7`, 0 = Monday, days 5 and 6 the
+weekend, with `local_s = sim.start_time_of_day_s + t_dep / 1000`. Every
+`truck.tod_speed_factors[]` entry must then be 1 (R22). Incidents (A86): each directed pair and run hour has a Poisson
+number of incidents at `traffic.incident_rate_per_pair_h` (at most 16), each adding a
+lognormal delay with median `traffic.incident_delay_median_s` and log-spread
+`traffic.incident_delay_sigma`, drawn from the TRAFFIC stream (5.4).
+
 ## 3 Pad state machine
 
 The PC runs three coupled pieces: the pad mode machine (3.1), the placement and removal rules
@@ -706,6 +726,7 @@ reason for the timer goes away. A popped TIMER whose `gen` differs is discarded.
   | MSG_LOSS | 6 | `(sender EntityKind code << 16) OR sender id` | loss per message on the D <-> PC link |
   | NETWORK | 7 | 0 | MESH pad positions (8.6); seeded from the config `sim.seed`, replication 0 |
   | REPAIR | 8 | pad_id | repair duration per V20, uniform on `pad_ops.repair_mean_s` +- `pad_ops.repair_spread_s` (A69) |
+| TRAFFIC | 9 | route `a * n_pads + b`, with the run hour `floor(t_dep / 1 h)` XORed in shifted left 24 bits | truck incidents (2.11): count by multiplied uniforms, each delay `median * exp(sigma * z)`, z by Box-Muller from two uniforms |
 
 - Uniform draw: `u = (next_u64 >> 11) * 2^-53`. Bernoulli(p): success iff `u < p`.
   Exponential(rate): `-ln(1 - u) / rate`, converted to ms by the rule in section 0.
@@ -1103,6 +1124,16 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | weather.truck_factor_low_visibility | 1 | Truck speed factor below `weather.low_visibility_m`. |
 | weather.hold_policy | - | WeatherHoldPolicy: WAIT or TRUCK_FALLBACK (A83). |
 | weather.truck_fallback_timeout_s | s | TRUCK_FALLBACK: wait before a blocked shipment goes by truck. |
+| traffic.start_weekday | count | 1.8.0, optional section (2.11). Day of week of the day holding t = 0: 0 Monday to 6 Sunday. |
+| traffic.weekday_shape[] | 1 | 24 values in [0, 1]: share of the peak delay at each local hour, Monday to Friday. |
+| traffic.weekend_shape[] | 1 | The same for Saturday and Sunday. |
+| traffic.peak_delay_motorway | 1 | Extra travel time at a full peak on motorway and trunk, as a fraction of free flow (A85). |
+| traffic.peak_delay_primary | 1 | The same on primary and secondary. |
+| traffic.peak_delay_other | 1 | The same on other roads. |
+| traffic.peak_delay_structure | 1 | Extra on bridges and in tunnels, on top of their class. |
+| traffic.incident_rate_per_pair_h | 1/h | Incidents per directed pad pair and hour (A86). |
+| traffic.incident_delay_median_s | s | Median delay one incident adds. |
+| traffic.incident_delay_sigma | 1 | Log-spread of that delay. |
 
 ### 8.3 Cross-field rules
 
@@ -1136,6 +1167,8 @@ Checked at load by the core and by `scripts/check_spec.py`:
   density (else no parasitic term can fit, A77).
 - R21 `weather.landing_max_wind_mps` >= `weather.max_wind_mps` and
   `weather.landing_max_gust_mps` >= `weather.max_gust_mps`.
+- R22 `[traffic]` requires `truck.matrix_source` = FILE with a `truck_matrix.bin` of
+  version_minor 2 or above, and every `truck.tod_speed_factors[]` entry = 1.
 
 For a `synthetic_network` config the core checks R1 to R5, R9, R10, R12 and R16 after
 generation; `scripts/check_spec.py` checks only the rules that do not need the generated
@@ -1282,12 +1315,17 @@ Lanes are sorted by (from_pad, to_pad); `lane_id` is the position.
 
 ### 9.2 truck_matrix.bin
 
-magic `DDTRUCK\0`, version_minor 1, count_a = n_pads, count_b = 0.
+magic `DDTRUCK\0`, version_minor 2, count_a = n_pads, count_b = 0. Readers that do not need
+the fractions accept version_minor 1.
 
 | Array | Type | Length | Meaning |
 |---|---|---|---|
 | free_flow_s | f32 | n_pads x n_pads | Row-major `[from][to]` free-flow road time in s. Diagonal 0, off-diagonal > 0 and finite (every pair must be reachable by road). |
 | road_m | f32 | n_pads x n_pads | Row-major road distance in m, same rules. Added in version_minor 1 for the cost baseline (M8). |
+| frac_motorway | f32 | n_pads x n_pads | Added in version_minor 2. Share of `road_m` on motorway and trunk (and their links). Diagonal 0, else in [0, 1]. |
+| frac_primary | f32 | n_pads x n_pads | Added in version_minor 2. Share on primary and secondary (and their links). |
+| frac_other | f32 | n_pads x n_pads | Added in version_minor 2. Share on every other road, the pad snap legs included. The three class shares of a route sum to 1 (within 1e-5). |
+| frac_structure | f32 | n_pads x n_pads | Added in version_minor 2. Share on a bridge or in a tunnel (OSM `bridge` or `tunnel` other than `no`), whatever the class. |
 
 SYNTHETIC: `road_m = straight ENU distance * truck.synthetic_detour_factor` and
 `free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`, built in memory by the core.
@@ -1676,6 +1714,15 @@ that:
   are updated directly. A trucked shipment leaves after the same dispatch, load and unload
   times as the truck baseline. A shipment already assigned to a drone, or latched, is never
   trucked.
+- A84 Traffic is not live data. A route's time-of-day slowdown is the length-weighted mix of
+  per-class slowdowns over the road classes its free-flow path uses; the path itself does not
+  change with traffic, and the class split is by length, not time.
+- A85 The weekday and weekend shapes (morning and evening peaks on weekdays, a flat midday
+  hump at weekends) and the per-class peak delays (motorways and bridges the most sensitive)
+  are placeholders.
+- A86 Incidents are placeholders: a Poisson count per directed pair and hour (at most 16), each
+  a lognormal delay added to every truck that leaves on that pair in that hour. Incidents on
+  the two directions of a pair, or on routes that share roads, are independent.
 
 ## 11 Amendments
 
@@ -1692,4 +1739,4 @@ that:
 | 1.5.0 | Flight profiles (8.7), `flight_profile.file` (8.2); config schema 1.5.0 reads 1.3.0 files; 2.7 note; A62 to A67. | Phase 5 fits the flight model to PX4 SITL. The fitted values must be selectable per scenario while the placeholder profile, and every result and golden test built on it, stay unchanged. |
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
-| 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck. |
+| 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. Traffic: 2.11, `truck_matrix.bin` version_minor 2 with road-class and bridge/tunnel fractions (9.2; minor-1 files still load), `[traffic]` keys, R22, TRAFFIC stream (5.4); A84 to A86. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck; and road traffic for the truck, which the brief asks to model by road class from the pipeline's own routes, with no live data. |

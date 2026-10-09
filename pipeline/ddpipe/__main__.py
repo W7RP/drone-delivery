@@ -30,7 +30,9 @@ def restrict(pad_list, lane_list, tm, keep: list[int]):
             [dataclasses.replace(l, a=index[l.a], b=index[l.b]) for l in lane_list
              if l.a in index and l.b in index],
             dataclasses.replace(tm, free_flow_s=tm.free_flow_s[sub], road_m=tm.road_m[sub],
-                                snap_m=tm.snap_m[keep], snap_node=tm.snap_node[keep]))
+                                snap_m=tm.snap_m[keep], snap_node=tm.snap_node[keep],
+                                class_frac=tm.class_frac[:, keep][:, :, keep],
+                                structure_frac=tm.structure_frac[sub]))
 
 
 def build(manifest: dict) -> None:

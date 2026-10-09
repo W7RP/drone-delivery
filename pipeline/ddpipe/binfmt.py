@@ -14,7 +14,9 @@ VERSION_MAJOR = 1
 LANES_MAGIC = b"DDLANES\0"
 LANES_MINOR = 1
 TRUCK_MAGIC = b"DDTRUCK\0"
-TRUCK_MINOR = 1
+TRUCK_MINOR = 2
+# Fractions of one route may sum to 1 only up to f32 rounding.
+FRACTION_SUM_TOLERANCE = 1e-5
 WEATHER_MAGIC = b"DDWTHR\0\0"
 WEATHER_MINOR = 0
 WX_RAIN = 1
@@ -91,10 +93,22 @@ def write_lanes(g: LaneGraph, source_hash: int) -> bytes:
                   g.ground_risk_per_km2])
 
 
-def write_truck(free_flow_s: np.ndarray, road_m: np.ndarray, source_hash: int) -> bytes:
+def write_truck(free_flow_s: np.ndarray, road_m: np.ndarray, class_frac: np.ndarray,
+                structure_frac: np.ndarray, source_hash: int) -> bytes:
     n = free_flow_s.shape[0]
+    f32 = lambda a: np.asarray(a, dtype=np.float32).ravel()
     return _pack(TRUCK_MAGIC, TRUCK_MINOR, n, 0, source_hash,
-                 [free_flow_s.astype(np.float32).ravel(), road_m.astype(np.float32).ravel()])
+                 [f32(free_flow_s), f32(road_m), *(f32(c) for c in class_frac),
+                  f32(structure_frac)])
+
+
+@dataclass
+class TruckFile:
+    """spec 9.2. `class_frac` ([3][n][n]) and `structure_frac` are None in a minor-1 file."""
+    free_flow_s: np.ndarray
+    road_m: np.ndarray
+    class_frac: np.ndarray | None
+    structure_frac: np.ndarray | None
 
 
 class FormatError(ValueError):
@@ -160,16 +174,29 @@ def read_lanes(data: bytes) -> tuple[LaneGraph, int]:
     return g, source_hash
 
 
-def read_truck(data: bytes) -> tuple[np.ndarray, np.ndarray, int]:
-    minor, start, n, _, source_hash = _header(data, TRUCK_MAGIC, TRUCK_MINOR)
-    ff, road = _arrays(data, start, [("f4", n * n), ("f4", n * n)], exact=minor == TRUCK_MINOR)
-    ff, road = ff.reshape(n, n), road.reshape(n, n)
+def read_truck(data: bytes) -> tuple[TruckFile, int]:
+    """Reads version_minor 1 (no traffic arrays) and 2."""
+    minor, start, n, _, source_hash = _header(data, TRUCK_MAGIC, 1)
+    count = 2 if minor < 2 else 6
+    arrays = _arrays(data, start, [("f4", n * n)] * count, exact=minor <= TRUCK_MINOR)
+    ff, road = (a.reshape(n, n) for a in arrays[:2])
+    off = ~np.eye(n, dtype=bool)
     for name, a in (("free_flow_s", ff), ("road_m", road)):
         _finite(name, a)
-        off = ~np.eye(n, dtype=bool)
         if np.any(np.diag(a) != 0) or np.any(a[off] <= 0):
             raise FormatError(f"{name}: diagonal must be 0 and off-diagonal > 0")
-    return ff, road, source_hash
+    if minor < 2:
+        return TruckFile(ff, road, None, None), source_hash
+    fracs = [a.reshape(n, n) for a in arrays[2:]]
+    for name, a in zip(("frac_motorway", "frac_primary", "frac_other", "frac_structure"), fracs):
+        _finite(name, a)
+        if np.any(np.diag(a) != 0) or np.any(a < 0) or np.any(a > 1):
+            raise FormatError(f"{name}: diagonal must be 0 and every value in [0, 1]")
+    classes = np.stack(fracs[:3])
+    total = classes.astype(np.float64).sum(axis=0)
+    if np.any(np.abs(total[off] - 1) > FRACTION_SUM_TOLERANCE):
+        raise FormatError("road-class fractions of a route must sum to 1")
+    return TruckFile(ff, road, classes, fracs[3]), source_hash
 
 
 @dataclass

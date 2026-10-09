@@ -69,17 +69,36 @@ class LanesFile(unittest.TestCase):
 
 
 class TruckFile(unittest.TestCase):
+    FF = np.array([[0, 60], [70, 0]], dtype=float)
+    ROAD = np.array([[0, 900], [950, 0]], dtype=float)
+    # Off-diagonal 0.5 motorway, 0.25 primary, 0.25 other; 0.1 on a bridge.
+    CLASSES = np.array([[[0, 0.5], [0.5, 0]], [[0, 0.25], [0.25, 0]], [[0, 0.25], [0.25, 0]]])
+    STRUCTURE = np.array([[0, 0.1], [0.1, 0]])
+
+    def write(self, ff=FF, classes=CLASSES):
+        return binfmt.write_truck(ff, self.ROAD, classes, self.STRUCTURE, 7)
+
     def test_round_trip_and_rejects(self):
-        ff = np.array([[0, 60], [70, 0]], dtype=float)
-        road = np.array([[0, 900], [950, 0]], dtype=float)
-        got_ff, got_road, h = binfmt.read_truck(binfmt.write_truck(ff, road, 7))
+        got, h = binfmt.read_truck(self.write())
         self.assertEqual(h, 7)
-        np.testing.assert_array_equal(got_ff, ff)
-        np.testing.assert_array_equal(got_road, road)
+        np.testing.assert_array_equal(got.free_flow_s, self.FF)
+        np.testing.assert_array_equal(got.road_m, self.ROAD)
+        np.testing.assert_array_equal(got.class_frac, self.CLASSES.astype(np.float32))
         for bad in (np.array([[0, np.inf], [70, 0]]), np.array([[1, 60], [70, 0]]),
                     np.array([[0, 0], [70, 0]])):
             with self.subTest(bad=bad), self.assertRaises(binfmt.FormatError):
-                binfmt.read_truck(binfmt.write_truck(bad, road, 7))
+                binfmt.read_truck(self.write(ff=bad))
+        short = self.CLASSES.copy()
+        short[2, 0, 1] = 0.1
+        with self.assertRaises(binfmt.FormatError):
+            binfmt.read_truck(self.write(classes=short))
+
+    def test_minor_1_file_still_reads(self):
+        old = binfmt._pack(binfmt.TRUCK_MAGIC, 1, 2, 0, 7,
+                           [self.FF.astype(np.float32).ravel(), self.ROAD.astype(np.float32).ravel()])
+        got, _ = binfmt.read_truck(old)
+        self.assertIsNone(got.class_frac)
+        np.testing.assert_array_equal(got.road_m, self.ROAD)
 
 
 class OsmTags(unittest.TestCase):

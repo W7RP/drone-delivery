@@ -1005,6 +1005,70 @@
           "$ref": "common.schema.json#/$defs/q_s_pos"
         }
       }
+    },
+    "traffic": {
+      "type": "object",
+      "description": "Road traffic for the truck (spec 2.11, A84 to A86). Absent: no traffic. Needs a version_minor 2 truck matrix and all truck.tod_speed_factors = 1 (R22).",
+      "required": [
+        "start_weekday",
+        "weekday_shape",
+        "weekend_shape",
+        "peak_delay_motorway",
+        "peak_delay_primary",
+        "peak_delay_other",
+        "peak_delay_structure",
+        "incident_rate_per_pair_h",
+        "incident_delay_median_s",
+        "incident_delay_sigma"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "start_weekday": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg",
+          "properties": {
+            "value": {
+              "maximum": 6
+            }
+          }
+        },
+        "weekday_shape": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": {
+            "$ref": "common.schema.json#/$defs/q_prob"
+          }
+        },
+        "weekend_shape": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": {
+            "$ref": "common.schema.json#/$defs/q_prob"
+          }
+        },
+        "peak_delay_motorway": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "peak_delay_primary": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "peak_delay_other": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "peak_delay_structure": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "incident_rate_per_pair_h": {
+          "$ref": "common.schema.json#/$defs/q_per_h_nonneg"
+        },
+        "incident_delay_median_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "incident_delay_sigma": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        }
+      }
     }
   },
   "if": {
