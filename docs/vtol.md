@@ -118,3 +118,52 @@ effect is within the seed-to-seed spread.
 
 `px4/samples/vtol_5_1/` keeps the logs of the first 5 kg run; the others are deleted once
 summarized.
+
+## 4. Fit
+
+`pipeline/run.sh calib vtol` runs the VTOL steps; `vtol_fit` fits the profile to the committed
+table and `vtol_profile` writes `configs/flight_profiles/px4_sitl_vtol_proxy.toml`. Run twice,
+the fit gives byte-identical files: fixed bootstrap seed, sorted inputs. Only the six 2x runs
+are fitted; the 1x run is compared, not used. The method is Phase 5's (`docs/calibration.md`):
+
+- constants from the data;
+- a time depends on payload only if its regression slope is significant at 5%;
+- powers by least squares on relative energy residuals;
+- at most three parameters per phase class;
+- leave-one-payload-out cross-validation through the core's own model (`sim flight-model`);
+- a 2000-draw bootstrap over runs for the uncertainty.
+
+The sim's model of a VTOL visit (spec A93) is takeoff_s + transition_s + L / cruise_speed_mps +
+approach_s + hop_s. The multicopter phases use the hover power, the lane uses the cruise power,
+and the transition overhead (the transitions and the multicopter stretch to the fix) uses its
+own power.
+
+| Class | Parameter | Value | Bootstrap std | Payload dependence (p) |
+|---|---|---|---|---|
+| Multicopter | hover_power_ref_w | 1472.5 W | 4.2 | power with mass^1.5 |
+| | takeoff_s | 26.21 s | 0.12 | none (p = 0.051) |
+| | approach_s | 49.88 s | 0.63 | none (0.75) |
+| | hop_s | 24.16 s | 0.40 | none (0.63) |
+| Cruise | cruise_speed_mps | 15.211 m/s | 0.054 | none (0.73) |
+| | cruise_power_ref_w | 556.4 W | 4.5 | |
+| | cruise_mass_exponent | 1.212 | 0.028 | significant (p < 1e-6) |
+| Transition | transition_s | 14.30 s | 0.69 | none (p = 0.064) |
+| | transition_power_ref_w | 2658 W | 95 | power with mass^1.5 |
+
+The reference mass is 14.6 kg, as for the multirotor, and the profile's MTOW is 16 kg. The
+fitted VTOL hovers at 1472 W at 14.6 kg against the multirotor's 1831 W, because its scaled
+rotor discs are larger (A92). It cruises at 556 W against 2108 W. Cruise power grows with mass
+to the 1.21, not the 1.5 of hovering.
+
+Residuals: cruise energy within 1.7% of the model in every run. The single hover power leaves
+per-phase residuals as in Phase 5 (A63): takeoff +8%, approach +8%, hop -13%. Fitted takeoff
+and transition times grow slightly with payload (p = 0.051 and 0.064), so they stay constants.
+
+| Visit (fit lane) | Time error, in sample | Time error, payload left out | Energy error, in sample | Energy error, payload left out |
+|---|---|---|---|---|
+| 0 kg, seeds 1 and 2 | +1.0%, +0.9% | +1.5%, +1.3% | -1.9%, -1.8% | -2.3%, -2.2% |
+| 2 kg | +0.3%, -0.7% | +0.2%, -0.8% | -0.5%, -3.6% | -0.5%, -3.6% |
+| 5 kg | -0.4%, -1.1% | -0.8%, -1.5% | -3.9%, -3.9% | -4.8%, -4.8% |
+
+Leaving a payload out costs at most 1.5% in time and 4.8% in energy. The fit was committed
+before the held-out flights were flown.

@@ -1,0 +1,16 @@
+name = "vtol_lopo_0"
+source = "px4-sitl-proxy"
+
+[drone]
+airframe = "VTOL"
+cruise_speed_mps = { value = 15.2018, unit = "m/s", assumption = true }
+cruise_power_ref_w = { value = 558.5575, unit = "W", assumption = true }
+hover_power_ref_w = { value = 1471.121, unit = "W", assumption = true }
+power_ref_mass_kg = { value = 14.6, unit = "kg", assumption = true }
+takeoff_s = { value = 26.372, unit = "s", assumption = true }
+approach_s = { value = 49.839, unit = "s", assumption = true }
+hop_s = { value = 24.374, unit = "s", assumption = true }
+transition_s = { value = 15.0678, unit = "s", assumption = true }
+transition_power_ref_w = { value = 2539.3259, unit = "W", assumption = true }
+cruise_mass_exponent = { value = 1.2643, unit = "1", assumption = true }
+mtow_kg = { value = 16.0, unit = "kg", assumption = true }
