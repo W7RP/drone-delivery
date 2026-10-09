@@ -17,7 +17,8 @@ faster than the truck on the same orders, and the smallest also within 10% of th
 door-to-door.
 
 Writes analysis/out/fleet.json and fleet.md; `--base 900` runs at the 900 Wh layout of Phase 6b
-and writes fleet_900wh.json/.md. Run: uv run analysis/fleet.py [--base 1370|900]"""
+and writes fleet_900wh.json/.md; `--base vtol` runs at the VTOL layout of Phase 7 and writes
+fleet_vtol.json/.md. Run: uv run analysis/fleet.py [--base 1370|900|vtol]"""
 
 import argparse
 import json
@@ -34,6 +35,7 @@ from variants import CONFIGS, OUT, build_sim, quantity, variant
 BASES = {
     "1370": ("parts_logistics_pittsburgh_1370wh_layout", "fleet"),
     "900": ("parts_logistics_pittsburgh_900wh_layout", "fleet_900wh"),
+    "vtol": ("parts_logistics_pittsburgh_vtol_layout", "fleet_vtol"),
 }
 PODS = [2, 4, 6, 8, 12, 16]
 FLEET = [2, 4, 6, 8, 10, 12, 14, 16, 18]

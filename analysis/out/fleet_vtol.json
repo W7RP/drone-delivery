@@ -1,0 +1,1268 @@
+{
+ "base": "parts_logistics_pittsburgh_vtol_layout",
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "max_rejected_fraction": 0.05,
+ "points": [
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 33612.00266618574,
+    "std": 490.14790423605064
+   },
+   "pod_wait_s": {
+    "mean": 32038.03791716233,
+    "std": 482.77076245850003
+   },
+   "truck_s": {
+    "mean": 2283.5528428614766,
+    "std": 13.830644047717639
+   },
+   "rejected_fraction": {
+    "mean": 0.4584374417165111,
+    "std": 0.012749611935151508
+   },
+   "max_rejected_fraction": 0.47430249632892807
+  },
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 33650.86464538269,
+    "std": 7108.0063075197195
+   },
+   "pod_wait_s": {
+    "mean": 30860.718641547566,
+    "std": 6891.424538399484
+   },
+   "truck_s": {
+    "mean": 2279.644928456034,
+    "std": 15.716743766913098
+   },
+   "rejected_fraction": {
+    "mean": 0.44283649293214095,
+    "std": 0.09539821542782094
+   },
+   "max_rejected_fraction": 0.6057268722466961
+  },
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 40359.1460702101,
+    "std": 11032.477706394438
+   },
+   "pod_wait_s": {
+    "mean": 33850.90497318962,
+    "std": 9248.771033086403
+   },
+   "truck_s": {
+    "mean": 2277.5403455441833,
+    "std": 20.857325816029913
+   },
+   "rejected_fraction": {
+    "mean": 0.48996692906605466,
+    "std": 0.1403038480943884
+   },
+   "max_rejected_fraction": 0.6447178002894356
+  },
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 33844.55430498788,
+    "std": 1835.0837198265258
+   },
+   "pod_wait_s": {
+    "mean": 27259.078056227416,
+    "std": 1414.9578225098453
+   },
+   "truck_s": {
+    "mean": 2283.0681264713144,
+    "std": 13.969714027017604
+   },
+   "rejected_fraction": {
+    "mean": 0.3984757975483371,
+    "std": 0.03525369037496314
+   },
+   "max_rejected_fraction": 0.45489296636085624
+  },
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 35448.36621523669,
+    "std": 3238.130196572109
+   },
+   "pod_wait_s": {
+    "mean": 28553.307148063563,
+    "std": 2750.425997464141
+   },
+   "truck_s": {
+    "mean": 2285.9275333090445,
+    "std": 23.486494112987828
+   },
+   "rejected_fraction": {
+    "mean": 0.4245171345170148,
+    "std": 0.06978817016025315
+   },
+   "max_rejected_fraction": 0.5073421439060205
+  },
+  {
+   "fleet_size": 2,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 35448.36621523669,
+    "std": 3238.130196572109
+   },
+   "pod_wait_s": {
+    "mean": 28553.307148063563,
+    "std": 2750.425997464141
+   },
+   "truck_s": {
+    "mean": 2285.9275333090445,
+    "std": 23.486494112987828
+   },
+   "rejected_fraction": {
+    "mean": 0.4245171345170148,
+    "std": 0.06978817016025315
+   },
+   "max_rejected_fraction": 0.5073421439060205
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 5647.7663797789555,
+    "std": 1133.7124875596505
+   },
+   "pod_wait_s": {
+    "mean": 5027.482030070065,
+    "std": 1136.837084375418
+   },
+   "truck_s": {
+    "mean": 2271.0369230671145,
+    "std": 11.903137616671494
+   },
+   "rejected_fraction": {
+    "mean": 0.006555367534941475,
+    "std": 0.004372604178659459
+   },
+   "max_rejected_fraction": 0.012148823082763858
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 2853.135937583305,
+    "std": 896.4551119378218
+   },
+   "pod_wait_s": {
+    "mean": 1666.0038091096671,
+    "std": 856.4547200297841
+   },
+   "truck_s": {
+    "mean": 2272.306625843489,
+    "std": 13.119658605781988
+   },
+   "rejected_fraction": {
+    "mean": 0.000723589001447178,
+    "std": 0.0016179941950070836
+   },
+   "max_rejected_fraction": 0.00361794500723589
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 2464.7332292537376,
+    "std": 717.7959417516889
+   },
+   "pod_wait_s": {
+    "mean": 833.1248118130601,
+    "std": 576.1370506115481
+   },
+   "truck_s": {
+    "mean": 2271.304059206289,
+    "std": 12.057820559379742
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 4001.826204723983,
+    "std": 3529.4215443186713
+   },
+   "pod_wait_s": {
+    "mean": 1870.7203124875007,
+    "std": 2891.278965987631
+   },
+   "truck_s": {
+    "mean": 2271.337694211446,
+    "std": 11.348994553778104
+   },
+   "rejected_fraction": {
+    "mean": 0.009838472834067549,
+    "std": 0.021999494051760046
+   },
+   "max_rejected_fraction": 0.04919236417033774
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 2466.271675241302,
+    "std": 682.6186754428999
+   },
+   "pod_wait_s": {
+    "mean": 542.0642287386951,
+    "std": 451.19459814623514
+   },
+   "truck_s": {
+    "mean": 2271.4397919272546,
+    "std": 11.927816627571941
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 4,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 2466.271675241302,
+    "std": 682.6186754428999
+   },
+   "pod_wait_s": {
+    "mean": 542.0642287386951,
+    "std": 451.19459814623514
+   },
+   "truck_s": {
+    "mean": 2271.4397919272546,
+    "std": 11.927816627571941
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 5563.34401776634,
+    "std": 1134.497997191737
+   },
+   "pod_wait_s": {
+    "mean": 4952.356227961759,
+    "std": 1135.2755769196963
+   },
+   "truck_s": {
+    "mean": 2269.9942107987576,
+    "std": 12.060315629330134
+   },
+   "rejected_fraction": {
+    "mean": 0.007347643047683404,
+    "std": 0.006587509625300321
+   },
+   "max_rejected_fraction": 0.017463933181473046
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 864.3387615189486,
+    "std": 51.58741623767638
+   },
+   "pod_wait_s": {
+    "mean": 182.5180295895651,
+    "std": 41.0310346694012
+   },
+   "truck_s": {
+    "mean": 2271.6706042413816,
+    "std": 13.788519205896488
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 802.5065297628585,
+    "std": 28.611260037021605
+   },
+   "pod_wait_s": {
+    "mean": 75.56932925001063,
+    "std": 5.146586858531901
+   },
+   "truck_s": {
+    "mean": 2271.7489693895022,
+    "std": 11.844340308968112
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 808.5821847685103,
+    "std": 31.773990118936663
+   },
+   "pod_wait_s": {
+    "mean": 66.448898792769,
+    "std": 9.633942823859659
+   },
+   "truck_s": {
+    "mean": 2271.849078440498,
+    "std": 12.364107353876337
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 809.4474126384166,
+    "std": 31.98558926659241
+   },
+   "pod_wait_s": {
+    "mean": 66.08474261008016,
+    "std": 9.65862294960054
+   },
+   "truck_s": {
+    "mean": 2271.5554651288435,
+    "std": 12.285709314674405
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 6,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 809.4474126384166,
+    "std": 31.98558926659241
+   },
+   "pod_wait_s": {
+    "mean": 66.08474261008016,
+    "std": 9.65862294960054
+   },
+   "truck_s": {
+    "mean": 2271.5554651288435,
+    "std": 12.285709314674405
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 5608.302323118743,
+    "std": 1176.7862154730335
+   },
+   "pod_wait_s": {
+    "mean": 4996.134674020926,
+    "std": 1175.3616202380176
+   },
+   "truck_s": {
+    "mean": 2271.1783036889765,
+    "std": 11.835900615458215
+   },
+   "rejected_fraction": {
+    "mean": 0.006569538316552481,
+    "std": 0.006003027966488081
+   },
+   "max_rejected_fraction": 0.011363636363636364
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 783.6310933450474,
+    "std": 16.415941763267927
+   },
+   "pod_wait_s": {
+    "mean": 143.9801281116697,
+    "std": 7.406871292871081
+   },
+   "truck_s": {
+    "mean": 2271.740016422101,
+    "std": 12.590698461464832
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 725.9154903366059,
+    "std": 19.558520377252815
+   },
+   "pod_wait_s": {
+    "mean": 71.73884758932849,
+    "std": 9.032552713938271
+   },
+   "truck_s": {
+    "mean": 2271.5269709316663,
+    "std": 12.927558677064392
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 729.1232612508433,
+    "std": 24.94351525318229
+   },
+   "pod_wait_s": {
+    "mean": 71.0177497040775,
+    "std": 20.448078527547327
+   },
+   "truck_s": {
+    "mean": 2271.7262844026836,
+    "std": 13.493061251159233
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 730.1657968520265,
+    "std": 24.613759252544178
+   },
+   "pod_wait_s": {
+    "mean": 69.69648234532802,
+    "std": 17.601390332333615
+   },
+   "truck_s": {
+    "mean": 2271.750141934088,
+    "std": 13.616048442443635
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 8,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 730.1657968520265,
+    "std": 24.613759252544178
+   },
+   "pod_wait_s": {
+    "mean": 69.69648234532802,
+    "std": 17.601390332333615
+   },
+   "truck_s": {
+    "mean": 2271.750141934088,
+    "std": 13.616048442443635
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 5616.3549789816225,
+    "std": 1137.7266654020061
+   },
+   "pod_wait_s": {
+    "mean": 5003.1138193576535,
+    "std": 1137.4586303064905
+   },
+   "truck_s": {
+    "mean": 2271.2185447156126,
+    "std": 12.021593524614538
+   },
+   "rejected_fraction": {
+    "mean": 0.006910370881292769,
+    "std": 0.006091240261406639
+   },
+   "max_rejected_fraction": 0.012908124525436599
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 782.7736632377025,
+    "std": 21.54747192335768
+   },
+   "pod_wait_s": {
+    "mean": 145.32060882660355,
+    "std": 12.873647615862234
+   },
+   "truck_s": {
+    "mean": 2271.2621862478895,
+    "std": 13.049799164744533
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 715.8332670886997,
+    "std": 13.829698401762185
+   },
+   "pod_wait_s": {
+    "mean": 65.75218804007815,
+    "std": 1.5892495431087177
+   },
+   "truck_s": {
+    "mean": 2272.7430494854316,
+    "std": 13.786276330091814
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 715.8248860481469,
+    "std": 13.650107555826319
+   },
+   "pod_wait_s": {
+    "mean": 65.90548868215039,
+    "std": 8.606256726407686
+   },
+   "truck_s": {
+    "mean": 2271.534499437485,
+    "std": 13.11233851562445
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 716.394793723209,
+    "std": 14.414129832159933
+   },
+   "pod_wait_s": {
+    "mean": 65.9057902151904,
+    "std": 8.606930805365899
+   },
+   "truck_s": {
+    "mean": 2271.7006584827823,
+    "std": 13.261709999569309
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 10,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 716.394793723209,
+    "std": 14.414129832159933
+   },
+   "pod_wait_s": {
+    "mean": 65.9057902151904,
+    "std": 8.606930805365899
+   },
+   "truck_s": {
+    "mean": 2271.7006584827823,
+    "std": 13.261709999569309
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 5818.585490407853,
+    "std": 1215.828776988047
+   },
+   "pod_wait_s": {
+    "mean": 5207.1831821424,
+    "std": 1218.820559661296
+   },
+   "truck_s": {
+    "mean": 2270.6070274745653,
+    "std": 12.863145246920308
+   },
+   "rejected_fraction": {
+    "mean": 0.005676090207030587,
+    "std": 0.004361824244153846
+   },
+   "max_rejected_fraction": 0.011389521640091117
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 778.668772955238,
+    "std": 15.884323207729034
+   },
+   "pod_wait_s": {
+    "mean": 141.64192805929886,
+    "std": 8.56540980771521
+   },
+   "truck_s": {
+    "mean": 2271.3405916439465,
+    "std": 12.658041548797964
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 721.2584925173152,
+    "std": 23.309320317752544
+   },
+   "pod_wait_s": {
+    "mean": 74.69519573029187,
+    "std": 19.158255677692093
+   },
+   "truck_s": {
+    "mean": 2271.212355835762,
+    "std": 13.248586737369845
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 709.6090429591902,
+    "std": 11.547607166240217
+   },
+   "pod_wait_s": {
+    "mean": 62.20922031441254,
+    "std": 0.4457745284724438
+   },
+   "truck_s": {
+    "mean": 2271.4151148332553,
+    "std": 13.485496698651412
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 711.1745748037164,
+    "std": 11.521267770780549
+   },
+   "pod_wait_s": {
+    "mean": 62.18494432645524,
+    "std": 0.4874190470064237
+   },
+   "truck_s": {
+    "mean": 2271.7746195388922,
+    "std": 13.564710385837524
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 12,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 711.1745748037164,
+    "std": 11.521267770780549
+   },
+   "pod_wait_s": {
+    "mean": 62.18494432645524,
+    "std": 0.4874190470064237
+   },
+   "truck_s": {
+    "mean": 2271.7746195388922,
+    "std": 13.564710385837524
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 6443.966671967026,
+    "std": 1625.8068616889884
+   },
+   "pod_wait_s": {
+    "mean": 5826.951247393837,
+    "std": 1620.0376639439105
+   },
+   "truck_s": {
+    "mean": 2270.7020030833564,
+    "std": 12.8781259484997
+   },
+   "rejected_fraction": {
+    "mean": 0.008503637039903107,
+    "std": 0.00581510131029955
+   },
+   "max_rejected_fraction": 0.015909090909090907
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 786.0427397451326,
+    "std": 17.747679135529722
+   },
+   "pod_wait_s": {
+    "mean": 149.72418356100974,
+    "std": 15.190170675121589
+   },
+   "truck_s": {
+    "mean": 2272.2829005788813,
+    "std": 12.996620493562128
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 707.613043040866,
+    "std": 11.490613100130908
+   },
+   "pod_wait_s": {
+    "mean": 66.20236458292769,
+    "std": 1.9053048455762227
+   },
+   "truck_s": {
+    "mean": 2270.964225238974,
+    "std": 13.453870650487472
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 708.0801996034204,
+    "std": 14.69778733257391
+   },
+   "pod_wait_s": {
+    "mean": 62.432411238834604,
+    "std": 0.6041149026619635
+   },
+   "truck_s": {
+    "mean": 2271.8288743290386,
+    "std": 13.565419055566885
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 708.0801996034204,
+    "std": 14.69778733257391
+   },
+   "pod_wait_s": {
+    "mean": 62.43168264556243,
+    "std": 0.6042456902715583
+   },
+   "truck_s": {
+    "mean": 2271.8288743290386,
+    "std": 13.565419055566885
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 14,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 708.0801996034204,
+    "std": 14.69778733257391
+   },
+   "pod_wait_s": {
+    "mean": 62.43168264556243,
+    "std": 0.6042456902715583
+   },
+   "truck_s": {
+    "mean": 2271.8288743290386,
+    "std": 13.565419055566885
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 7080.686518382366,
+    "std": 1715.81411677265
+   },
+   "pod_wait_s": {
+    "mean": 6454.769897427637,
+    "std": 1708.7143315049736
+   },
+   "truck_s": {
+    "mean": 2271.258621682442,
+    "std": 12.138806126190827
+   },
+   "rejected_fraction": {
+    "mean": 0.010157699658645956,
+    "std": 0.00685351522958133
+   },
+   "max_rejected_fraction": 0.01818181818181818
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 787.5430277226296,
+    "std": 22.18958980788819
+   },
+   "pod_wait_s": {
+    "mean": 155.29973816432772,
+    "std": 16.299427177697325
+   },
+   "truck_s": {
+    "mean": 2271.7622772457976,
+    "std": 12.554889951704414
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 713.4967122760108,
+    "std": 19.344323278377434
+   },
+   "pod_wait_s": {
+    "mean": 74.89055860818888,
+    "std": 15.015754866488612
+   },
+   "truck_s": {
+    "mean": 2271.285618190255,
+    "std": 13.61523917149707
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 704.496338846928,
+    "std": 14.710842945471448
+   },
+   "pod_wait_s": {
+    "mean": 63.91838593010156,
+    "std": 1.0658644108933155
+   },
+   "truck_s": {
+    "mean": 2271.8317985861067,
+    "std": 13.739681201896252
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 704.8738540279167,
+    "std": 13.932543745494549
+   },
+   "pod_wait_s": {
+    "mean": 63.83759882201215,
+    "std": 1.200009269142349
+   },
+   "truck_s": {
+    "mean": 2271.915126675721,
+    "std": 13.555474831045178
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 16,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 704.8738540279167,
+    "std": 13.932543745494549
+   },
+   "pod_wait_s": {
+    "mean": 63.83759882201215,
+    "std": 1.200009269142349
+   },
+   "truck_s": {
+    "mean": 2271.915126675721,
+    "std": 13.555474831045178
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 2,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 7101.960609154592,
+    "std": 1777.404156919016
+   },
+   "pod_wait_s": {
+    "mean": 6478.234613191113,
+    "std": 1770.0949867150198
+   },
+   "truck_s": {
+    "mean": 2271.041273383964,
+    "std": 12.057021276002125
+   },
+   "rejected_fraction": {
+    "mean": 0.010470074508465741,
+    "std": 0.008061424921242547
+   },
+   "max_rejected_fraction": 0.021212121212121213
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 4,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 781.2340635384886,
+    "std": 18.455753024645855
+   },
+   "pod_wait_s": {
+    "mean": 147.3795645554191,
+    "std": 15.868189113017626
+   },
+   "truck_s": {
+    "mean": 2272.6699414013374,
+    "std": 12.883170740829323
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 6,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 720.5001003321574,
+    "std": 31.765153396419336
+   },
+   "pod_wait_s": {
+    "mean": 81.4879937225791,
+    "std": 29.85242979602162
+   },
+   "truck_s": {
+    "mean": 2271.0027686413514,
+    "std": 13.401416630477494
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 8,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 705.4847197794828,
+    "std": 16.16058950047244
+   },
+   "pod_wait_s": {
+    "mean": 67.7406504241853,
+    "std": 7.122477758289191
+   },
+   "truck_s": {
+    "mean": 2271.2438729474147,
+    "std": 13.487917189972224
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 12,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 704.3781902830825,
+    "std": 17.920274778281872
+   },
+   "pod_wait_s": {
+    "mean": 67.69874837845472,
+    "std": 7.161033242404726
+   },
+   "truck_s": {
+    "mean": 2271.1667266107315,
+    "std": 13.656745901401235
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  },
+  {
+   "fleet_size": 18,
+   "pods_per_warehouse": 16,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 704.3781902830825,
+    "std": 17.920274778281872
+   },
+   "pod_wait_s": {
+    "mean": 67.69874837845472,
+    "std": 7.161033242404726
+   },
+   "truck_s": {
+    "mean": 2271.1667266107315,
+    "std": 13.656745901401235
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   },
+   "max_rejected_fraction": 0.0
+  }
+ ],
+ "smallest": {
+  "fleet_size": 4,
+  "pods_per_warehouse": 2,
+  "feasible": true,
+  "door_to_door_s": {
+   "mean": 5647.7663797789555,
+   "std": 1133.7124875596505
+  },
+  "pod_wait_s": {
+   "mean": 5027.482030070065,
+   "std": 1136.837084375418
+  },
+  "truck_s": {
+   "mean": 2271.0369230671145,
+   "std": 11.903137616671494
+  },
+  "rejected_fraction": {
+   "mean": 0.006555367534941475,
+   "std": 0.004372604178659459
+  },
+  "max_rejected_fraction": 0.012148823082763858
+ },
+ "best_door_to_door_s": 704.3781902830825,
+ "smallest_faster_than_truck": {
+  "fleet_size": 6,
+  "pods_per_warehouse": 4,
+  "feasible": true,
+  "door_to_door_s": {
+   "mean": 864.3387615189486,
+   "std": 51.58741623767638
+  },
+  "pod_wait_s": {
+   "mean": 182.5180295895651,
+   "std": 41.0310346694012
+  },
+  "truck_s": {
+   "mean": 2271.6706042413816,
+   "std": 13.788519205896488
+  },
+  "rejected_fraction": {
+   "mean": 0.0,
+   "std": 0.0
+  },
+  "max_rejected_fraction": 0.0
+ },
+ "smallest_within_10pct_of_best": {
+  "fleet_size": 8,
+  "pods_per_warehouse": 6,
+  "feasible": true,
+  "door_to_door_s": {
+   "mean": 725.9154903366059,
+   "std": 19.558520377252815
+  },
+  "pod_wait_s": {
+   "mean": 71.73884758932849,
+   "std": 9.032552713938271
+  },
+  "truck_s": {
+   "mean": 2271.5269709316663,
+   "std": 12.927558677064392
+  },
+  "rejected_fraction": {
+   "mean": 0.0,
+   "std": 0.0
+  },
+  "max_rejected_fraction": 0.0
+ }
+}
