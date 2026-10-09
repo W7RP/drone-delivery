@@ -59,8 +59,9 @@ sitl_start_gz() {
   # Phase 7 wind check: DD_WIND="<m/s> <from deg> <gust fraction>" adds Gazebo wind (A94).
   if [[ -n "${DD_WIND:-}" ]]; then
     read -r w_mps w_from w_gust <<< "$DD_WIND"
-    python3 "$DD_PX4/tools/add_wind.py" "$run/$WORLD_NAME.sdf" --mps "$w_mps" --from-deg "$w_from" \
-      --gust-frac "$w_gust"
+    python3 "$DD_PX4/tools/add_wind.py" "$run/$WORLD_NAME.sdf" "$GZ_SIM_SERVER_CONFIG_PATH" \
+      "$run/server.config" --mps "$w_mps" --from-deg "$w_from" --gust-frac "$w_gust"
+    export GZ_SIM_SERVER_CONFIG_PATH="$run/server.config"
   fi
   gz sim --verbose=1 -s -r --headless-rendering "$run/$WORLD_NAME.sdf" > "$run/gz_server.log" 2>&1 &
   SITL_PIDS+=($!)
