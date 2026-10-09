@@ -104,8 +104,11 @@ source here was fetched by work-in-progress pipeline code, so each entry's revis
      and truck matrix are byte-identical to Phase 3's.
    - `parts_logistics_pittsburgh_battery_1370wh`: the fitted profile with a 1370 Wh battery,
      sized for the longest legal lane at 5 kg (spec A66).
+   - `parts_logistics_pittsburgh_vtol`: the VTOL profile of Phase 7 with a 620 Wh battery
+     coupled to its mass (spec A68), and the Phase 6a pad keys (`docs/vtol.md`).
 
-   A variant can select a flight profile and override drone keys. Its lane range, energy guard,
+   A variant can select a flight profile, override drone keys, couple the battery's mass,
+   set or remove other scenario keys and raise the schema version. Its lane range, energy guard,
    flows and fleet all follow its own model. If its lanes no longer reach a pad cluster, the
    scenario keeps the hub's side (spec A65).
 8. **Plot.** `pipeline/out/pittsburgh_overview.png` shows the pads, the kept lanes coloured by

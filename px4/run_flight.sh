@@ -7,7 +7,7 @@
 # --seed sets only the injected offsets (start position, detector corner noise); Gazebo and PX4
 # are not seeded, so two runs with one seed are not bit-identical.
 # --speed runs Gazebo and PX4 lockstep at F times real time (default 1).
-# --lane-id flies any directed lane of the Pittsburgh catalog instead of lane 3: its lane record,
+# --lane-id (or --lane) flies any directed lane of the Pittsburgh catalog instead of lane 3: its lane record,
 # world and scene are generated into <dir>.
 # --airframe vtol flies the scaled standard VTOL (Phase 7): fixed-wing lane, multicopter at the
 # pads. --timeout defaults to three times the visit's expected wall time; a run that outlasts
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
     --out) out="$2"; shift ;;
     --speed) speed="$2"; shift ;;
     --timeout) timeout_s="$2"; shift ;;
-    --lane-id) lane_id="$2"; shift ;;
+    --lane-id|--lane) lane_id="$2"; shift ;;
     -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
