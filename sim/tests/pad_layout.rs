@@ -1,4 +1,4 @@
-//! Spec A72: pad layout keys. `pad_ops.out_spots` gives every pad up to three OUT spots, each
+//! Spec A72: pad layout keys. `pad_ops.out_spots` gives every pad up to three OUT spots (four from schema 1.9.0), each
 //! able to hold a pod and a drone; `pad_ops.parking_capacity` replaces every pad's parking; with
 //! `charging.charge_while_parked`, a drone with nothing to latch charges in parking, not on OUT.
 
@@ -181,4 +181,25 @@ fn pods_per_origin_sets_only_the_pads_that_ship() {
     let s = drone_sim::scenario::Scenario::from_toml(&toml::to_string(&t).unwrap()).expect("loads");
     assert_eq!(s.cfg.pads[0].initial_empty_pods, 5, "A ships");
     assert_eq!(s.cfg.pads[1].initial_empty_pods, b_own, "B only receives");
+}
+
+#[test]
+fn four_out_spots_need_schema_1_9_and_run() {
+    let reject = |t: &Table| match drone_sim::scenario::Scenario::from_toml(
+        &toml::to_string(t).expect("serialise"),
+    ) {
+        Ok(_) => panic!("accepted"),
+        Err(e) => e.0,
+    };
+    let mut four = layout(base(), 4, Some(0));
+    assert!(
+        reject(&four).contains("1.9.0"),
+        "a 1.6.0 file may not use OUT_4"
+    );
+    set(&mut four, "schema_version", "1.9.0");
+    let r = run(&four);
+    assert!(r.summary["deliveries_in_window"].as_u64().expect("count") > 0);
+    let mut five = layout(base(), 5, Some(0));
+    set(&mut five, "schema_version", "1.9.0");
+    assert!(reject(&five).contains("pad_ops.out_spots"));
 }

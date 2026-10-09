@@ -52,6 +52,8 @@ const VERSIONED_KEYS: [(&str, &str, &str); 21] = [
     ("traffic", "start_unix_s", "1.9.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
+/// OUT spots a pad could have before schema 1.9.0 added OUT_4 (A72).
+const PRE_1_9_MAX_OUT_SPOTS: usize = 3;
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
 const DEFAULT_MAX_EVENT_LOG_MIB: u64 = 256;
 const BYTES_PER_MIB: u64 = 1 << 20;
@@ -725,6 +727,12 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         }
     }
 
+    if usize::from(pad_ops.out_spots) > PRE_1_9_MAX_OUT_SPOTS && minor(version) < minor("1.9.0") {
+        return err(format!(
+            "pad_ops.out_spots: {} needs schema_version \"1.9.0\", the file says \"{version}\"",
+            pad_ops.out_spots
+        ));
+    }
     let mut drone = parse_drone(&top.section("drone")?, &names, &pads)?;
     let flight_profile = if top.has("flight_profile") {
         Some(apply_flight_profile(&top, scenario_dir, &mut drone)?)

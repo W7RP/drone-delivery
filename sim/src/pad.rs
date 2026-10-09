@@ -625,7 +625,7 @@ impl World {
             return false;
         };
         self.out_mut(p, k).reserved = d;
-        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 4 OUT spots");
         self.visit_to(p, d, tcode::v(43), VisitState::Hopping);
         self.send_hop(p, d);
         true
@@ -640,7 +640,7 @@ impl World {
             return;
         };
         self.out_mut(p, k).reserved = d;
-        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 4 OUT spots");
         self.visit_to(p, d, tcode::v(44), VisitState::Hopping);
         self.send_hop(p, d);
     }
@@ -955,7 +955,7 @@ impl World {
             return false;
         };
         self.out_mut(p, k).reserved = d;
-        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 4 OUT spots");
         self.visit_to(p, d, tcode::v(21), VisitState::Hopping);
         self.send_hop(p, d);
         true
@@ -1152,7 +1152,7 @@ impl World {
             requested: pl.requested,
             deadline: pl.deadline,
             payload_kg,
-            out_index: u8::try_from(k).expect("at most 3 OUT spots"),
+            out_index: u8::try_from(k).expect("at most 4 OUT spots"),
         });
     }
 

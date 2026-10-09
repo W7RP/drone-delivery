@@ -126,7 +126,8 @@
         "OUT",
         "PARKING",
         "OUT_2",
-        "OUT_3"
+        "OUT_3",
+        "OUT_4"
       ]
     },
     "VisitState": {
@@ -605,7 +606,7 @@
         "value": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 3
+          "maximum": 4
         }
       }
     },

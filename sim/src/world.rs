@@ -41,9 +41,9 @@ pub fn narrow_f32(v: f64) -> f32 {
     v as f32
 }
 
-/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3), for the per-spot occupancy check.
+/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3, OUT_4), for the per-spot occupancy check.
 #[cfg(debug_assertions)]
-const SPOT_CODES: usize = 5;
+const SPOT_CODES: usize = 6;
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
 /// Initial backlog capacity per pad when `demand.max_backlog_per_pad` is absent; it grows as needed.
@@ -82,7 +82,7 @@ pub struct PadSt {
     pub in_reserved: DroneId,
     pub in_pod: PodId,
     pub in_pod_removal_scheduled: bool,
-    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3.
+    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3, OUT_4.
     pub outs: Vec<OutSpot>,
     /// Empty pods physically in inventory, reserved or not.
     pub inventory: Vec<PodId>,

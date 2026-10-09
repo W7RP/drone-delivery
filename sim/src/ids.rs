@@ -44,18 +44,19 @@ macro_rules! code_enum {
 }
 
 code_enum!(PadMode { Online = "ONLINE", ControllerFault = "CONTROLLER_FAULT", OutOfService = "OUT_OF_SERVICE" });
-code_enum!(Spot { In = "IN", Out = "OUT", Parking = "PARKING", Out2 = "OUT_2", Out3 = "OUT_3" });
+code_enum!(Spot { In = "IN", Out = "OUT", Parking = "PARKING", Out2 = "OUT_2", Out3 = "OUT_3", Out4 = "OUT_4" });
 
 /// Most OUT spots a pad can have (`pad_ops.out_spots`, A72).
-pub const MAX_OUT_SPOTS: usize = 3;
+pub const MAX_OUT_SPOTS: usize = 4;
 
 impl Spot {
-    /// The OUT spot with 0-based index `k` (OUT, OUT_2, OUT_3).
+    /// The OUT spot with 0-based index `k` (OUT, OUT_2, OUT_3, OUT_4).
     pub fn out(k: usize) -> Spot {
         match k {
             0 => Spot::Out,
             1 => Spot::Out2,
-            _ => Spot::Out3,
+            2 => Spot::Out3,
+            _ => Spot::Out4,
         }
     }
 
@@ -64,6 +65,7 @@ impl Spot {
             Spot::Out => Some(0),
             Spot::Out2 => Some(1),
             Spot::Out3 => Some(2),
+            Spot::Out4 => Some(3),
             Spot::In | Spot::Parking => None,
         }
     }
