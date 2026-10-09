@@ -4,7 +4,7 @@
   "Wind and gust are at the 10 m anemometer; the sim scales them to cruise height."
  ],
  "hours": 26304,
- "pipeline_git": "ec302fd8b19c",
+ "pipeline_git": "8369eb7dd2d7",
  "source": "iem_asos_agc",
  "span_utc": [
   "2023-01-01T00:00",
