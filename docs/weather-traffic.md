@@ -198,3 +198,31 @@ depends on usable capacity. With a flat derate and no limits, it delivers normal
 capacity (1319 deliveries, 523 s mean). At 0.85 it manages 615, with 808 diversions. At 0.8 it
 delivers nothing: no route passes the energy guard. The derate table is a placeholder, so how
 winter weeks come out depends on it; section 7 varies it.
+
+## 5. Traffic
+
+There is no live traffic data. The pipeline splits each truck route by the roads its
+free-flow path uses (spec 9.2, version_minor 2): the share of its length on motorway and trunk,
+on primary and secondary, and on everything else (the pad snap legs included), plus the share
+on a bridge or in a tunnel. Free-flow times and road distances did not change by a byte, and
+the sim still reads minor-1 files. Mean shares over the pad pairs:
+
+| Network | Motorway/trunk | Primary/secondary | Other | Bridge/tunnel |
+|---|---|---|---|---|
+| 900 Wh (5 pads, Strip District and Oakland) | 0.06 | 0.19 | 0.75 | 0.01 |
+| 9 pads (with the Mon Valley plants) | 0.17 | 0.50 | 0.34 | 0.07 |
+
+With `[traffic]` (spec 2.11) a truck's road time is its free-flow time times
+`sum(class share x (1 + class peak delay x shape(hour)))`, plus the bridge/tunnel share times
+its own extra delay, with separate weekday and weekend shapes. The `truck.tod_speed_factors`
+must then be flat (R22), so time of day is not counted twice. Incidents add a seeded random
+delay: a Poisson count per directed pair and hour, each lognormal. Each pair-hour draws from
+its own seed, so a truck's delay does not depend on what else was asked first. Every number
+is a placeholder (A84 to A86).
+
+`sim/tests/traffic.rs` checks:
+
+- a minor-1 truck matrix still loads and gives the same day of deliveries as the minor-2 file;
+- the peak slows each route by exactly its class mix, and weekends by their own profile;
+- incidents only add time, repeat within an hour, and hit most hours at a rate of 2 per hour;
+- traffic with time-of-day factors that are not flat is rejected.

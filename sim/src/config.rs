@@ -19,6 +19,7 @@ use crate::ids::{
 };
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
+use crate::traffic::{DELAY_CLASSES, TrafficCfg};
 use crate::weather::{CruiseCurve, Limits, WeatherCfg};
 
 pub const SCHEMA_VERSION: &str = "1.8.0";
@@ -26,7 +27,7 @@ pub const SCHEMA_VERSION: &str = "1.8.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 4] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 17] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -44,6 +45,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 17] = [
     ("sim", "max_event_log_mib", "1.7.0"),
     ("policy", "yield_on_request", "1.7.0"),
     ("", "weather", "1.8.0"),
+    ("", "traffic", "1.8.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
@@ -374,6 +376,8 @@ pub struct Config {
     pub faults: Vec<FaultCfg>,
     /// `[weather]` (2.10); None runs without weather.
     pub weather: Option<WeatherCfg>,
+    /// `[traffic]` (2.11); None runs without traffic.
+    pub traffic: Option<TrafficCfg>,
 }
 
 impl Config {
@@ -625,6 +629,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "costs",
         "faults",
         "weather",
+        "traffic",
     ])?;
     let version = top.string("schema_version")?;
     if version != SCHEMA_VERSION && !COMPATIBLE_VERSIONS.contains(&version) {
@@ -797,6 +802,30 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         });
     }
 
+    let traffic = if top.has("traffic") {
+        let t = parse_traffic(&top.section("traffic")?)?;
+        let has_fractions = network_files
+            .as_ref()
+            .and_then(|f| f.truck.as_ref())
+            .is_some_and(|t| t.fractions.is_some());
+        if !has_fractions {
+            return err(
+                "traffic: R22 needs truck.matrix_source FILE with a truck_matrix.bin of version_minor 2 or above",
+            );
+        }
+        if truck
+            .tod_speed_factors
+            .iter()
+            .any(|&f| (f - 1.0).abs() > 0.0)
+        {
+            return err(
+                "truck.tod_speed_factors: R22 must all be 1 with [traffic], which carries time of day",
+            );
+        }
+        Some(t)
+    } else {
+        None
+    };
     let duration_ms = ms_from_s(duration_s);
     let weather = if top.has("weather") {
         Some(parse_weather(
@@ -841,6 +870,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         costs,
         faults,
         weather,
+        traffic,
     };
     check_rules(&cfg)?;
     Ok(cfg)
@@ -1490,6 +1520,57 @@ fn parse_weather(
             "s",
             Range::Pos,
         )?),
+    })
+}
+
+fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
+    t.allow(&[
+        "start_weekday",
+        "weekday_shape",
+        "weekend_shape",
+        "peak_delay_motorway",
+        "peak_delay_primary",
+        "peak_delay_other",
+        "peak_delay_structure",
+        "incident_rate_per_pair_h",
+        "incident_delay_median_s",
+        "incident_delay_sigma",
+    ])?;
+    let shape = |key: &str| -> Result<[f64; HOURS_PER_DAY]> {
+        let Value::Array(items) = t.get(key)? else {
+            return err(format!(
+                "{}: expected an array of 24 quantities",
+                t.key_path(key)
+            ));
+        };
+        if items.len() != HOURS_PER_DAY {
+            return err(format!(
+                "{}: {} entries, expected 24",
+                t.key_path(key),
+                items.len()
+            ));
+        }
+        let mut out = [0.0; HOURS_PER_DAY];
+        for (i, v) in items.iter().enumerate() {
+            out[i] = quantity_from(v, &format!("{}[{i}]", t.key_path(key)), "1", Range::Prob)?;
+        }
+        Ok(out)
+    };
+    let delay = |key: &str| t.quantity(key, "1", Range::NonNeg);
+    let peak_delay: [f64; DELAY_CLASSES] = [
+        delay("peak_delay_motorway")?,
+        delay("peak_delay_primary")?,
+        delay("peak_delay_other")?,
+        delay("peak_delay_structure")?,
+    ];
+    Ok(TrafficCfg {
+        start_weekday: narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?,
+        weekday_shape: shape("weekday_shape")?,
+        weekend_shape: shape("weekend_shape")?,
+        peak_delay,
+        incident_rate_per_pair_h: t.quantity("incident_rate_per_pair_h", "1/h", Range::NonNeg)?,
+        incident_delay_median_s: t.quantity("incident_delay_median_s", "s", Range::Pos)?,
+        incident_delay_sigma: t.quantity("incident_delay_sigma", "1", Range::NonNeg)?,
     })
 }
 

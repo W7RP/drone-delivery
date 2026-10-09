@@ -13,8 +13,12 @@ const LANES_MAGIC: &[u8; 8] = b"DDLANES\0";
 /// Minor 1 added `max_terrain_m` and `ground_risk_per_km2`, which this reader validates.
 const LANES_MINOR: u16 = 1;
 const TRUCK_MAGIC: &[u8; 8] = b"DDTRUCK\0";
-/// Minor 1 added `road_m`, which the cost baseline needs.
-const TRUCK_MINOR: u16 = 1;
+/// Minor 1 added `road_m`, which the cost baseline needs; minor 2 the traffic fractions,
+/// which only traffic needs, so minor-1 files still load.
+const TRUCK_MIN_MINOR: u16 = 1;
+const TRUCK_MINOR: u16 = 2;
+/// Road-class fractions of one route sum to 1 up to f32 rounding.
+const FRACTION_SUM_TOLERANCE: f64 = 1e-5;
 const WEATHER_MAGIC: &[u8; 8] = b"DDWTHR\0\0";
 const WEATHER_MINOR: u16 = 0;
 /// `wx_flags` bits of spec 9.7.
@@ -57,6 +61,16 @@ impl LaneFile {
 pub struct TruckFile {
     pub free_flow_s: Vec<f32>,
     pub road_m: Vec<f32>,
+    /// version_minor 2 only.
+    pub fractions: Option<RouteFractions>,
+}
+
+/// Share of each route's length per road class (motorway and trunk, primary and secondary,
+/// other) and on a bridge or in a tunnel (spec 9.2 version_minor 2).
+#[derive(Debug, Clone)]
+pub struct RouteFractions {
+    pub class: [Vec<f32>; 3],
+    pub structure: Vec<f32>,
 }
 
 /// Hourly surface weather at one station (spec 9.7). Hour `i` starts `start_unix_h + i` hours
@@ -279,7 +293,7 @@ pub fn read_lanes(bytes: &[u8], n_pads: usize, source_hash: u64) -> Result<LaneF
 }
 
 pub fn read_truck(bytes: &[u8], n_pads: usize, source_hash: u64) -> Result<TruckFile, String> {
-    let h = network_header(bytes, TRUCK_MAGIC, TRUCK_MINOR, n_pads, source_hash)?;
+    let h = network_header(bytes, TRUCK_MAGIC, TRUCK_MIN_MINOR, n_pads, source_hash)?;
     let n2 = n_pads * n_pads;
     let mut a = Arrays {
         bytes,
@@ -287,7 +301,22 @@ pub fn read_truck(bytes: &[u8], n_pads: usize, source_hash: u64) -> Result<Truck
     };
     let free_flow_s = a.f32s(n2, "free_flow_s")?;
     let road_m = a.f32s(n2, "road_m")?;
-    a.finish(h.minor, TRUCK_MINOR)?;
+    let fractions = if h.minor >= TRUCK_MINOR {
+        Some(RouteFractions {
+            class: [
+                a.f32s(n2, "frac_motorway")?,
+                a.f32s(n2, "frac_primary")?,
+                a.f32s(n2, "frac_other")?,
+            ],
+            structure: a.f32s(n2, "frac_structure")?,
+        })
+    } else {
+        None
+    };
+    a.finish(h.minor, h.minor.min(TRUCK_MINOR))?;
+    if let Some(f) = &fractions {
+        check_fractions(f, n_pads)?;
+    }
     for (name, m) in [("free_flow_s", &free_flow_s), ("road_m", &road_m)] {
         for i in 0..n_pads {
             for j in 0..n_pads {
@@ -304,7 +333,29 @@ pub fn read_truck(bytes: &[u8], n_pads: usize, source_hash: u64) -> Result<Truck
     Ok(TruckFile {
         free_flow_s,
         road_m,
+        fractions,
     })
+}
+
+fn check_fractions(f: &RouteFractions, n_pads: usize) -> Result<(), String> {
+    for i in 0..n_pads {
+        for j in 0..n_pads {
+            let k = i * n_pads + j;
+            let values = [f.class[0][k], f.class[1][k], f.class[2][k], f.structure[k]];
+            let in_range = if i == j {
+                values.iter().all(|&v| v == 0.0)
+            } else {
+                values.iter().all(|v| (0.0..=1.0).contains(v))
+            };
+            let sum: f64 = values[..3].iter().map(|&v| f64::from(v)).sum();
+            if !in_range || (i != j && (sum - 1.0).abs() > FRACTION_SUM_TOLERANCE) {
+                return Err(format!(
+                    "route fractions [{i}][{j}]: diagonal 0, each in [0, 1], classes summing to 1"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn read_weather(bytes: &[u8]) -> Result<WeatherFile, String> {

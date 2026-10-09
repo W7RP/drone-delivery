@@ -792,24 +792,45 @@ impl DiversionPolicy for NearestFeasible {
 }
 
 /// Truck baseline (spec 7): completion time and cost for an order requested at `requested`.
-/// With weather, the departure hour's weather slows the truck too (A82).
+/// With weather, the departure hour's weather slows the truck too (A82); with traffic, the
+/// route's road classes set the time-of-day delay and incidents add to it (2.11). `master` is
+/// the replication's master seed, which seeds the incidents.
 pub fn truck_baseline(
     cfg: &Config,
     net: &Network,
+    master: u64,
     origin: PadId,
     dest: PadId,
     requested: TimeMs,
 ) -> (TimeMs, f64) {
     let t = &cfg.truck;
     let t_dep = requested + ms_from_s(t.dispatch_delay_s + t.load_s);
-    let tod_s = (cfg.start_time_of_day_s + s_from_ms(t_dep)).rem_euclid(SECONDS_PER_DAY);
+    let local_s = cfg.start_time_of_day_s + s_from_ms(t_dep);
+    let tod_s = local_s.rem_euclid(SECONDS_PER_DAY);
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     let hour = ((tod_s / SECONDS_PER_HOUR).floor() as usize).min(23);
     let weather = cfg.weather.as_ref().map_or(1.0, |w| {
         w.truck_factor(&w.hour(w.hour_index_clamped(t_dep)))
     });
     let speed_factor = t.tod_speed_factors[hour] * weather;
-    let drive_ms = ms_from_s(net.truck_s(origin, dest) / speed_factor);
+    let drive_s = match &cfg.traffic {
+        None => net.truck_s(origin, dest) / speed_factor,
+        Some(tr) => {
+            let fractions = cfg
+                .network_files
+                .as_ref()
+                .and_then(|f| f.truck.as_ref())
+                .and_then(|f| f.fractions.as_ref())
+                .expect("R22 checked at load");
+            let pair = usize::from(origin) * net.n_pads + usize::from(dest);
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            let day = (local_s / SECONDS_PER_DAY).floor() as u64;
+            let slow = tr.multiplier(fractions, pair, tr.is_weekend(day), hour);
+            net.truck_s(origin, dest) * slow / speed_factor
+                + tr.incident_delay_s(master, pair, t_dep)
+        }
+    };
+    let drive_ms = ms_from_s(drive_s);
     let delivered = t_dep + drive_ms + ms_from_s(t.unload_s);
     let cost = cfg.costs.truck_per_m * net.road(origin, dest)
         + cfg.costs.truck_per_s * (t.load_s + s_from_ms(drive_ms) + t.unload_s);
@@ -1847,7 +1868,7 @@ impl World {
     ) -> OrderId {
         let order_id = OrderId::try_from(self.fm.orders.len()).expect("order count fits u32");
         let (truck_delivered, truck_cost) =
-            truck_baseline(&self.cfg, &self.net, pad, dest, requested);
+            truck_baseline(&self.cfg, &self.net, self.master, pad, dest, requested);
         self.fm.orders.push(Order {
             order_id,
             kind,
@@ -2017,7 +2038,14 @@ impl World {
     /// A trucked order leaves now and arrives after the same dwell as the truck baseline.
     fn fm_close_trucked(&mut self, order: OrderId) {
         let o = self.fm.orders[order as usize];
-        let (arrives, _) = truck_baseline(&self.cfg, &self.net, o.origin_pad, o.dest_pad, self.now);
+        let (arrives, _) = truck_baseline(
+            &self.cfg,
+            &self.net,
+            self.master,
+            o.origin_pad,
+            o.dest_pad,
+            self.now,
+        );
         self.fm.unassigned.retain(|&x| x != order);
         self.fm_close_order(order, OrderStatus::Trucked, o.dest_pad, arrives, None);
     }

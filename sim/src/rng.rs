@@ -62,6 +62,12 @@ impl Xoshiro256 {
     }
 
     /// Exponential inter-arrival in ms for `rate_per_s` > 0.
+    /// Standard normal by Box-Muller, from two uniforms.
+    pub fn normal(&mut self) -> f64 {
+        let (u1, u2) = (self.uniform(), self.uniform());
+        (-2.0 * (1.0 - u1).ln()).sqrt() * (std::f64::consts::TAU * u2).cos()
+    }
+
     pub fn exponential_ms(&mut self, rate_per_s: f64) -> u64 {
         let u = self.uniform();
         ms_from_s(-(1.0 - u).ln() / rate_per_s)
@@ -79,6 +85,7 @@ pub enum StreamKind {
     MsgLoss = 6,
     Network = 7,
     Repair = 8,
+    Traffic = 9,
 }
 
 /// `master_r` of spec 5.4: first SplitMix64 output of `seed + replication`.

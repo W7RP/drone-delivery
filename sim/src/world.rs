@@ -327,6 +327,8 @@ pub struct World {
     pub net: Network,
     pub energy: EnergyRules,
     pub replication: u32,
+    /// Master seed of this replication (5.4).
+    pub master: u64,
     pub now: TimeMs,
     seq: u64,
     queue: BinaryHeap<Entry>,
@@ -479,6 +481,7 @@ impl World {
             },
             energy,
             replication,
+            master,
             now: 0,
             seq: 0,
             queue: BinaryHeap::with_capacity(entities * QUEUE_SLOTS_PER_ENTITY),
