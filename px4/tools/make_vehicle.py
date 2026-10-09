@@ -369,6 +369,7 @@ def main() -> int:
     ap.add_argument("--latch-kg", type=float, default=None)
     ap.add_argument("--pods", type=int, default=2, help="0 for a vehicle without pods")
     ap.add_argument("--airframe", choices=["quad", "vtol"], default="quad")
+    ap.add_argument("--wind", action="store_true", help="let Gazebo's wind act on the drone's links")
     args = ap.parse_args()
     lane = json.loads(run_file(args.out, "lane.json").read_text())
     cfg = yaml.safe_load((PX4 / "config" / "flight.yaml").read_text())
@@ -378,6 +379,9 @@ def main() -> int:
     vtol = args.airframe == "vtol"
     name = "dd_vtol" if vtol else "dd_quad"
     sdf = vtol_sdf(lane, cfg, latch, pods) if vtol else drone_sdf(lane, cfg, latch, pods)
+    if args.wind:
+        # Gazebo's WindEffects pushes only on links that ask for it (A94).
+        sdf = sdf.replace("<inertial>", "<enable_wind>true</enable_wind><inertial>")
     write(args.out / "models" / name / "model.sdf", sdf)
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
