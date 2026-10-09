@@ -91,6 +91,8 @@ public:
     lane_.to_pad = static_cast<std::uint16_t>(declare_parameter<int>("to_pad"));
     motor_constant_ = declare_parameter<double>("motor_constant");
     rotor_radius_m_ = declare_parameter<double>("rotor_radius_m");
+    pusher_constant_ = declare_parameter<double>("pusher_motor_constant", 0.0);
+    pusher_radius_m_ = declare_parameter<double>("pusher_radius_m", 0.0);
     air_density_ = declare_parameter<double>("air_density_kgpm3");
     const auto spot_pads = declare_parameter<std::vector<int64_t>>("spot_pad_ids");
     const auto spot_codes = declare_parameter<std::vector<int64_t>>("spot_codes");
@@ -106,7 +108,7 @@ public:
     if (!events_ || !samples_) {
       throw std::runtime_error("cannot write the logs in " + run_dir_);
     }
-    const auto h = header("DDSAMPL\0", 0, static_cast<std::uint32_t>(kSampleRecordBytes));
+    const auto h = header("DDSAMPL\0", 1, static_cast<std::uint32_t>(kSampleRecordBytes));
     samples_.write(reinterpret_cast<const char *>(h.data()), h.size());
 
     using namespace px4_msgs::msg;
@@ -129,10 +131,11 @@ public:
           "/fmu/out/vehicle_status"), qos, [this](const VehicleStatus & m) {
           sample_.nav_state = m.nav_state;
           sample_.arming_state = m.arming_state;
+          if (m.is_vtol) {log_vtol(m);}
         });
     motor_sub_ = create_subscription<actuator_msgs::msg::Actuators>("/dd/motor_speed", qos,
         [this](const actuator_msgs::msg::Actuators & m) {on_motors(m);});
-    truth_sub_ = create_subscription<geometry_msgs::msg::Pose>("/dd/truth/dd_quad", 10,
+    truth_sub_ = create_subscription<geometry_msgs::msg::Pose>("/dd/truth/drone", 10,
         [this](const geometry_msgs::msg::Pose & p) {
           truth_ = {p.position.x, p.position.y, p.position.z};
         });
@@ -173,6 +176,30 @@ private:
       sample_.motor_radps[i] = static_cast<float>(m.velocity[i]);
       power_w_ += induced_power_w(m.velocity[i], motor_constant_, air_density_, rotor_radius_m_);
     }
+    // VTOL pusher (actuator 5): propeller power at the forward speed along the body x axis.
+    if (m.velocity.size() > 4 && pusher_constant_ > 0.0) {
+      sample_.pusher_radps = static_cast<float>(m.velocity[4]);
+      const Quat q{sample_.q_ned_frd[0], sample_.q_ned_frd[1], sample_.q_ned_frd[2],
+        sample_.q_ned_frd[3]};
+      const Vec3 fwd = rotate(q, {1.0, 0.0, 0.0});
+      const double axial = fwd[0] * sample_.vel_ned_mps[0] + fwd[1] * sample_.vel_ned_mps[1] +
+        fwd[2] * sample_.vel_ned_mps[2];
+      power_w_ += propeller_power_w(m.velocity[4], pusher_constant_, air_density_,
+          pusher_radius_m_, axial);
+    }
+  }
+
+  // VTOL phase changes (MC, TRANSITION_FW, FW, TRANSITION_MC) as events, for calibration.
+  void log_vtol(const px4_msgs::msg::VehicleStatus & m)
+  {
+    using VS = px4_msgs::msg::VehicleStatus;
+    const char * state = m.in_transition_mode ? (m.in_transition_to_fw ? "TRANSITION_FW" :
+      "TRANSITION_MC") : (m.vehicle_type == VS::VEHICLE_TYPE_FIXED_WING ? "FW" : "MC");
+    if (state == vtol_state_) {return;}
+    vtol_state_ = state;
+    events_ << "{\"type\":\"vtol\",\"t_us\":" << sim_us(*this) << ",\"state\":\"" << state
+            << "\"}\n";
+    events_.flush();
   }
 
   void write_sample()
@@ -318,6 +345,8 @@ private:
   std::vector<StateTime> states_;
   Vec3 truth_{};
   double motor_constant_{}, rotor_radius_m_{}, air_density_{};
+  double pusher_constant_{}, pusher_radius_m_{};
+  const char * vtol_state_ = nullptr;
   double energy_j_ = 0.0, power_w_ = 0.0, lane_energy_start_j_ = 0.0;
   std::uint64_t last_motor_us_ = 0;
   rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odom_sub_;

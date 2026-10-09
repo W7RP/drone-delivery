@@ -26,10 +26,7 @@ ORDER_ID = 0
 # height (carried in the latch it hangs carry_clearance_m higher).
 POD_REST_MARGIN_M = 0.01
 SPOT_CODE = {"IN": 0, "OUT": 1}
-# Energy proxy constants: PX4 x500 motor constant (scaled per vehicle, make_vehicle.py), the
-# x500 propeller radius (half its 0.2792 m rotor collision box) and ISA sea-level air density.
-X500_MOTOR_CONSTANT = 8.54858e-06
-X500_ROTOR_RADIUS_M = 0.1396
+# Energy proxy: ISA sea-level air density; rotor constants come from vehicle.json (make_vehicle.py).
 AIR_DENSITY_KGPM3 = 1.225
 
 
@@ -69,7 +66,7 @@ class NoAliasDumper(yaml.SafeDumper):
         return True
 
 
-def bridge(world: str) -> list[dict]:
+def bridge(world: str, model: str) -> list[dict]:
     def entry(ros, gz, ros_type, gz_type, direction):
         return {"ros_topic_name": ros, "gz_topic_name": gz, "ros_type_name": ros_type,
                 "gz_type_name": gz_type, "direction": direction}
@@ -77,11 +74,12 @@ def bridge(world: str) -> list[dict]:
     out = [
         entry("/clock", f"/world/{world}/clock", "rosgraph_msgs/msg/Clock", "gz.msgs.Clock", "GZ_TO_ROS"),
         entry("/dd/down_cam", "/dd/down_cam", "sensor_msgs/msg/Image", "gz.msgs.Image", "GZ_TO_ROS"),
-        entry("/dd/motor_speed", "/dd_quad/command/motor_speed", "actuator_msgs/msg/Actuators",
+        entry("/dd/motor_speed", f"/{model}/command/motor_speed", "actuator_msgs/msg/Actuators",
               "gz.msgs.Actuators", "GZ_TO_ROS"),
     ]
-    for model in ("dd_quad", "dd_pod_1", "dd_pod_2"):
-        out.append(entry(f"/dd/truth/{model}", f"/model/{model}/pose", "geometry_msgs/msg/Pose",
+    # The drone's pose reaches ROS as /dd/truth/drone whichever airframe flies.
+    for ros, gz in (("drone", model), ("dd_pod_1", "dd_pod_1"), ("dd_pod_2", "dd_pod_2")):
+        out.append(entry(f"/dd/truth/{ros}", f"/model/{gz}/pose", "geometry_msgs/msg/Pose",
                          "gz.msgs.Pose", "GZ_TO_ROS"))
     for pod in ("dd_pod_1", "dd_pod_2"):
         for action in ("attach", "detach"):
@@ -111,7 +109,8 @@ def main() -> int:
     rng = random.Random(args.seed)
     sigma = cfg["seeded"]["start_offset_sigma_m"]
     offset = [rng.gauss(0.0, sigma), rng.gauss(0.0, sigma)]
-    for model in ("dd_quad", "dd_pod_1"):
+    model_name = vehicle.get("model", "dd_quad")
+    for model in (model_name, "dd_pod_1"):
         pose = vehicle["spawn"][model]
         pose[0] += offset[0]
         pose[1] += offset[1]
@@ -132,7 +131,7 @@ def main() -> int:
             **common,
             "marker_side_m": scene["marker_side_m"],
             "marker_offset_enu_m": scene["marker_offset_m"],
-            "camera_mount_flu_m": cam["mount_m"],
+            "camera_mount_flu_m": vehicle.get("camera_mount_m", cam["mount_m"]),
             "camera_hfov_rad": cam["horizontal_fov_rad"],
             "corner_noise_px": d["corner_noise_px"],
             "window": d["window"],
@@ -177,6 +176,9 @@ def main() -> int:
         "latch_capture_radius_m": cfg["pads"]["latch_capture_radius_m"],
         "min_detections": d["min_detections"],
         "target_timeout_s": f["target_timeout_s"],
+        "airframe": vehicle.get("airframe", "quad"),
+        "back_transition_m": cfg["vtol"]["back_transition_m"],
+        "transition_timeout_s": cfg["vtol"]["transition_timeout_s"],
     }}
     for name, pid in pads:
         params[f"pad_{name.lower()}"] = {"ros__parameters": {
@@ -212,8 +214,10 @@ def main() -> int:
         "drone_id": DRONE_ID,
         "from_pad": pads[0][1],
         "to_pad": pads[1][1],
-        "motor_constant": X500_MOTOR_CONSTANT * vehicle["thrust_scale"],
-        "rotor_radius_m": X500_ROTOR_RADIUS_M,
+        "motor_constant": vehicle["proxy"]["hover_motor_constant"],
+        "rotor_radius_m": vehicle["proxy"]["hover_rotor_radius_m"],
+        "pusher_motor_constant": vehicle["proxy"]["pusher_motor_constant"],
+        "pusher_radius_m": vehicle["proxy"]["pusher_radius_m"],
         "air_density_kgpm3": AIR_DENSITY_KGPM3,
         "sample_period_s": cfg["logging"]["sample_period_s"],
         "spot_pad_ids": [pid for name, pid in pads for _ in ("IN", "OUT")],
@@ -221,7 +225,7 @@ def main() -> int:
         "spot_enu_m": [c for n in spot_names for c in spots[n]["enu_m"]],
     }}
     (args.run / "ros_params.yaml").write_text(yaml.dump(params, Dumper=NoAliasDumper, sort_keys=False))
-    (args.run / "bridge.yaml").write_text(yaml.dump(bridge(scene["world"]), Dumper=NoAliasDumper,
+    (args.run / "bridge.yaml").write_text(yaml.dump(bridge(scene["world"], model_name), Dumper=NoAliasDumper,
                                                     sort_keys=False))
     print(f"seed {args.seed}: start offset {offset[0]:+.3f}, {offset[1]:+.3f} m")
     return 0

@@ -78,3 +78,11 @@ world:
   # The world is flat: one ground plane at this elevation (spec A54).
   elevation_m: 0.0
   ground_side_m: 6000.0
+
+vtol:
+  # VTOL airframe (run_flight.sh --airframe vtol; Phase 7, spec A91). Placeholders.
+  # Back-transition starts this far (horizontal) before the destination's holding fix: about
+  # the 15 m/s cruise braked at PX4's VT_B_DEC_MSS, plus margin.
+  back_transition_m: 150.0
+  # Time PX4 gets to finish a transition before the visit fails.
+  transition_timeout_s: 40.0

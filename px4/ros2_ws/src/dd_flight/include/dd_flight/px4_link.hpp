@@ -37,6 +37,8 @@ public:
       [this](const VehicleStatus & m) {
         nav_state_ = m.nav_state;
         armed_ = m.arming_state == VehicleStatus::ARMING_STATE_ARMED;
+        fixed_wing_ = m.vehicle_type == VehicleStatus::VEHICLE_TYPE_FIXED_WING;
+        in_transition_ = m.in_transition_mode;
         have_status_ = true;
       });
     pos_sub_ = node.create_subscription<VehicleLocalPosition>(
@@ -83,6 +85,10 @@ public:
     return nav_state_ == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_PRECLAND;
   }
   [[nodiscard]] std::uint8_t nav_state() const {return nav_state_;}
+  // VTOL: flying as a fixed wing, as a multicopter (also any non-VTOL), or between the two.
+  [[nodiscard]] bool fixed_wing() const {return fixed_wing_ && !in_transition_;}
+  [[nodiscard]] bool multicopter() const {return !fixed_wing_ && !in_transition_;}
+  [[nodiscard]] bool in_transition() const {return in_transition_;}
   [[nodiscard]] const Vec3 & position() const {return pos_;}
   [[nodiscard]] const Vec3 & velocity() const {return vel_;}
   [[nodiscard]] double heading() const {return heading_;}
@@ -111,6 +117,12 @@ public:
   void request_offboard() {command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);}
   void arm() {command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 1);}
   void request_precland() {command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_NAV_PRECLAND);}
+  // MAV_VTOL_STATE 4 (fixed wing) or 3 (multicopter).
+  void transition(bool to_fixed_wing)
+  {
+    command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_VTOL_TRANSITION,
+      to_fixed_wing ? 4.0F : 3.0F);
+  }
 
 private:
   void command(std::uint16_t cmd, float p1 = 0.0F, float p2 = 0.0F)
@@ -133,6 +145,7 @@ private:
   rclcpp::Node & node_;
   std::uint8_t nav_state_ = 0;
   bool armed_ = false, landed_ = true, have_status_ = false, pos_valid_ = false, have_ref_ = false;
+  bool fixed_wing_ = false, in_transition_ = false;
   double ref_lat_ = 0.0, ref_lon_ = 0.0;
   Vec3 pos_{}, vel_{};
   double heading_ = 0.0;

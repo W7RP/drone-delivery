@@ -27,7 +27,7 @@ SAMPLE_DTYPE = np.dtype([
     ("t_us", "<u8"), ("pos_ned_m", "<f4", 3), ("vel_ned_mps", "<f4", 3), ("q_ned_frd", "<f4", 4),
     ("motor_radps", "<f4", 4), ("battery_v", "<f4"), ("battery_a", "<f4"),
     ("battery_remaining", "<f4"), ("truth_enu_m", "<f4", 3), ("drone_mode", "u1"),
-    ("nav_state", "u1"), ("arming_state", "u1"), ("pods_latched", "u1"), ("reserved", "u1", 4),
+    ("nav_state", "u1"), ("arming_state", "u1"), ("pods_latched", "u1"), ("pusher_radps", "<f4"),
 ])
 assert SAMPLE_DTYPE.itemsize == 96 and LANE.size == 48
 PX4_SITL = 1

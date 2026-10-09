@@ -7,6 +7,10 @@
 //   Hold     keep streaming a setpoint at a point; never finishes. Ends a leg list that must
 //            leave the vehicle in offboard (holding at a fix, waiting for a marker lock).
 //   Precland hand over to PX4 precision land and wait until landed and disarmed.
+//   FixedWing VTOL only (Phase 7): transition to fixed wing, follow the line from the start to
+//   the target at the target's z (PX4 offboard path setpoint: the point and the track
+//   velocity), and transition back to multicopter once within back_transition_m of the target;
+//   done when PX4 flies as a multicopter again.
 // A leg fails if PX4 leaves the mode the leg needs; the caller then stops commanding.
 #pragma once
 
@@ -24,9 +28,10 @@ namespace dd_flight
 
 struct Leg
 {
-  enum class Kind {kEngage, kVertical, kLine, kHold, kPrecland} kind;
+  enum class Kind {kEngage, kVertical, kLine, kHold, kPrecland, kFixedWing} kind;
   Vec3 target{};          // NED; Line uses x, y and z; Vertical uses x, y, z.
-  double speed_mps = 0;   // Line only.
+  double speed_mps = 0;   // Line and FixedWing.
+  double back_transition_m = 0;  // FixedWing only.
 };
 
 class Maneuver
@@ -40,6 +45,7 @@ public:
     double arrive_radius_m;
     double settle_speed_mps;
     double engage_timeout_s;
+    double transition_timeout_s = 40.0;
   };
 
   Maneuver(Px4Link & px4, Limits limits)
@@ -85,6 +91,7 @@ public:
         require_offboard();
         break;
       case Leg::Kind::kPrecland: done = step_precland(); break;
+      case Leg::Kind::kFixedWing: done = step_fixed_wing(leg); break;
     }
     if (status_ == Status::kFailed) {
       return;
@@ -115,7 +122,9 @@ private:
     }
     const Leg & leg = legs_.front();
     start_ = px4_.position();
-    if (leg.kind == Leg::Kind::kLine) {
+    phase_ = FwPhase::kToFixedWing;
+    phase_start_ = 0.0;
+    if (leg.kind == Leg::Kind::kLine || leg.kind == Leg::Kind::kFixedWing) {
       start_[2] = leg.target[2];
       const double dx = leg.target[0] - start_[0], dy = leg.target[1] - start_[1];
       length_ = std::hypot(dx, dy);
@@ -206,8 +215,61 @@ private:
     return false;
   }
 
+  enum class FwPhase {kToFixedWing, kCruise, kToMulticopter};
+
+  bool step_fixed_wing(const Leg & leg)
+  {
+    const Vec3 & p = px4_.position();
+    const double to_go = std::hypot(leg.target[0] - p[0], leg.target[1] - p[1]);
+    if (!require_offboard()) {return false;}
+    if (phase_ == FwPhase::kToFixedWing || phase_ == FwPhase::kCruise) {
+      // Path setpoint: the target with the track velocity, so PX4 follows the lane line.
+      px4_.setpoint(leg.target, {dir_[0] * leg.speed_mps, dir_[1] * leg.speed_mps, 0.0}, yaw_);
+    } else {
+      px4_.setpoint(leg.target, {kNan, kNan, kNan}, yaw_);
+    }
+    switch (phase_) {
+      case FwPhase::kToFixedWing:
+        if (px4_.fixed_wing()) {
+          next_phase(FwPhase::kCruise);
+        } else if (!px4_.in_transition()) {
+          request_transition(true);
+        }
+        break;
+      case FwPhase::kCruise:
+        if (to_go < leg.back_transition_m) {next_phase(FwPhase::kToMulticopter);}
+        break;
+      case FwPhase::kToMulticopter:
+        if (px4_.multicopter()) {return true;}
+        if (!px4_.in_transition()) {request_transition(false);}
+        break;
+    }
+    if (phase_ != FwPhase::kCruise && leg_time_ - phase_start_ > lim_.transition_timeout_s) {
+      fail(phase_ == FwPhase::kToFixedWing ? "no transition to fixed wing" :
+        "no transition back to multicopter");
+    }
+    return false;
+  }
+
+  void next_phase(FwPhase to)
+  {
+    phase_ = to;
+    phase_start_ = leg_time_;
+    last_request_ = -1e9;
+  }
+
+  void request_transition(bool to_fixed_wing)
+  {
+    if (leg_time_ - last_request_ > kRequestPeriodS) {
+      last_request_ = leg_time_;
+      px4_.transition(to_fixed_wing);
+    }
+  }
+
   Px4Link & px4_;
   Limits lim_;
+  FwPhase phase_ = FwPhase::kToFixedWing;
+  double phase_start_ = 0.0;
   std::deque<Leg> legs_;
   Status status_ = Status::kIdle;
   std::string failure_;

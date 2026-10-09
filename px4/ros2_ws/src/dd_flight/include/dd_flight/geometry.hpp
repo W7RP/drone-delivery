@@ -42,4 +42,11 @@ using Quat = std::array<double, 4>;  // w, x, y, z
 [[nodiscard]] double induced_power_w(
   double omega_radps, double motor_constant, double air_density_kgpm3, double rotor_radius_m);
 
+// Ideal power of a propeller in axial flight (momentum theory, spec A92): thrust T = k w^2,
+// induced velocity v_i = -V/2 + sqrt(V^2/4 + T / (2 rho A)), power T (V + v_i). V is the
+// airspeed along the thrust axis (>= 0); at V = 0 it is induced_power_w.
+[[nodiscard]] double propeller_power_w(
+  double omega_radps, double motor_constant, double air_density_kgpm3, double rotor_radius_m,
+  double axial_speed_mps);
+
 }  // namespace dd_flight

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One delivery visit in PX4 SITL + Gazebo, headless, end to end:
 #   px4/run_flight.sh --payload-kg X --seed N --out <dir> [--speed F] [--timeout S] [--lane-id L]
+#                     [--airframe quad|vtol]
 # Takes off from A's OUT with a pod of X kg, flies lane 3 to B, lands on IN, releases, hops to
 # OUT, latches the pod waiting there, and parks. Writes the logs into <dir>.
 # --seed sets only the injected offsets (start position, detector corner noise); Gazebo and PX4
@@ -8,14 +9,21 @@
 # --speed runs Gazebo and PX4 lockstep at F times real time (default 1).
 # --lane-id flies any directed lane of the Pittsburgh catalog instead of lane 3: its lane record,
 # world and scene are generated into <dir>.
+# --airframe vtol flies the scaled standard VTOL (Phase 7): fixed-wing lane, multicopter at the
+# pads. --timeout defaults to three times the visit's expected wall time; a run that outlasts
+# it is stopped (Gazebo, PX4 and every node) and marked TIMEOUT. The run refuses to start with
+# less than MIN_FREE_GB free.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/sitl.sh
-source "$HERE/lib/sitl.sh"
+MIN_FREE_GB=20
+# Expected visit time: fixed pad and climb time plus the lane at cruise speed (s, sim).
+EXPECTED_FIXED_S=200
+EXPECTED_CRUISE_MPS=15
 
-payload="" seed="" out="" speed=1 timeout_s=1200 lane_id=""
+payload="" seed="" out="" speed=1 timeout_s="" lane_id="" airframe=quad
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --airframe) airframe="$2"; shift ;;
     --payload-kg) payload="$2"; shift ;;
     --seed) seed="$2"; shift ;;
     --out) out="$2"; shift ;;
@@ -28,6 +36,11 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 [[ -n "$payload" && -n "$seed" && -n "$out" ]] || { echo "need --payload-kg, --seed and --out" >&2; exit 2; }
+export AIRFRAME="$airframe"
+# shellcheck source=lib/sitl.sh
+source "$HERE/lib/sitl.sh"
+free_gb=$(df -BG --output=avail "$HERE" | tail -1 | tr -dc 0-9)
+(( free_gb >= MIN_FREE_GB )) || { echo "only ${free_gb} GB free; need ${MIN_FREE_GB}" >&2; exit 1; }
 [[ -x "$HERE/ros2_ws/install/dd_flight/lib/dd_flight/drone_agent_node" ]] \
   || { echo "workspace not built: px4/setup_ws.sh" >&2; exit 1; }
 mkdir -p "$out"
@@ -39,10 +52,14 @@ if [[ -n "$lane_id" ]]; then
     --out-scene "$out/scene.json" > /dev/null
 fi
 
-"$HERE/py.sh" tools/make_vehicle.py --out "$out" --payload-kg "$payload" > /dev/null
+"$HERE/py.sh" tools/make_vehicle.py --out "$out" --payload-kg "$payload" --airframe "$airframe" > /dev/null
+if [[ -z "$timeout_s" ]]; then
+  lane_file="$out/lane.json"; [[ -f "$lane_file" ]] || lane_file="$HERE/config/lane.json"
+  timeout_s=$(python3 -c "import json,sys; L=json.load(open(sys.argv[1]))['length_m']; print(int(3*($EXPECTED_FIXED_S + L/$EXPECTED_CRUISE_MPS)/$speed))" "$lane_file")
+fi
 "$HERE/py.sh" tools/make_ros_params.py --run "$out" --seed "$seed"
-printf '{"payload_kg": %s, "seed": %s, "speed": %s, "started_utc": "%s"}\n' \
-  "$payload" "$seed" "$speed" "$(date -u +%FT%TZ)" > "$out/run.json"
+printf '{"payload_kg": %s, "seed": %s, "speed": %s, "airframe": "%s", "timeout_s": %s, "started_utc": "%s"}\n' \
+  "$payload" "$seed" "$speed" "$airframe" "$timeout_s" "$(date -u +%FT%TZ)" > "$out/run.json"
 
 python3 "$HERE/tools/rss_monitor.py" $$ "$out/rss.json" &
 monitor=$!

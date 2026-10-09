@@ -43,3 +43,28 @@ build-up, and the vehicle hit the ground at 17 m/s. At the lane's 61 m it:
 - transitions back and lands.
 
 No tuning was needed beyond the airspeed parameters in `px4/params/sitl_vtol.params`.
+
+## 2. Delivery visit
+
+`px4/run_flight.sh --airframe vtol` flies the Phase 4 visit with the same pad, fleet manager,
+detector and logger nodes, the same spec messages and logs. Only the lane changes. After the
+multirotor climb (D02) the drone commands a transition to fixed wing and streams an offboard
+path setpoint (the destination's holding fix with the track velocity), so PX4's fixed-wing
+controller follows the lane line. 150 m before the fix (placeholder:
+`px4/config/flight.yaml` `vtol.back_transition_m`) it commands the transition back, and it
+covers the rest as a multirotor (D03). Approach, precision landing, release, hop and latch are
+the Phase 4 multirotor ones. The runner refuses to start under 20 GB free and stops a visit,
+Gazebo, PX4 and nodes included, after three times its expected wall time.
+
+The logger records the VTOL phase changes (MC, TRANSITION_FW, FW, TRANSITION_MC) as events, and
+the pusher command in the sample record (spec 9.5 version_minor 1, in the former reserved
+bytes).
+
+| Run (5 kg, seed 1) | Lane | Wall | Climb | To FW | FW cruise | Back to MC | MC to fix | Approach + landing IN | Landing error IN / OUT | Peak RSS | Validator |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1x | 3, hub to VA Pittsburgh, 2093 m | 273 s | 26.6 s | 8.2 s | 125.2 s | 6.3 s | 12.9 s | 49.7 s | 8.5 / 4.7 cm | 693 MB | pass |
+| 2x | 4, hub to Edgar Thomson, 12 896 m | 499 s | 27.2 s | 8.2 s | 842.7 s | 6.5 s | 12.7 s | 45.2 s | 7.6 / 5.3 cm | 706 MB | pass |
+
+The energy proxy over lane 3 (D02 to D03, transitions included) is 117 kJ, against 314 kJ for
+the multirotor flown the same day. The multirotor still completes its fit-lane visit after
+the node changes and passes the validator, and so does the committed Phase 4 sample log.

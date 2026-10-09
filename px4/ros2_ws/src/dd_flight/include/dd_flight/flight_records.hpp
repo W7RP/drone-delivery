@@ -40,6 +40,7 @@ struct SampleRecord
   float battery_v, battery_a, battery_remaining;
   std::array<float, 3> truth_enu_m;
   std::uint8_t drone_mode, nav_state, arming_state, pods_latched;
+  float pusher_radps;  // version_minor 1: VTOL pusher motor command, 0 on a multirotor
 };
 [[nodiscard]] std::array<std::uint8_t, kSampleRecordBytes> pack(const SampleRecord & r);
 

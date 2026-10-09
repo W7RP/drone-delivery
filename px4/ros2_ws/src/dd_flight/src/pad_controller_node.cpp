@@ -42,7 +42,7 @@ class PadController : public rclcpp::Node
 {
 public:
   PadController()
-  : Node("pad_controller"), bus_(*this, "PAD"), truth_(*this, {"dd_quad", "dd_pod_1", "dd_pod_2"})
+  : Node("pad_controller"), bus_(*this, "PAD"), truth_(*this, {"drone", "dd_pod_1", "dd_pod_2"})
   {
     id_ = static_cast<std::uint16_t>(declare_parameter<int>("pad_id"));
     const auto in = declare_parameter<std::vector<double>>("in_enu_m");
@@ -108,8 +108,8 @@ private:
 
   [[nodiscard]] bool drone_on(const Vec3 & spot) const
   {
-    const Vec3 p = truth_.enu("dd_quad");
-    return truth_.horizontal_distance("dd_quad", spot[0], spot[1]) <= spot_radius_ && p[2] < 0.5;
+    const Vec3 p = truth_.enu("drone");
+    return truth_.horizontal_distance("drone", spot[0], spot[1]) <= spot_radius_ && p[2] < 0.5;
   }
 
   // A pod resting on IN (not hanging in a latch): close to the spot and down on the slab.
@@ -250,7 +250,7 @@ private:
       bus_.send(to_drone("HOP_CMD", verify_drone_));
     } else if (v.state == "VERIFY_LOCK") {
       const std::string pod = "dd_pod_" + std::to_string(out_pod_);
-      const Vec3 d = truth_.enu("dd_quad");
+      const Vec3 d = truth_.enu("drone");
       if (!(v.locked && truth_.horizontal_distance(pod, d[0], d[1]) <= capture_m_)) {
         fail("lock not verified (V29/V30)");
         return;
