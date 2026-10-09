@@ -1,0 +1,16 @@
+name = "vtol_heldout"
+source = "px4-sitl-proxy"
+
+[drone]
+airframe = "VTOL"
+cruise_speed_mps = { value = 15.2112, unit = "m/s", assumption = true }
+cruise_power_ref_w = { value = 556.4254, unit = "W", assumption = true }
+hover_power_ref_w = { value = 1472.485, unit = "W", assumption = true }
+power_ref_mass_kg = { value = 14.6, unit = "kg", assumption = true }
+takeoff_s = { value = 26.2127, unit = "s", assumption = true }
+approach_s = { value = 49.876, unit = "s", assumption = true }
+hop_s = { value = 24.158, unit = "s", assumption = true }
+transition_s = { value = 14.3041, unit = "s", assumption = true }
+transition_power_ref_w = { value = 2657.8116, unit = "W", assumption = true }
+cruise_mass_exponent = { value = 1.2115, unit = "1", assumption = true }
+mtow_kg = { value = 16.0, unit = "kg", assumption = true }
