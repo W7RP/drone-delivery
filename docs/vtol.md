@@ -331,3 +331,88 @@ pipeline) with every realism key on:
 
 For weather, the four lift rotors' disc area is 0.40 m2 and the airspeed limit is
 `FW_AIRSPD_MAX` (22 m/s). The other weather limits stay the 6b demo's placeholders.
+
+## 10. Results
+
+`uv run analysis/vtol_year.py` (about 10 s) runs both demos over all 156 complete weeks of the
+weather series, seeds 1 and 2, under both hold policies, with order outcomes on. The
+multirotor run is the 6b demo with only `metrics.order_outcomes` added; the VTOL run is
+`parts_logistics_pittsburgh_vtol_demo`. Both ratios are network door-to-door over the truck
+baseline, order-weighted per week. The lower bound also counts every unfinished order at its
+time to the end of the run. Values are medians over weeks (p10 to p90). Full tables are in
+`analysis/out/vtol_year.md`; two runs give byte-identical output.
+
+| Demo | Policy | Ratio, delivered | Ratio, lower bound | Completion |
+|---|---|---|---|---|
+| Multirotor, 6b as published | WAIT | 0.56 (0.26 to 6.61) | - | 97.8% (61.1% to 98.5%) completed share |
+| Multirotor, rerun completion-aware | WAIT | 0.59 (0.27 to 7.15) | 0.61 (0.27 to 8.02) | 97.7% (60.7% to 98.5%) |
+| VTOL | WAIT | 5.16 (1.48 to 16.89) | 6.27 (1.57 to 37.43) | 63.1% (14.4% to 94.0%) |
+| Multirotor, 6b as published | TRUCK_FALLBACK | 0.41 (0.26 to 6.31) | - | 98.2% (68.4% to 98.6%) completed share |
+| Multirotor, rerun completion-aware | TRUCK_FALLBACK | 0.42 (0.27 to 6.19) | 0.43 (0.27 to 6.56) | 98.1% (67.9% to 98.6%) |
+| VTOL (the demo's policy) | TRUCK_FALLBACK | 0.98 (0.63 to 1.36) | 0.98 (0.62 to 1.36) | 98.5% (98.1% to 98.8%) |
+
+The 6b-published and rerun columns differ slightly because the rerun pools two seeds per week
+(order-weighted) where 6b averaged three seeds' ratios. Flyable hours are the same for both
+demos: 96.4% median (85.7% to 100%).
+
+Outcome breakdown over the year (share of all requests):
+
+| Demo | Policy | Drone | Truck | Rejected at cap | Blocked, weather | Blocked, energy | Waiting | Diverted or failed |
+|---|---|---|---|---|---|---|---|---|
+| Multirotor | WAIT | 87.2% | 0.0% | 10.7% | 0.2% | 0.2% | 0.1% | 1.5% |
+| Multirotor | TRUCK_FALLBACK | 85.7% | 4.9% | 7.4% | 0.0% | 0.2% | 0.1% | 1.4% |
+| VTOL | WAIT | 57.6% | 0.0% | 37.1% | 0.2% | 1.5% | 0.2% | 3.4% |
+| VTOL | TRUCK_FALLBACK | 71.8% | 26.7% | 0.0% | 0.0% | 0.2% | 0.0% | 1.2% |
+
+The VTOL network reaches Mon Valley but is slower overall. Under TRUCK_FALLBACK its median ratio
+is 0.98 against the multirotor's 0.42, though its spread is far narrower: it never has a week
+like the multirotor's p90 of 6.19. Under WAIT it is worse than the multirotor in most weeks.
+
+Why: 90% of the VTOL's trucked orders (100 274 of 111 696) are on the four flows to Edgar
+Thomson and Josh Steel. The battery was sized for the longest lane in still air at 20 C with no
+margin (section 8). Any headwind (cruise power rises with airspeed, A93) or cold (the derate
+below 20 C, A81) blocks those routes for the hour (A89), and their orders wait for the
+fallback timeout and go by truck. Turning the cold derate off in the three named weeks cuts the
+trucked orders by 25 to 29%, so cold is part of it and wind the larger part. That diagnostic
+was a one-off check and is not in the committed outputs.
+
+Mon Valley flows of the VTOL demo over the year, TRUCK_FALLBACK:
+
+| Flow | Drone orders | Drone door-to-door | Truck baseline | Ratio | Trucked orders | Trucked door-to-door |
+|---|---|---|---|---|---|---|
+| Hub to Edgar Thomson | 11 157 | 1640 s | 2912 s | 0.56 | 31 661 | 6548 s |
+| Hub to Josh Steel | 19 065 | 1403 s | 2719 s | 0.52 | 21 329 | 6385 s |
+| Achieva to Edgar Thomson | 11 548 | 1575 s | 2869 s | 0.55 | 27 937 | 6534 s |
+| Achieva to Josh Steel | 19 532 | 1365 s | 2688 s | 0.51 | 19 347 | 6373 s |
+
+When the drone flies these flows it takes about half the truck's time; most of their orders do
+not fly. Under WAIT the same flows average 5 to 13 times the truck. The multirotor network has no
+Mon Valley pads, so these flows go by truck there.
+
+Named weeks (TRUCK_FALLBACK; the WAIT rows are in `analysis/out/vtol_year.md`). The split covers
+drone-delivered orders, in seconds, next to their truck baseline:
+
+| Week | Demo | Drone / trucked | Completion | Pod wait | Queue | Pad service | Flight | Door-to-door | Truck | Ratio, delivered |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2023-10-23, median wind | Multirotor | 2468 / 189 | 97.4% | 118 | 172 | 147 | 152 | 589 | 1919 | 0.49 |
+| | VTOL | 1847 / 781 | 98.1% | 158 | 150 | 145 | 286 | 739 | 2094 | 1.06 |
+| 2024-01-08, windiest | Multirotor | 691 / 748 | 52.7% | 10345 | 2649 | 232 | 152 | 13379 | 1951 | 13.20 |
+| | VTOL | 1359 / 1270 | 98.1% | 155 | 345 | 168 | 184 | 853 | 1957 | 1.54 |
+| 2025-01-20, coldest | Multirotor | 519 / 1404 | 70.5% | 6629 | 1324 | 203 | 148 | 8304 | 1880 | 6.83 |
+| | VTOL | 753 / 1906 | 99.3% | 125 | 78 | 129 | 169 | 501 | 1915 | 1.97 |
+
+The 6b demo has no energy route guard; the VTOL demo does. That explains most of why the VTOL
+completes 98 to 99% of the windiest and coldest weeks where the multirotor completes 53 to 71%:
+with the guard and TRUCK_FALLBACK, the multirotor demo also completes 98 to 99% of those weeks
+(Part A, analysis/out/completion.md).
+
+## 11. Known limitations
+
+- All energies are SITL proxies (A57, A92); SITL has no power model.
+- The VTOL battery has no margin for wind or cold on its longest routes (section 10). Sizing it
+  for a cold, windy hour would serve Mon Valley more often; that is not done here.
+- Clairton and Old Koppers are in the network but get no flows (section 8).
+- The wind check found PX4's SITL airspeed ground-referenced and the OUT landing the weak point
+  in a crosswind (section 6). Nothing in the sim is calibrated from it.
+- The scaled airframe keeps the stock model's geometry and gains (A91). It is not a real
+  product.

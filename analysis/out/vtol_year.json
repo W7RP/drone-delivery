@@ -1,0 +1,508 @@
+{
+ "seeds": [
+  1,
+  2
+ ],
+ "mon_valley_pads": [
+  "Josh_Steel",
+  "Mon_Valley_Works_Clairton_Plant",
+  "Mon_Valley_Works_Edgar_Thomson_P",
+  "Old_Koppers_Area"
+ ],
+ "weeks": 156,
+ "named_weeks": {
+  "median wind": 42,
+  "windiest": 53,
+  "coldest": 107
+ },
+ "bases": {
+  "multirotor": {
+   "WAIT": {
+    "ratio_delivered": {
+     "mean": 5.877674710352055,
+     "p10": 0.2662981433446547,
+     "p50": 0.5948151763267975,
+     "p90": 7.147282835391546,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "ratio_lower_bound": {
+     "mean": 6.943779139646049,
+     "p10": 0.2661251116356334,
+     "p50": 0.6074116766763502,
+     "p90": 8.01745990984343,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "completion_rate": {
+     "mean": 0.8722859801488835,
+     "p10": 0.606708211143695,
+     "p50": 0.9765395894428153,
+     "p90": 0.9853372434017595,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "flyable": {
+     "mean": 0.9400813757101182,
+     "p10": 0.8574850299401199,
+     "p50": 0.9640718562874252,
+     "p90": 1.0,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "requests": 425568,
+    "outcome_share": {
+     "delivered_drone": 0.8722859801488834,
+     "delivered_truck": 0.0,
+     "rejected_cap": 0.10685718851041431,
+     "blocked_weather": 0.0015414692834047673,
+     "blocked_energy": 0.002366249342055794,
+     "in_flight": 0.00041356492969396195,
+     "waiting": 0.0014780246635085344,
+     "diverted_or_failed": 0.015057523122039252
+    },
+    "named": {
+     "median wind": {
+      "monday": "2023-10-23",
+      "drone_delivered": 2468,
+      "door_to_door_s": 588.5771065640195,
+      "truck_s": 1919.0139801458677,
+      "pod_wait_s": 118.15000121555913,
+      "queue_s": 171.67221920583486,
+      "pad_service_s": 147.13123460291743,
+      "flight_s": 151.623651539708,
+      "ratio_delivered": 0.3067080868891225,
+      "ratio_lower_bound": 0.9087164693419559,
+      "completion_rate": 0.9046920821114369,
+      "delivered_truck": 0,
+      "requests": 2728
+     },
+     "windiest": {
+      "monday": "2024-01-08",
+      "drone_delivered": 968,
+      "door_to_door_s": 21169.87965805785,
+      "truck_s": 1922.4190206611568,
+      "pod_wait_s": 17944.40785640496,
+      "queue_s": 2829.6303853305785,
+      "pad_service_s": 243.44193698347107,
+      "flight_s": 152.39947933884304,
+      "ratio_delivered": 11.012104765160469,
+      "ratio_lower_bound": 21.709845417332986,
+      "completion_rate": 0.3548387096774194,
+      "delivered_truck": 0,
+      "requests": 2728
+     },
+     "coldest": {
+      "monday": "2025-01-20",
+      "drone_delivered": 501,
+      "door_to_door_s": 74435.7000998004,
+      "truck_s": 1891.165379241517,
+      "pod_wait_s": 70552.6872235529,
+      "queue_s": 3540.72282235529,
+      "pad_service_s": 192.97208183632733,
+      "flight_s": 149.31797205588822,
+      "ratio_delivered": 39.35969900720902,
+      "ratio_lower_bound": 35.463047660558935,
+      "completion_rate": 0.18365102639296188,
+      "delivered_truck": 0,
+      "requests": 2728
+     }
+    },
+    "mon_valley": []
+   },
+   "TRUCK_FALLBACK": {
+    "ratio_delivered": {
+     "mean": 2.13215811712438,
+     "p10": 0.2662981433446547,
+     "p50": 0.4151713353919462,
+     "p90": 6.190997823679991,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "ratio_lower_bound": {
+     "mean": 2.2768770080777836,
+     "p10": 0.2661251116356334,
+     "p50": 0.43257808455877217,
+     "p90": 6.55974148006658,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "completion_rate": {
+     "mean": 0.9065178772840062,
+     "p10": 0.6791422287390029,
+     "p50": 0.9805718475073315,
+     "p90": 0.9860703812316715,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "flyable": {
+     "mean": 0.9400813757101182,
+     "p10": 0.8574850299401199,
+     "p50": 0.9640718562874252,
+     "p90": 1.0,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "requests": 425568,
+    "outcome_share": {
+     "delivered_drone": 0.8574140912850591,
+     "delivered_truck": 0.04910378599894729,
+     "rejected_cap": 0.0744886833596511,
+     "blocked_weather": 0.00038771712158808936,
+     "blocked_energy": 0.0023568501391082034,
+     "in_flight": 0.0004582111436950147,
+     "waiting": 0.0013675840288743515,
+     "diverted_or_failed": 0.014423076923076924
+    },
+    "named": {
+     "median wind": {
+      "monday": "2023-10-23",
+      "drone_delivered": 2468,
+      "door_to_door_s": 588.5771065640195,
+      "truck_s": 1919.0139801458677,
+      "pod_wait_s": 118.15000121555913,
+      "queue_s": 171.67221920583486,
+      "pad_service_s": 147.13123460291743,
+      "flight_s": 151.623651539708,
+      "ratio_delivered": 0.48967810727007616,
+      "ratio_lower_bound": 0.5096578616349049,
+      "completion_rate": 0.9739736070381232,
+      "delivered_truck": 189,
+      "requests": 2728
+     },
+     "windiest": {
+      "monday": "2024-01-08",
+      "drone_delivered": 691,
+      "door_to_door_s": 13378.947729377714,
+      "truck_s": 1951.45913748191,
+      "pod_wait_s": 10345.496305354558,
+      "queue_s": 2649.2168813314033,
+      "pad_service_s": 231.9418509406657,
+      "flight_s": 152.29269175108544,
+      "ratio_delivered": 13.197828879505236,
+      "ratio_lower_bound": 13.03665388236102,
+      "completion_rate": 0.5274926686217009,
+      "delivered_truck": 748,
+      "requests": 2728
+     },
+     "coldest": {
+      "monday": "2025-01-20",
+      "drone_delivered": 519,
+      "door_to_door_s": 8304.193458574182,
+      "truck_s": 1879.6870366088635,
+      "pod_wait_s": 6629.453021194605,
+      "queue_s": 1323.8904489402698,
+      "pad_service_s": 202.75010597302503,
+      "flight_s": 148.09988246628131,
+      "ratio_delivered": 6.825379942811245,
+      "ratio_lower_bound": 6.737822543955882,
+      "completion_rate": 0.7049120234604106,
+      "delivered_truck": 1404,
+      "requests": 2728
+     }
+    },
+    "mon_valley": []
+   }
+  },
+  "vtol": {
+   "WAIT": {
+    "ratio_delivered": {
+     "mean": 7.529438078508106,
+     "p10": 1.4829126051819461,
+     "p50": 5.155745114104798,
+     "p90": 16.889361517956328,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "ratio_lower_bound": {
+     "mean": 15.02186723413348,
+     "p10": 1.5701293969743833,
+     "p50": 6.26670359793233,
+     "p90": 37.433151361004846,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "completion_rate": {
+     "mean": 0.5762363491926762,
+     "p10": 0.1442329227323628,
+     "p50": 0.6313923105636432,
+     "p90": 0.9399029488615154,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "flyable": {
+     "mean": 0.9400813757101182,
+     "p10": 0.8574850299401199,
+     "p50": 0.9640718562874252,
+     "p90": 1.0,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "requests": 417924,
+    "outcome_share": {
+     "delivered_drone": 0.5762363491926762,
+     "delivered_truck": 0.0,
+     "rejected_cap": 0.37086647333007916,
+     "blocked_weather": 0.0015720561633215608,
+     "blocked_energy": 0.015383179716886323,
+     "in_flight": 0.00038763028684641226,
+     "waiting": 0.002000363702491362,
+     "diverted_or_failed": 0.03355394760769901
+    },
+    "named": {
+     "median wind": {
+      "monday": "2023-10-23",
+      "drone_delivered": 1769,
+      "door_to_door_s": 10854.9947196156,
+      "truck_s": 2211.585541548898,
+      "pod_wait_s": 9233.516736009044,
+      "queue_s": 1043.6763657433578,
+      "pad_service_s": 201.4156896551724,
+      "flight_s": 376.38592820802717,
+      "ratio_delivered": 4.908240950071161,
+      "ratio_lower_bound": 5.6499083948264746,
+      "completion_rate": 0.6603210153042179,
+      "delivered_truck": 0,
+      "requests": 2679
+     },
+     "windiest": {
+      "monday": "2024-01-08",
+      "drone_delivered": 182,
+      "door_to_door_s": 32499.14833516484,
+      "truck_s": 2016.4537472527472,
+      "pod_wait_s": 25559.623950549452,
+      "queue_s": 6522.493934065934,
+      "pad_service_s": 184.16442857142857,
+      "flight_s": 232.866021978022,
+      "ratio_delivered": 16.116981795115436,
+      "ratio_lower_bound": 77.7943629619165,
+      "completion_rate": 0.0679357969391564,
+      "delivered_truck": 0,
+      "requests": 2679
+     },
+     "coldest": {
+      "monday": "2025-01-20",
+      "drone_delivered": 189,
+      "door_to_door_s": 94273.10746031745,
+      "truck_s": 2000.4781481481482,
+      "pod_wait_s": 84602.45816931217,
+      "queue_s": 9269.418915343913,
+      "pad_service_s": 192.85798412698412,
+      "flight_s": 208.37239153439157,
+      "ratio_delivered": 47.125287295733024,
+      "ratio_lower_bound": 63.280661563317494,
+      "completion_rate": 0.07054871220604703,
+      "delivered_truck": 0,
+      "requests": 2679
+     }
+    },
+    "mon_valley": [
+     {
+      "origin": "Consumer_Fresh_Produce",
+      "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+      "drone_n": 19537,
+      "trucked_n": 0,
+      "drone_s": 39054.9689646824,
+      "truck_s": 2921.1457096790705,
+      "trucked_s": null
+     },
+     {
+      "origin": "Consumer_Fresh_Produce",
+      "destination": "Josh_Steel",
+      "drone_n": 22279,
+      "trucked_n": 0,
+      "drone_s": 16220.076406167254,
+      "truck_s": 2719.3989378787214,
+      "trucked_s": null
+     },
+     {
+      "origin": "Achieva_Mailing_Service",
+      "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+      "drone_n": 19750,
+      "trucked_n": 0,
+      "drone_s": 37986.289496303805,
+      "truck_s": 2857.29845073418,
+      "trucked_s": null
+     },
+     {
+      "origin": "Achieva_Mailing_Service",
+      "destination": "Josh_Steel",
+      "drone_n": 22345,
+      "trucked_n": 0,
+      "drone_s": 14005.379141642423,
+      "truck_s": 2687.9691014097107,
+      "trucked_s": null
+     }
+    ]
+   },
+   "TRUCK_FALLBACK": {
+    "ratio_delivered": {
+     "mean": 0.9958452137135934,
+     "p10": 0.6254310374535612,
+     "p50": 0.9804222779496984,
+     "p90": 1.3649109480094261,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "ratio_lower_bound": {
+     "mean": 0.9950706934219236,
+     "p10": 0.6249946224499079,
+     "p50": 0.9801106303433048,
+     "p90": 1.3624055859168915,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "completion_rate": {
+     "mean": 0.9851073400905427,
+     "p10": 0.9813363195222097,
+     "p50": 0.9854423292273238,
+     "p90": 0.9884285181037701,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "flyable": {
+     "mean": 0.9400813757101182,
+     "p10": 0.8574850299401199,
+     "p50": 0.9640718562874252,
+     "p90": 1.0,
+     "weeks": 156,
+     "weeks_without_value": 0
+    },
+    "requests": 417924,
+    "outcome_share": {
+     "delivered_drone": 0.7178434356485868,
+     "delivered_truck": 0.26726390444195597,
+     "rejected_cap": 3.589169322651966e-05,
+     "blocked_weather": 0.00043070031871823584,
+     "blocked_energy": 0.0022731405710129113,
+     "in_flight": 0.0003613097118136312,
+     "waiting": 0.00024884907303720296,
+     "diverted_or_failed": 0.01154276854164872
+    },
+    "named": {
+     "median wind": {
+      "monday": "2023-10-23",
+      "drone_delivered": 1847,
+      "door_to_door_s": 738.752736870601,
+      "truck_s": 2093.6706740660534,
+      "pod_wait_s": 158.16663021115323,
+      "queue_s": 149.6888132106119,
+      "pad_service_s": 144.92297292907415,
+      "flight_s": 285.9743205197618,
+      "ratio_delivered": 1.0555487766538665,
+      "ratio_lower_bound": 1.0549172976224452,
+      "completion_rate": 0.9809630459126539,
+      "delivered_truck": 781,
+      "requests": 2679
+     },
+     "windiest": {
+      "monday": "2024-01-08",
+      "drone_delivered": 1359,
+      "door_to_door_s": 852.6773576158942,
+      "truck_s": 1956.5877402501844,
+      "pod_wait_s": 155.27098454746135,
+      "queue_s": 345.4379220014718,
+      "pad_service_s": 167.70061221486387,
+      "flight_s": 184.26783885209701,
+      "ratio_delivered": 1.5432198695255734,
+      "ratio_lower_bound": 1.5391139486293135,
+      "completion_rate": 0.9813363195222098,
+      "delivered_truck": 1270,
+      "requests": 2679
+     },
+     "coldest": {
+      "monday": "2025-01-20",
+      "drone_delivered": 753,
+      "door_to_door_s": 501.20331739707837,
+      "truck_s": 1915.047857901727,
+      "pod_wait_s": 124.71206640106242,
+      "queue_s": 78.24861221779548,
+      "pad_service_s": 129.442561752988,
+      "flight_s": 168.80007702523244,
+      "ratio_delivered": 1.9676250833547055,
+      "ratio_lower_bound": 1.9630480890551596,
+      "completion_rate": 0.992534527808884,
+      "delivered_truck": 1906,
+      "requests": 2679
+     }
+    },
+    "mon_valley": [
+     {
+      "origin": "Consumer_Fresh_Produce",
+      "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+      "drone_n": 11157,
+      "trucked_n": 31661,
+      "drone_s": 1639.7154970870304,
+      "truck_s": 2912.2511675181504,
+      "trucked_s": 6548.215465620171
+     },
+     {
+      "origin": "Consumer_Fresh_Produce",
+      "destination": "Josh_Steel",
+      "drone_n": 19065,
+      "trucked_n": 21329,
+      "drone_s": 1403.3801708890635,
+      "truck_s": 2718.8937389457124,
+      "trucked_s": 6385.279399456139
+     },
+     {
+      "origin": "Achieva_Mailing_Service",
+      "destination": "Mon_Valley_Works_Edgar_Thomson_P",
+      "drone_n": 11548,
+      "trucked_n": 27937,
+      "drone_s": 1574.84420756841,
+      "truck_s": 2869.4782914790467,
+      "trucked_s": 6534.419484840891
+     },
+     {
+      "origin": "Achieva_Mailing_Service",
+      "destination": "Josh_Steel",
+      "drone_n": 19532,
+      "trucked_n": 19347,
+      "drone_s": 1364.7762051505224,
+      "truck_s": 2688.110884190046,
+      "trucked_s": 6372.7489140435155
+     }
+    ]
+   }
+  }
+ },
+ "published_6b": {
+  "WAIT": {
+   "ratio": {
+    "mean": 3.171437510751765,
+    "p10": 0.26001086238537874,
+    "p50": 0.558725467636204,
+    "p90": 6.61385745656643,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "completed_share": {
+    "mean": 0.8749209115784709,
+    "p10": 0.6110174022979915,
+    "p50": 0.9784538582946756,
+    "p90": 0.9854721341416518,
+    "weeks": 156,
+    "weeks_without_value": 0
+   }
+  },
+  "TRUCK_FALLBACK": {
+   "ratio": {
+    "mean": 2.135927452492259,
+    "p10": 0.2600269293579965,
+    "p50": 0.40617252616430105,
+    "p90": 6.3090697407298935,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "completed_share": {
+    "mean": 0.908685601259055,
+    "p10": 0.6838808327879367,
+    "p50": 0.9822917484476049,
+    "p90": 0.9860232905255476,
+    "weeks": 156,
+    "weeks_without_value": 0
+   }
+  }
+ }
+}
