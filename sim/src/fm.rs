@@ -825,7 +825,8 @@ pub fn truck_baseline(
             let pair = usize::from(origin) * net.n_pads + usize::from(dest);
             #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             let day = (local_s / SECONDS_PER_DAY).floor() as u64;
-            let slow = tr.multiplier(fractions, pair, tr.is_weekend(day), hour);
+            let (hour, weekend) = tr.local_clock(t_dep).unwrap_or((hour, tr.is_weekend(day)));
+            let slow = tr.multiplier(fractions, pair, weekend, hour);
             net.truck_s(origin, dest) * slow / speed_factor
                 + tr.incident_delay_s(master, pair, t_dep)
         }

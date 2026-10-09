@@ -1074,6 +1074,9 @@
         },
         "incident_delay_sigma": {
           "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "start_unix_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
         }
       }
     }

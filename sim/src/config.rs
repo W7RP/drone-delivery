@@ -27,7 +27,7 @@ pub const SCHEMA_VERSION: &str = "1.9.0";
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
 const COMPATIBLE_VERSIONS: [&str; 5] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 20] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 21] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -48,6 +48,7 @@ const VERSIONED_KEYS: [(&str, &str, &str); 20] = [
     ("", "traffic", "1.8.0"),
     ("metrics", "order_outcomes", "1.9.0"),
     ("weather", "energy_route_guard", "1.9.0"),
+    ("traffic", "start_unix_s", "1.9.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
@@ -1543,6 +1544,7 @@ fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
         "incident_rate_per_pair_h",
         "incident_delay_median_s",
         "incident_delay_sigma",
+        "start_unix_s",
     ])?;
     let shape = |key: &str| -> Result<[f64; HOURS_PER_DAY]> {
         let Value::Array(items) = t.get(key)? else {
@@ -1571,8 +1573,23 @@ fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
         delay("peak_delay_other")?,
         delay("peak_delay_structure")?,
     ];
+    let start_weekday: u8 = narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?;
+    let start_unix_s = if t.has("start_unix_s") {
+        #[allow(clippy::cast_possible_truncation)]
+        let s = t.quantity("start_unix_s", "s", Range::NonNeg)?.round() as i64;
+        let local_day = crate::traffic::eastern_local_s(s).div_euclid(86_400);
+        if crate::traffic::weekday(local_day) != u64::from(start_weekday) {
+            return err(
+                "traffic.start_weekday: R23 must be the US Eastern weekday of traffic.start_unix_s",
+            );
+        }
+        Some(s)
+    } else {
+        None
+    };
     Ok(TrafficCfg {
-        start_weekday: narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?,
+        start_weekday,
+        start_unix_s,
         weekday_shape: shape("weekday_shape")?,
         weekend_shape: shape("weekend_shape")?,
         peak_delay,

@@ -403,3 +403,13 @@ In the two bad weeks of section 8 the guard with TRUCK_FALLBACK at 1800 s comple
 the guard alone helps less (41.5% and 21.4% completed). Blocked routes still hold their
 shipments, and the backlog cap rejects most requests. The shortest timeout is again best.
 Shipments already latched when their route becomes blocked stay with their drone (A89).
+
+## 10. Traffic in local time (Phase 7)
+
+Section 7's weeks carried the UTC offset of their Monday midnight, so in a week with a
+daylight-saving change traffic peaks moved an hour (A87). With `traffic.start_unix_s` (spec
+2.11, A90) traffic reads US Eastern local time, daylight saving included, from the UTC instant
+of t = 0. `sim/tests/traffic.rs` runs the week of the 2024 spring-forward and finds the peak at
+08:00 local on the Friday before (13:00 UTC) and the Monday after (12:00 UTC), with none at
+09:00 local. The local-time conversion is checked against the time-zone database at both 2024
+changes. Weather still steps through UTC hours, which is what the series holds.

@@ -305,7 +305,9 @@ weekend, with `local_s = sim.start_time_of_day_s + t_dep / 1000`. Every
 `truck.tod_speed_factors[]` entry must then be 1 (R22). Incidents (A86): each directed pair and run hour has a Poisson
 number of incidents at `traffic.incident_rate_per_pair_h` (at most 16), each adding a
 lognormal delay with median `traffic.incident_delay_median_s` and log-spread
-`traffic.incident_delay_sigma`, drawn from the TRAFFIC stream (5.4).
+`traffic.incident_delay_sigma`, drawn from the TRAFFIC stream (5.4). With
+`traffic.start_unix_s`, h and the day of week come from US Eastern local time of
+`start_unix_s + t_dep / 1000` instead, daylight saving included (A90).
 
 ## 3 Pad state machine
 
@@ -1137,6 +1139,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | traffic.incident_rate_per_pair_h | 1/h | Incidents per directed pad pair and hour (A86). |
 | traffic.incident_delay_median_s | s | Median delay one incident adds. |
 | traffic.incident_delay_sigma | 1 | Log-spread of that delay. |
+| traffic.start_unix_s | s | 1.9.0, optional. UTC instant of t = 0, s since 1970-01-01. With it, the hour and day of 2.11 are US Eastern local time with daylight saving (A90), and `traffic.start_weekday` must be its local weekday (R23). |
 
 ### 8.3 Cross-field rules
 
@@ -1170,6 +1173,8 @@ Checked at load by the core and by `scripts/check_spec.py`:
   density (else no parasitic term can fit, A77).
 - R21 `weather.landing_max_wind_mps` >= `weather.max_wind_mps` and
   `weather.landing_max_gust_mps` >= `weather.max_gust_mps`.
+- R23 With `traffic.start_unix_s`, `traffic.start_weekday` is the US Eastern weekday of that
+  instant.
 - R22 `[traffic]` requires `truck.matrix_source` = FILE with a `truck_matrix.bin` of
   version_minor 2 or above, and every `truck.tod_speed_factors[]` entry = 1.
 
@@ -1738,6 +1743,9 @@ that:
   warehouse, and their pods fill the OUT spots ahead of shipments that could still fly (Phase
   7). The guard checks the route when assigning and placing. A shipment already assigned or
   latched when its route becomes blocked stays with its drone until the route clears.
+- A90 US Eastern local time is computed from the US rules in force since 2007 (UTC-5; UTC-4
+  from 02:00 local on the second Sunday of March to 02:00 local on the first Sunday of
+  November), not from a time-zone database; it covers the 2023 to 2025 series.
 
 ## 11 Amendments
 
@@ -1755,4 +1763,4 @@ that:
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
 | 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. Traffic: 2.11, `truck_matrix.bin` version_minor 2 with road-class and bridge/tunnel fractions (9.2; minor-1 files still load), `[traffic]` keys, R22, TRAFFIC stream (5.4); A84 to A87. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck; and road traffic for the truck, which the brief asks to model by road class from the pipeline's own routes, with no live data. |
-| 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; and cold, though checked per route, stopped every route through stranded drones and blocked OUT spots. |
+| 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. `traffic.start_unix_s` and R23, US Eastern local time for traffic; A90. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; cold, though checked per route, stopped every route through stranded drones and blocked OUT spots; and traffic peaks moved an hour with daylight saving (A87). |

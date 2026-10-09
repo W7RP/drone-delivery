@@ -193,3 +193,47 @@ fn traffic_needs_flat_time_of_day_factors() {
         .expect("rejected");
     assert!(e.to_string().contains("R22"), "{e}");
 }
+
+/// Monday 2024-03-04 00:00 EST; the week holds the spring-forward change (Sunday 2024-03-10).
+const SPRING_WEEK_UNIX_S: f64 = 1_709_528_400.0;
+
+#[test]
+fn peaks_stay_at_the_same_local_clock_time_across_spring_forward() {
+    let mut t = with_traffic(0.0);
+    let Some(Value::Table(tr)) = t.get_mut("traffic") else {
+        panic!("traffic section")
+    };
+    tr.insert("start_unix_s".into(), quantity(SPRING_WEEK_UNIX_S, "s"));
+    common::set(&mut t, "schema_version", "1.9.0");
+    let s = load(&t);
+    let night = drive_s(&s, 1, 3 * HOUR_MS);
+    // 08:00 local is 13:00 UTC on Friday (EST) and 12:00 UTC on Monday (EDT).
+    let friday_peak = drive_s(&s, 1, 4 * DAY_MS + PEAK_HOUR as u64 * HOUR_MS);
+    let monday_peak = drive_s(&s, 1, 7 * DAY_MS + (PEAK_HOUR as u64 - 1) * HOUR_MS);
+    let monday_hour_after = drive_s(&s, 1, 7 * DAY_MS + PEAK_HOUR as u64 * HOUR_MS);
+    assert!(friday_peak > night * 1.05);
+    assert!(
+        (monday_peak - friday_peak).abs() < 1e-3,
+        "peak at 08:00 local after the change"
+    );
+    assert!(
+        (monday_hour_after - night).abs() < 1e-3,
+        "09:00 local has no peak"
+    );
+}
+
+#[test]
+fn start_unix_s_must_agree_with_start_weekday() {
+    let mut t = with_traffic(0.0);
+    common::set(&mut t, "schema_version", "1.9.0");
+    let Some(Value::Table(tr)) = t.get_mut("traffic") else {
+        panic!("traffic section")
+    };
+    tr.insert("start_weekday".into(), quantity(2, "count"));
+    tr.insert("start_unix_s".into(), quantity(SPRING_WEEK_UNIX_S, "s"));
+    let text = toml::to_string(&t).expect("serialise");
+    let e = Scenario::from_toml_in(&text, Some(Path::new(SCENARIO_DIR)))
+        .err()
+        .expect("rejected");
+    assert!(e.to_string().contains("R23"), "{e}");
+}
