@@ -167,3 +167,34 @@ and transition times grow slightly with payload (p = 0.051 and 0.064), so they s
 
 Leaving a payload out costs at most 1.5% in time and 4.8% in energy. The fit was committed
 before the held-out flights were flown.
+
+## 5. Held-out flights
+
+`px4/tools/run_batch.sh vtol_held vtolheld_4_1 vtolheld_4_2 vtolheld_45_1 vtolheld_45_2` flies
+5 kg at 2x on two lanes the fit never saw: lane 4, hub to Edgar Thomson (12 896 m, the longest
+legal lane under the VTOL profile), and lane 45, Clairton to Old Koppers (1180 m, the shortest
+Mon Valley lane); seeds 1 and 2. `pipeline/run.sh calib vtol_heldout` predicts each visit
+with `sim flight-model` and the parameters committed before these flights. Nothing is refitted.
+
+| Run | Lane | Visit time, measured / predicted | Error | Visit energy, measured / predicted | Error | Landing error IN / OUT | Wall | Peak RSS |
+|---|---|---|---|---|---|---|---|---|
+| vtolheld_4_1 | 4, 12 896 m | 971.7 / 962.3 s | -0.97% | 647.4 / 640.7 kJ | -1.02% | 3.2 / 4.6 cm | 479 s | 706 MB |
+| vtolheld_4_2 | 4 | 968.7 / 962.3 s | -0.66% | 631.3 / 640.7 kJ | +1.49% | 3.2 / 5.8 cm | 477 s | 713 MB |
+| vtolheld_45_1 | 45, 1180 m | 191.9 / 192.1 s | +0.13% | 215.4 / 212.2 kJ | -1.50% | 5.9 / 11.4 cm | 102 s | 694 MB |
+| vtolheld_45_2 | 45 | 192.4 / 192.1 s | -0.13% | 214.0 / 212.2 kJ | -0.83% | 5.1 / 4.5 cm | 102 s | 685 MB |
+
+All four complete and pass the validator; the targets (time 5%, energy 15%, placeholders) hold
+with a wide margin. Per phase the errors are larger and partly cancel, as in the fit: takeoff
+energy is 9 to 11% over the model, approach -0.2 to +11%, hop 4 to 15% under (A63's single hover
+power). On the long lane the model's lane time is 1.0% short: the cruise on lane 4 is slightly
+slower than on the fit lane.
+
+SITL's simulated battery never went below 50% (PX4's `SIM_BAT_MIN_PCT` floor), so no failsafe
+tripped and the SITL battery was not raised. The flights ran the calibration batch's flight
+code: three commits outside px4/ landed while the batch flew, so run.json carries three
+revisions, and `vtol_heldout` checks that px4/ (the sample logs aside) is identical at each of
+them and at the calibration's `2549e822e0ac`.
+
+![Predicted against measured visit time and energy](media/vtol_pred_vs_meas.png)
+
+![Mean proxy power per phase class against mass](media/vtol_power_vs_mass.png)
