@@ -92,9 +92,17 @@ fn a_broken_profile_is_rejected_by_name() {
             "extra_key.toml",
             good.replace(
                 "[drone]",
-                "[drone]\nmtow_kg = { value = 20.0, unit = \"kg\", assumption = true }",
+                "[drone]\nwing_span_m = { value = 2.0, unit = \"m\", assumption = true }",
             ),
-            "mtow_kg: unknown key",
+            "wing_span_m: unknown key",
+        ),
+        (
+            "half_transition.toml",
+            good.replace(
+                "[drone]",
+                "[drone]\ntransition_s = { value = 20.0, unit = \"s\", assumption = true }",
+            ),
+            "transition_power_ref_w: missing",
         ),
     ];
     for (name, text, want) in cases {

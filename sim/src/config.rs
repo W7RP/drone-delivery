@@ -12,10 +12,11 @@ use toml::{Table, Value};
 
 use crate::flight::FlightModel;
 use crate::ids::{
-    AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName, DiversionPolicyName,
-    DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MAX_OUT_SPOTS,
-    MatrixSource, NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset,
-    ReturnPolicy, ServiceMode, TimeMs, WeatherHoldPolicy, ms_from_s,
+    Airframe, AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName,
+    DiversionPolicyName, DroneRebalancingPolicyName, FaultKind, HoldingPolicyName,
+    InOccupiedAction, MAX_OUT_SPOTS, MatrixSource, NetworkTopology, OutEmptyPolicy, PadId,
+    PodRebalancingPolicyName, Preset, ReturnPolicy, ServiceMode, TimeMs, WeatherHoldPolicy,
+    ms_from_s,
 };
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
@@ -195,6 +196,12 @@ pub struct DroneCfg {
     /// Given, or derived from the OUT landing error and the latch capture radius (A71).
     pub p_latch_fault: f64,
     pub latch_derivation: Option<LatchDerivation>,
+    /// Flight-profile keys of a VTOL (8.7, A93); a multirotor keeps the defaults: no
+    /// transition, cruise power with mass to the 1.5.
+    pub airframe: Airframe,
+    pub transition_s: f64,
+    pub transition_power_ref_w: f64,
+    pub cruise_mass_exponent: f64,
 }
 
 /// Where a derived `p_latch_fault` came from (A71).
@@ -1090,6 +1097,18 @@ const PROFILE_KEYS: [(&str, &str); 7] = [
     ("hop_s", "s"),
 ];
 
+/// Keys a profile may add (8.7, A93): a VTOL's airframe, MTOW, transition overhead and cruise
+/// power mass exponent. `transition_s` and `transition_power_ref_w` go together.
+const PROFILE_OPTIONAL_KEYS: [&str; 5] = [
+    "airframe",
+    "mtow_kg",
+    "transition_s",
+    "transition_power_ref_w",
+    "cruise_mass_exponent",
+];
+/// The multirotor's cruise power grows with mass to this power (spec 2.7).
+const DEFAULT_CRUISE_MASS_EXPONENT: f64 = 1.5;
+
 /// `[flight_profile] file`: read the profile (relative to the scenario's directory) and put
 /// its values over the drone section's, which stay the scenario's placeholder profile.
 fn apply_flight_profile(
@@ -1116,7 +1135,8 @@ fn apply_flight_profile(
     let name = p.string("name").map_err(in_file)?.to_owned();
     let source = p.string("source").map_err(in_file)?.to_owned();
     let d = p.section("drone").map_err(in_file)?;
-    let keys: Vec<&str> = PROFILE_KEYS.iter().map(|(k, _)| *k).collect();
+    let mut keys: Vec<&str> = PROFILE_KEYS.iter().map(|(k, _)| *k).collect();
+    keys.extend(PROFILE_OPTIONAL_KEYS);
     d.allow(&keys).map_err(in_file)?;
     let value = |key: &str, unit: &str| d.quantity(key, unit, Range::Pos).map_err(in_file);
     drone.cruise_speed_mps = value("cruise_speed_mps", "m/s")?;
@@ -1126,6 +1146,27 @@ fn apply_flight_profile(
     drone.takeoff_s = value("takeoff_s", "s")?;
     drone.approach_s = value("approach_s", "s")?;
     drone.hop_s = value("hop_s", "s")?;
+    if d.has("airframe") {
+        drone.airframe = d
+            .enumeration("airframe", Airframe::from_name)
+            .map_err(in_file)?;
+    }
+    if d.has("mtow_kg") {
+        drone.mtow_kg = value("mtow_kg", "kg")?;
+    }
+    if d.has("transition_s") {
+        drone.transition_s = d
+            .quantity("transition_s", "s", Range::NonNeg)
+            .map_err(in_file)?;
+        drone.transition_power_ref_w = d
+            .quantity("transition_power_ref_w", "W", Range::NonNeg)
+            .map_err(in_file)?;
+    }
+    if d.has("cruise_mass_exponent") {
+        drone.cruise_mass_exponent = d
+            .quantity("cruise_mass_exponent", "1", Range::NonNeg)
+            .map_err(in_file)?;
+    }
     Ok(FlightProfile { path, name, source })
 }
 
@@ -1240,6 +1281,10 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         p_release_fault: d.quantity("p_release_fault", "1", Range::Prob)?,
         p_latch_fault,
         latch_derivation,
+        airframe: Airframe::Multirotor,
+        transition_s: 0.0,
+        transition_power_ref_w: 0.0,
+        cruise_mass_exponent: DEFAULT_CRUISE_MASS_EXPONENT,
     })
 }
 
@@ -1841,13 +1886,16 @@ fn check_rules(cfg: &Config) -> Result<()> {
         return err("metrics: R13 hist_max_s must exceed hist_bin_s");
     }
     if let Some(w) = &cfg.weather {
+        let multirotor = cfg.drone.airframe == Airframe::Multirotor;
         if cfg.drone.latch_derivation.is_none() {
             return err(
                 "weather: R19 needs the derived latch keys (A71) so gusts can widen the landing error",
             );
         }
         let model = FlightModel::from_config(cfg);
-        if CruiseCurve::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2).is_none() {
+        if multirotor
+            && CruiseCurve::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2).is_none()
+        {
             return err(
                 "weather: R20 drone.cruise_power_ref_w is below the ideal induced power at cruise speed for this disc area and air density",
             );

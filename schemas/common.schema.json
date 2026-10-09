@@ -323,6 +323,12 @@
         "TRUCK_FALLBACK"
       ]
     },
+    "Airframe": {
+      "enum": [
+        "MULTIROTOR",
+        "VTOL"
+      ]
+    },
     "FaultKind": {
       "enum": [
         "MARKER_NOT_DETECTED",
@@ -471,6 +477,17 @@
         },
         "value": {
           "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_W_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "W"
+        },
+        "value": {
+          "minimum": 0
         }
       }
     },

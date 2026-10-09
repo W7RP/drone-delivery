@@ -362,8 +362,7 @@ impl World {
         let rng = Streams::new(master, cfg.flows.len(), n_pads, n_drones);
         let mut energy = EnergyRules::from_config(&cfg);
         let weather = cfg.weather.as_ref().map(|w| {
-            let curve = CruiseCurve::new(energy.model, w.air_density_kgpm3, w.rotor_disc_area_m2)
-                .expect("R20 checked at load");
+            let curve = CruiseCurve::for_config(&cfg, w).expect("R20 checked at load");
             let latch = cfg.drone.latch_derivation.expect("R19 checked at load");
             WeatherNow::at(w, curve, latch, 0, None)
         });

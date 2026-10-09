@@ -176,9 +176,14 @@ impl World {
         let dest = self.dr(d).dest;
         let lane = self.net.next_lane(from, dest);
         // The lane is flown in the wind of the hour it starts in (A78).
-        let (time_s, energy_j) =
-            self.energy
-                .lane_flight(&self.net, lane as usize, self.dr(d).payload64());
+        let payload = self.dr(d).payload64();
+        let (mut time_s, mut energy_j) = self.energy.lane_flight(&self.net, lane as usize, payload);
+        // A93: the first lane of a flight (from a pad or a hold) carries a VTOL's transitions.
+        let model = self.energy.model;
+        if model.transition_s > 0.0 && self.dr(d).pad != NO_PAD {
+            time_s += model.transition_s;
+            energy_j += model.transition_energy_j(payload);
+        }
         let now = self.now;
         #[allow(clippy::cast_possible_truncation)]
         let soc = self.dr(d).soc;

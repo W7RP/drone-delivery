@@ -1265,9 +1265,11 @@ A flight profile is a TOML file in `configs/flight_profiles/`, validated against
 
 - `name`;
 - `source`, which says where the values came from (`px4-sitl-proxy` for the Phase 5 fit);
-- a `drone` table setting exactly these quantities, with the units of 8.2: `cruise_speed_mps`,
+- a `drone` table setting these quantities, with the units of 8.2: `cruise_speed_mps`,
   `cruise_power_ref_w`, `hover_power_ref_w`, `power_ref_mass_kg`, `takeoff_s`, `approach_s`,
-  `hop_s`.
+  `hop_s`; and optionally (A93) `airframe` (MULTIROTOR or VTOL), `mtow_kg` (the airframe's own
+  MTOW, kg), `transition_s` with `transition_power_ref_w` (s, W), and `cruise_mass_exponent`
+  (1, default 1.5). `sim flight-model` then also prints the transition phase.
 
 A scenario selects one with `flight_profile.file`, which needs schema version 1.5.0. Its values
 replace the same keys of the drone section at load; every other key keeps the scenario's value.
@@ -1757,6 +1759,19 @@ that:
   axis (no wind in the calibration flights). Rotor and pusher disc areas are the stock model's
   collision discs scaled by the same factor as thrust, keeping the stock disc loading. No
   profile, motor, ESC or propeller losses.
+- A93 A VTOL flight profile (8.7) adds `airframe` VTOL, its own `mtow_kg`, `transition_s` and
+  `transition_power_ref_w` (once per flight, with the first lane from a pad or a hold: the
+  transition to fixed wing, the back-transition and the multicopter stretch to the holding
+  fix, charged at the transition power times the hover mass factor), and
+  `cruise_mass_exponent` (the cruise power's mass exponent, 1.5 for a multirotor). Takeoff,
+  approach and hop are multicopter phases at the hover power. The energy guards add one
+  transition to the dispatch need and one to a diversion. With weather, a VTOL's cruise power
+  is proportional to airspeed: in the SITL wing (Gazebo lift-drag, drag coefficient linear in
+  lift coefficient) level-flight drag does not change with speed, so thrust power is drag
+  times airspeed.
+- A94 The SITL wind check uses Gazebo's WindEffects: a constant wind, the same at every height,
+  with Gaussian noise of a given fraction on its magnitude as the gust, acting on the vehicle
+  links that enable it. It informs the limitations only; nothing is calibrated from it.
 
 ## 11 Amendments
 
@@ -1774,4 +1789,4 @@ that:
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
 | 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. Traffic: 2.11, `truck_matrix.bin` version_minor 2 with road-class and bridge/tunnel fractions (9.2; minor-1 files still load), `[traffic]` keys, R22, TRAFFIC stream (5.4); A84 to A87. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck; and road traffic for the truck, which the brief asks to model by road class from the pipeline's own routes, with no live data. |
-| 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. `traffic.start_unix_s` and R23, US Eastern local time for traffic; A90. `flight_samples.bin` version_minor 1 with `pusher_radps` (9.5) and `vtol` events (9.6); A91, A92. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; cold, though checked per route, stopped every route through stranded drones and blocked OUT spots; and traffic peaks moved an hour with daylight saving (A87). |
+| 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. `traffic.start_unix_s` and R23, US Eastern local time for traffic; A90. `flight_samples.bin` version_minor 1 with `pusher_radps` (9.5) and `vtol` events (9.6); A91, A92. VTOL flight-profile keys (8.7), the transition phase in `sim flight-model`, energy guards with transitions; A93. SITL wind check; A94. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; cold, though checked per route, stopped every route through stranded drones and blocked OUT spots; and traffic peaks moved an hour with daylight saving (A87). |

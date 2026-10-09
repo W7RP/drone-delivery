@@ -136,6 +136,7 @@ code_enum!(ChargingMode { OutContacts = "OUT_CONTACTS", HubOnly = "HUB_ONLY" });
 code_enum!(OutEmptyPolicy { Wait = "WAIT", DepartEmpty = "DEPART_EMPTY" });
 code_enum!(InOccupiedAction { Hold = "HOLD", Divert = "DIVERT" });
 code_enum!(WeatherHoldPolicy { Wait = "WAIT", TruckFallback = "TRUCK_FALLBACK" });
+code_enum!(Airframe { Multirotor = "MULTIROTOR", Vtol = "VTOL" });
 code_enum!(FaultKind {
     MarkerNotDetected = "MARKER_NOT_DETECTED", PcFault = "PC_FAULT", OutOfService = "OUT_OF_SERVICE",
     ReleaseFault = "RELEASE_FAULT", LatchFault = "LATCH_FAULT",

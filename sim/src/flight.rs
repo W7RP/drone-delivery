@@ -15,6 +15,12 @@ pub struct FlightModel {
     pub cruise_power_ref_w: f64,
     pub hover_power_ref_w: f64,
     pub cruise_speed_mps: f64,
+    /// VTOL (A93): per flight, the transitions and the multicopter stretch to the holding fix,
+    /// timed and charged on top of the lanes; 0 for a multirotor.
+    pub transition_s: f64,
+    pub transition_power_ref_w: f64,
+    /// Cruise power grows with total mass to this power (1.5 for the multirotor).
+    pub cruise_mass_exponent: f64,
 }
 
 impl FlightModel {
@@ -27,11 +33,27 @@ impl FlightModel {
             cruise_power_ref_w: d.cruise_power_ref_w,
             hover_power_ref_w: d.hover_power_ref_w,
             cruise_speed_mps: d.cruise_speed_mps,
+            transition_s: d.transition_s,
+            transition_power_ref_w: d.transition_power_ref_w,
+            cruise_mass_exponent: d.cruise_mass_exponent,
         }
     }
 
+    fn mass_ratio(&self, payload_kg: f64) -> f64 {
+        (self.empty_mass_kg + self.latch_mass_kg + payload_kg) / self.power_ref_mass_kg
+    }
+
     fn mass_factor(&self, payload_kg: f64) -> f64 {
-        ((self.empty_mass_kg + self.latch_mass_kg + payload_kg) / self.power_ref_mass_kg).powf(1.5)
+        self.mass_ratio(payload_kg).powf(1.5)
+    }
+
+    fn cruise_mass_factor(&self, payload_kg: f64) -> f64 {
+        self.mass_ratio(payload_kg).powf(self.cruise_mass_exponent)
+    }
+
+    /// Energy of one flight's transition overhead (A93); 0 for a multirotor.
+    pub fn transition_energy_j(&self, payload_kg: f64) -> f64 {
+        self.transition_power_ref_w * self.mass_factor(payload_kg) * self.transition_s
     }
 
     /// `flight(lane, payload) -> (time_s, energy_j)` for a straight segment of `length_m`.
@@ -39,12 +61,12 @@ impl FlightModel {
         let time_s = length_m / self.cruise_speed_mps;
         (
             time_s,
-            self.cruise_power_ref_w * self.mass_factor(payload_kg) * time_s,
+            self.cruise_power_ref_w * self.cruise_mass_factor(payload_kg) * time_s,
         )
     }
 
     pub fn cruise_power_w(&self, payload_kg: f64) -> f64 {
-        self.cruise_power_ref_w * self.mass_factor(payload_kg)
+        self.cruise_power_ref_w * self.cruise_mass_factor(payload_kg)
     }
 
     pub fn hover_power_w(&self, payload_kg: f64) -> f64 {
@@ -103,10 +125,12 @@ pub struct PhaseEstimate {
 
 /// The flight phases of a normal delivery visit as the core times and charges them (spec 2.7,
 /// 4.4): takeoff (D01 to D02) and approach (D04 to D05) at hover power with the pod, the lane at
-/// cruise, and the IN-to-OUT hop at hover power without it (the pod was released on IN).
+/// cruise, and the IN-to-OUT hop at hover power without it (the pod was released on IN). A VTOL
+/// adds its transition overhead with the pod (A93).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VisitEstimate {
     pub takeoff: PhaseEstimate,
+    pub transition: PhaseEstimate,
     pub cruise: PhaseEstimate,
     pub approach: PhaseEstimate,
     pub hop: PhaseEstimate,
@@ -123,6 +147,10 @@ impl VisitEstimate {
         let (time_s, energy_j) = model.segment(lane_m, payload_kg);
         Self {
             takeoff: hover(d.takeoff_s, payload_kg),
+            transition: PhaseEstimate {
+                time_s: model.transition_s,
+                energy_j: model.transition_energy_j(payload_kg),
+            },
             cruise: PhaseEstimate { time_s, energy_j },
             approach: hover(d.approach_s, payload_kg),
             hop: hover(d.hop_s, 0.0),
@@ -130,7 +158,13 @@ impl VisitEstimate {
     }
 
     pub fn total(&self) -> PhaseEstimate {
-        let all = [self.takeoff, self.cruise, self.approach, self.hop];
+        let all = [
+            self.takeoff,
+            self.transition,
+            self.cruise,
+            self.approach,
+            self.hop,
+        ];
         PhaseEstimate {
             time_s: all.iter().map(|p| p.time_s).sum(),
             energy_j: all.iter().map(|p| p.energy_j).sum(),
@@ -253,7 +287,9 @@ impl EnergyRules {
             .nearest_other(net, b, online)
             .or_else(|| self.nearest_other(net, b, |_| true));
         let route = alt.map_or(0.0, |q| self.route_energy(net, b, q, payload_kg));
-        route + self.model.hover_power_w(payload_kg) * self.t_cycle_s
+        route
+            + self.model.hover_power_w(payload_kg) * self.t_cycle_s
+            + self.model.transition_energy_j(payload_kg)
     }
 
     /// `E_charger(b)`: 0 at a pad with a charger, else the empty route to the nearest charger.
@@ -286,13 +322,15 @@ impl EnergyRules {
             + hover * self.t_contingency_s
             + self.divert_energy(net, b, payload_kg, online)
             + self.charger_energy(net, b, has_charger)
+            + self.model.transition_energy_j(payload_kg)
     }
 
     /// Longest one-way lane `dispatch_ok` accepts from `soc` into a pad with a charger when the
     /// diversion route is zero (an alternate next to the destination): an upper bound on range.
     pub fn max_lane_m(&self, soc: f64, payload_kg: f64) -> f64 {
         let hover = self.model.hover_power_w(payload_kg);
-        let fixed_j = hover * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s);
+        let fixed_j = hover * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s)
+            + 2.0 * self.model.transition_energy_j(payload_kg);
         let per_m_j = self.model.segment(1.0, payload_kg).1;
         ((self.usable_j(soc) - fixed_j) / per_m_j).max(0.0)
     }
@@ -303,7 +341,8 @@ impl EnergyRules {
 
     pub fn divert_ok(&self, net: &Network, soc: f64, b: PadId, q: PadId, payload_kg: f64) -> bool {
         let need = self.route_energy(net, b, q, payload_kg)
-            + self.model.hover_power_w(payload_kg) * self.t_cycle_s;
+            + self.model.hover_power_w(payload_kg) * self.t_cycle_s
+            + self.model.transition_energy_j(payload_kg);
         self.usable_j(soc) >= need
     }
 }

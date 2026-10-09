@@ -143,6 +143,7 @@ fn flight_model(args: &[String]) -> ExitCode {
         "lane_m": lane_m,
         "payload_kg": payload_kg,
         "takeoff": phase(v.takeoff),
+        "transition": phase(v.transition),
         "cruise": phase(v.cruise),
         "approach": phase(v.approach),
         "hop": phase(v.hop),
