@@ -11,10 +11,15 @@
 #   vtol_<kg>_<seed>      the fit lane (3), payload <kg>, at 2x real time (calibration)
 #   vtol1x_<kg>_<seed>    the same at 1x (speed-factor check)
 #   vtolheld_<lane>_<seed> 5 kg on catalog lane <lane> at 2x (held-out validation)
+#   vtolwind_<m/s>_<seed>  5 kg on the fit lane at 2x in a crosswind of <m/s>, gusts 50% (A94)
 # then validates every run and writes the summary (tools/summarize.py).
 # Usage: tools/run_batch.sh <batch name> [run names...]   (default: all of the above)
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The fit lane (3) runs on a bearing of 112 deg (ENU 1938 m east, 791 m south); a wind from
+# 22 deg blows square across it from the left.
+CROSSWIND_FROM_DEG=22
+GUST_FRAC=0.5
 batch="$HERE/runs/$1"; shift
 mkdir -p "$batch"
 runs=("$@")
@@ -37,6 +42,9 @@ for name in "${runs[@]}"; do
       args=(--airframe vtol --payload-kg "$kg" --seed "$seed") ;;
     vtolheld_*) IFS=_ read -r _ lane seed <<< "$name"
       args=(--airframe vtol --payload-kg 5 --seed "$seed" --speed 2 --lane-id "$lane") ;;
+    vtolwind_*) IFS=_ read -r _ mps seed <<< "$name"
+      args=(--airframe vtol --payload-kg 5 --seed "$seed" --speed 2 --wind-mps "$mps"
+            --wind-from-deg "$CROSSWIND_FROM_DEG" --gust-frac "$GUST_FRAC") ;;
     *) echo "unknown run $name" >&2; exit 2 ;;
   esac
   rm -rf "${batch:?}/$name"
