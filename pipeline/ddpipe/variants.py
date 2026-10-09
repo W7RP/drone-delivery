@@ -21,6 +21,15 @@ class Variant:
     description: str
     flight_profile: str | None = None
     drone: dict = field(default_factory=dict)
+    # Battery-mass coupling (A68): airframe_mass_kg and battery_specific_energy_wh_per_kg
+    # replace the template's empty_mass_kg (schema 1.6.0 keys).
+    coupling: dict = field(default_factory=dict)
+    # Keys outside the drone section: "section.key" -> value (a quantity table, bool or
+    # string), replacing the template's line or added under the section header; `remove`
+    # drops template keys; `schema_version` overrides the template's.
+    set: dict = field(default_factory=dict)
+    remove: list = field(default_factory=list)
+    schema_version: str | None = None
 
     @property
     def scenario_dir(self) -> Path:
@@ -35,7 +44,9 @@ class Variant:
 
 
 def load(params: dict) -> list[Variant]:
-    return [Variant(v["name"], v["description"], v.get("flight_profile"), v.get("drone", {}))
+    return [Variant(v["name"], v["description"], v.get("flight_profile"), v.get("drone", {}),
+                    v.get("coupling", {}), v.get("set", {}), v.get("remove", []),
+                    v.get("schema_version"))
             for v in params["scenarios"]]
 
 
@@ -48,7 +59,24 @@ def config(template: dict, variant: Variant) -> dict:
         with open(path, "rb") as f:
             cfg["drone"].update(tomllib.load(f)["drone"])
     cfg["drone"].update(copy.deepcopy(variant.drone))
+    if variant.coupling:
+        cfg["drone"].pop("empty_mass_kg")
+        cfg["drone"].update(copy.deepcopy(variant.coupling))
+    for path in variant.remove:
+        section, key = path.split(".")
+        cfg[section].pop(key)
+    for path, value in variant.set.items():
+        section, key = path.split(".")
+        cfg[section][key] = copy.deepcopy(value)
     return cfg
+
+
+def _value(v) -> str:
+    if isinstance(v, dict):
+        return _quantity(v)
+    if isinstance(v, bool):
+        return str(v).lower()
+    return f'"{v}"'
 
 
 def _quantity(q: dict) -> str:
@@ -76,4 +104,21 @@ def text(template_text: str, variant: Variant) -> str:
     t = t.replace(PROFILE_MARKER, profile)
     for key, q in variant.drone.items():
         t = sub(rf"^{key} = \{{[^}}]*\}}$", f"# Variant override ({variant.name}).\n{key} = {_quantity(q)}", t)
+    if variant.coupling:
+        lines = "\n".join(f"{k} = {_quantity(q)}" for k, q in variant.coupling.items())
+        t = sub(r"^empty_mass_kg = \{[^}]*\}$",
+                f"# Battery-mass coupling (spec A68): empty mass = airframe + battery / specific energy.\n{lines}", t)
+        t = sub(r'^schema_version = "[^"]*"$', 'schema_version = "1.6.0"', t)
+    for path in variant.remove:
+        key = path.split(".")[1]
+        t = sub(rf"^{key} = [^\n]*\n", "", t)
+    for path, value in variant.set.items():
+        section, key = path.split(".")
+        line = f"{key} = {_value(value)}"
+        if re.search(rf"^{key} = ", t, flags=re.M):
+            t = sub(rf"^{key} = [^\n]*$", f"# Variant override ({variant.name}).\n{line}", t)
+        else:
+            t = sub(rf"^\[{section}\]$", f"[{section}]\n# Variant key ({variant.name}).\n{line}", t)
+    if variant.schema_version:
+        t = sub(r'^schema_version = "[^"]*"$', f'schema_version = "{variant.schema_version}"', t)
     return t

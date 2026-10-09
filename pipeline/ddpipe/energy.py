@@ -9,6 +9,8 @@ from scipy.sparse.csgraph import shortest_path
 
 from .params import q
 
+J_PER_WH = 3600.0
+
 
 @dataclass(frozen=True)
 class FlightModel:
@@ -25,6 +27,10 @@ class FlightModel:
     t_cycle_s: float
     t_contingency_s: float
     out_contacts: bool
+    # VTOL profile keys (spec 8.7, A93); a multirotor has no transition and exponent 1.5.
+    transition_s: float = 0.0
+    transition_power_ref_w: float = 0.0
+    cruise_mass_exponent: float = 1.5
 
     @staticmethod
     def from_scenario(cfg: dict) -> "FlightModel":
@@ -35,20 +41,31 @@ class FlightModel:
         t_contingency = (cycles + 1) * t_cycle + max(
             q(pol["max_hold_s"], "s"), cycles * q(pol["marker_hold_s"], "s")
         )
+        capacity_j = q(d["battery_capacity_j"], "J")
+        if "airframe_mass_kg" in d:
+            # Battery-mass coupling (A68): empty mass follows the battery.
+            empty = q(d["airframe_mass_kg"], "kg") + capacity_j / (
+                q(d["battery_specific_energy_wh_per_kg"], "Wh/kg") * J_PER_WH)
+        else:
+            empty = q(d["empty_mass_kg"], "kg")
+        opt = lambda key, unit, default: q(d[key], unit) if key in d else default
         return FlightModel(
-            empty_mass_kg=q(d["empty_mass_kg"], "kg"),
+            empty_mass_kg=empty,
             latch_mass_kg=q(d["latch_mass_kg"], "kg"),
             power_ref_mass_kg=q(d["power_ref_mass_kg"], "kg"),
             cruise_power_ref_w=q(d["cruise_power_ref_w"], "W"),
             hover_power_ref_w=q(d["hover_power_ref_w"], "W"),
             cruise_speed_mps=q(d["cruise_speed_mps"], "m/s"),
-            capacity_j=q(d["battery_capacity_j"], "J"),
+            capacity_j=capacity_j,
             reserve_soc=q(d["reserve_soc"], "1"),
             charge_target_soc=q(d["charge_target_soc"], "1"),
             takeoff_s=q(d["takeoff_s"], "s"),
             t_cycle_s=t_cycle,
             t_contingency_s=t_contingency,
             out_contacts=cfg["charging"]["mode"] == "OUT_CONTACTS",
+            transition_s=opt("transition_s", "s", 0.0),
+            transition_power_ref_w=opt("transition_power_ref_w", "W", 0.0),
+            cruise_mass_exponent=opt("cruise_mass_exponent", "1", 1.5),
         )
 
     def mass_factor(self, payload_kg: float) -> float:
@@ -56,7 +73,13 @@ class FlightModel:
         return (total / self.power_ref_mass_kg) ** 1.5
 
     def cruise_j_per_m(self, payload_kg: float) -> float:
-        return self.cruise_power_ref_w * self.mass_factor(payload_kg) / self.cruise_speed_mps
+        total = self.empty_mass_kg + self.latch_mass_kg + payload_kg
+        factor = (total / self.power_ref_mass_kg) ** self.cruise_mass_exponent
+        return self.cruise_power_ref_w * factor / self.cruise_speed_mps
+
+    def transition_j(self, payload_kg: float) -> float:
+        """One flight's transition overhead (A93); 0 for a multirotor."""
+        return self.transition_power_ref_w * self.mass_factor(payload_kg) * self.transition_s
 
     def hover_w(self, payload_kg: float) -> float:
         return self.hover_power_ref_w * self.mass_factor(payload_kg)
@@ -65,9 +88,11 @@ class FlightModel:
         return (self.charge_target_soc - self.reserve_soc) * self.capacity_j
 
     def fixed_need_j(self, payload_kg: float) -> float:
-        """Hover energy dispatch_ok always needs: takeoff, the landing contingency and one
-        approach cycle at the diversion pad."""
-        return self.hover_w(payload_kg) * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s)
+        """Energy dispatch_ok always needs: takeoff, the landing contingency and one approach
+        cycle at the diversion pad at hover power, and a VTOL's transitions out and on the
+        diversion."""
+        return (self.hover_w(payload_kg) * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s)
+                + 2 * self.transition_j(payload_kg))
 
     def max_lane_m(self, payload_kg: float) -> float:
         """Longest lane dispatch_ok could accept from charge_target_soc: everything left after
