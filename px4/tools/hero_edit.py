@@ -127,7 +127,7 @@ class Hud:
         i = min(max(0, bisect_right(self.logs.t, t) - 1), len(self.logs.t) - 1)
         x, y, z = (float(v) for v in self.logs.samples["truth_enu_m"][i])
         ground = terrain_z(self.grid, self.x0, self.y0, self.g, x, y)
-        return {"sim_t_s": round(t, 4), "timer_s": round(t - self.origin_t, 1), **state, "messages": last,
+        return {"sim_t_s": t, "timer_s": round(t - self.origin_t, 1), **state, "messages": last,
                 "agl_m": round(z - ground, 1),
                 "battery_pct": round(float(self.logs.samples["battery_remaining"][i]) * 100, 1),
                 "truth_enu_m": [x, y, z]}
@@ -315,7 +315,9 @@ def main() -> int:
         emit(title, {"card": "title"})
     for s in segs:
         for k in range(s["frames"]):
-            t = s["t0_s"] + k * s["speed"] / FPS
+            # Whole microseconds, the logs' resolution: the HUD, the camera frame and the
+            # timeline all use this one value, so a frame on a sample's time agrees everywhere.
+            t = round(s["t0_s"] + k * s["speed"] / FPS, 6)
             frame, src = readers[s["camera"]].at(t)
             h = hud.at(t)
             img = Image.fromarray(frame.copy())

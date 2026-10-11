@@ -107,7 +107,7 @@ def check_samples(frames, samples, problems):
     for f in frames:
         if "sim_t_s" not in f:
             continue
-        i = max(0, bisect_right(t, f["sim_t_s"] + 1e-9) - 1)
+        i = max(0, bisect_right(t, f["sim_t_s"]) - 1)
         battery = round(float(samples["battery_remaining"][i]) * 100, 1)
         if f["battery_pct"] != battery:
             problems.append(f"frame {f['frame']}: battery {f['battery_pct']} %, samples {battery} %")
