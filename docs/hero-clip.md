@@ -157,3 +157,204 @@ Height drift is the EKF's altitude above its origin minus the ground-truth climb
 buildings is the 3D distance to the nearest extruded prism, sampled every 0.5 s. Both exclude
 the pads' 15 m clear circles, where the drone stands on its pad. The minima over the whole
 airborne flight equal the lane's. Neither margin is violated.
+
+The four later terrain flights repeat these numbers at the final revision:
+
+| Measure | Range |
+|---|---|
+| Max height drift | 1.43 to 1.65 m |
+| Minimum clearance to terrain | 62.7 to 64.0 m |
+| Minimum clearance to buildings | 56.5 to 57.7 m |
+| Landing error (all 10 landings) | within 2.7 to 14.0 cm |
+
+## 5. Cameras
+
+`run_flight.sh --cameras` adds three 1280×720, 30 Hz render cameras (`px4/tools/hero_cameras.py`,
+placement in `hero.yaml` `cameras`). Each camera is its own static model, with no inertia and no
+collision:
+
+- **Chase:** posed every sim step by `dd_chase_camera` (`px4/sim/systems`, a Gazebo system
+  built by `px4/tools/build_gz_systems.sh`). It sits 9 m behind the drone along its ground
+  track, 3.5 m up and 2.5 m to the side, following with a 0.3 s lag in sim time.
+- **Pad close-up:** fixed 20 m from pad B, looking at the IN and OUT spots.
+- **High-wide:** fixed 600 m up behind pad A, looking down the lane.
+
+The downward marker camera on the drone is unchanged. `px4/tools/frame_recorder.py` subscribes
+to the three topics and writes each frame's raw RGB straight into its own ffmpeg (H.264,
+CRF 16), with the frame's sim-time stamp in a CSV. The video is therefore timed by sim time,
+whatever the wall speed.
+
+| Measure | Run `clip_5` | Run `clip_6` |
+|---|---|---|
+| Frames per wall second, each camera | 23.4 | 22.9 |
+| Real-time factor | 0.77 | 0.76 |
+| Missing sim-time frames | 0 of 31 598 | 0 of 29 698 |
+| Wall time (1x) | 1285 s | 1237 s |
+| Peak disk of the camera streams (three H.264 masters) | 219 MB | 215 MB |
+| Peak RSS, whole run | 3565 MB | 3463 MB |
+
+The RSS breaks down as:
+
+| Process | Peak RSS |
+|---|---|
+| Gazebo | about 2.1 GB |
+| Three encoders | 1.04 GB |
+| Recorder | 60 MB |
+| ROS nodes and bridge | 24 to 51 MB each |
+| XRCE agent | 28 MB |
+| PX4 | 21 MB |
+| Whole run without cameras | 832 to 839 MB |
+
+**With and without cameras** (seed 1, the same revision `a420196`):
+
+| Run | Cameras | Visit, mission to parked (s) | Difference |
+|---|---|---|---|
+| `heroterrain_1` | no | 956.7 | reference |
+| `clip_6` | yes | 951.7 | −0.5% |
+| `clip_5` | yes | 1014.2 | +6.0% (fails the 1% check) |
+
+`clip_5`'s extra minute is one hover at the holding fix, not a camera effect. The drone was at
+the fix 0.3 m from its centre at 826 s, but PX4's estimate showed a steady −0.4 m/s vertical
+velocity, 0.4 m off the setpoint height, for 65 s. The agent's arrival check (within 0.3 m
+vertically, under 0.5 m/s) only passed at 891 s. The cameras are massless, kinematic models,
+and `clip_6`, which also had them, matched the no-camera flight within 0.5%. It is the same
+height estimator drift as the hop failure above (A96). It is left as found: loosening the
+arrival check is not this phase's call.
+
+## 6. Edit and HUD
+
+`px4/tools/hero_edit.py` cuts the clip from one camera run by the rules in `hero.yaml` `edit`.
+Segments start at anchors in the event log: a message, a drone transition, a VTOL phase, or
+the drone reaching 8.5 m above pad B. Each names a camera and plays at 1x, or is compressed to
+a set length with "x N" on the HUD. Output frames sample an exact 30 Hz grid of sim time,
+scaled by N, in whole microseconds. Each takes the camera frame with the latest stamp at or
+before its time.
+
+What plays at 1x, and what is compressed (spec A97):
+
+- **At 1x:** the mission and departure handshake and liftoff, the transition to fixed wing, the
+  back-transition, the landing request and grant, the last 8 s of the landing on IN, release
+  and verify, the end of the hop and touchdown on OUT, and the latch report to parking.
+- **Compressed, with "x N":** the climb (x23), the cruise (x90, half on the overview camera with
+  a ring drawn at the drone's logged position), the flight to the fix, the descent from
+  190 m (x23), the wait for the marker lock, most of the hop and the latch wait.
+
+The brief asked for everything but the cruise at 1x. The visit spends 190 s outside the
+cruise, mostly climbing to and descending from 190 m, so that cannot fit 60 to 90 s.
+
+The HUD is drawn from the logs only:
+
+- **States:** drone state and VTOL phase, and pad A's and pad B's visit states.
+- **Messages:** the last three handshake messages with their send times.
+- **Sim timer:** from MISSION_ASSIGN.
+- **Height above the terrain mesh.**
+- **Battery:** PX4's battery %. PX4's SITL battery drains with time, not load (A57), and floors
+  at 50%; the HUD says so.
+- **Drone vs truck panel:** "simulation, placeholder inputs", from the demo scenario's own
+  `deliveries.csv` at seed 42 (`pipeline/run.sh hero panel`, `pipeline/hero/out/panel.json`).
+  Lane 5 has 21 drone-delivered orders. Their median door to door is 18.2 min; the median
+  order splits into 1.0 min of pod wait, 2.2 min of queue, 2.6 min of pad service and 12.4 min
+  of flight. The truck takes a median 41.3 min on the same orders.
+- **Cards:** a 3 s title card (lane, 11.1 km, airframe, "simulated") and a 4 s closing card
+  (this visit's 16 min, the panel's medians, the same label).
+
+`px4/tests/test_hero_hud.py <run>` checks the HUD of every frame (`<run>/edit/hud_timeline.json`):
+
+- **State changes:** every HUD state change lies within one frame after the log event that
+  causes it. Every logged state is on screen by the first frame after it, unless a later event
+  in the same tick replaced it.
+- **Messages:** every message shows its log send time exactly, appears first on the first frame
+  at or after it, and keeps send order.
+- **Battery:** the battery figure is the sample's.
+- **Panel:** the panel equals a fresh `sim run` of the demo at seed 42.
+
+Results:
+
+- **Final clip (run `clip_6`):** 2260 HUD frames, 24 state events, 19 messages shown, PASS.
+  Run `clip_5` also passes.
+- **Earlier failures:** the test first failed twice on transitions sharing one sim tick (a test
+  error) and on two frames whose battery came from the neighbouring sample. Frame times are now
+  whole microseconds everywhere.
+- **Mutations:** a state change shifted one frame early and a panel figure off by 1 s were both
+  caught.
+
+The clip is `video/hero_clip.mp4` (git-ignored): 82.3 s, 1280×720, 30 fps, H.264, no audio,
+6.0 MB. It is cut from run `clip_6`. Stills from it: `docs/media/hero_transition.png`,
+`docs/media/hero_overview.png`, `docs/media/hero_landing.png`.
+
+## 7. Terrain against flat
+
+The same lane, VTOL, 5 kg, 1x, two repeats each, all at revision `a420196`
+(`px4/tools/run_batch.sh hero_check …`, `pipeline/run.sh hero terrain-check`,
+`pipeline/hero/out/terrain_check.md`):
+
+- **Flat:** the Phase 7 world, 60.96 m cruise.
+- **Terrain:** the corridor world, 189.59 m cruise above pad A.
+
+The model is the core's `sim flight-model` with the fitted VTOL profile on the SITL vehicle,
+compared phase by phase as in Phase 7's held-out validation. Model error is predicted over
+measured, minus 1.
+
+| Run | Visit (s) | Takeoff (s) | Lane (s) | Approach + landing (s) | Hop (s) | Energy proxy (kJ) | Model time error | Model energy error | Landing IN / OUT (cm) |
+|---|---|---|---|---|---|---|---|---|---|
+| heroflat_1 | 848.2 | 25.9 | 748.5 | 50.0 | 23.9 | 574.7 | −0.2% | +0.3% | 13.3 / 2.8 |
+| heroflat_2 | 856.2 | 27.4 | 754.1 | 47.8 | 26.9 | 575.0 | −1.1% | +0.2% | 6.0 / 2.8 |
+| heroterrain_1 | 956.7 | 70.5 | 742.3 | 119.7 | 24.3 | 772.9 | −11.5% | −25.4% | 7.6 / 13.4 |
+| heroterrain_2 | 952.6 | 68.6 | 742.1 | 120.6 | 21.4 | 767.7 | −11.1% | −24.9% | 11.5 / 9.0 |
+| sim flight model | 846.8 | 26.2 | 746.6 | 49.9 | 24.2 | 576.5 | | | |
+
+Over flat ground the model holds on an 11.1 km lane it was not fitted on: 0.6% in time and 0.3%
+in energy proxy, mean of two.
+
+Terrain costs 102 s (+12%) and 195 kJ (+34%) more than flat:
+
+- **Takeoff:** +43 s and +80 kJ, for the climb to 190 m instead of 61 m.
+- **Approach:** +71 s and +120 kJ, for the descent from 190 m.
+- **Lane and hop:** about the same.
+
+What the model leaves out:
+
+- **Altitude:** the core has none (A03). Its takeoff and approach are fixed times at hover
+  power, fitted on 61 m, so it cannot charge the climb to and descent from a cruise altitude set
+  by terrain. It underestimates this visit by 11% in time and 25% in energy.
+- **Pad elevations:** with pads at different elevations, the climb and descent no longer
+  cancel; here they differ by only 2.5 m.
+- **Height of the cruise itself:** air density falls about 1.5% from 61 m to 190 m above a 222 m
+  pad, which the proxy (fixed ρ = 1.225 kg/m³) also ignores.
+
+## Acceptance
+
+| Check | Result |
+|---|---|
+| One command rebuilds world and clip from the cache | `scripts/hero_clip.sh`, run twice (`clip_5`, `clip_6`) at `a420196`: the 13 generated world files byte-identical (identical manifests) |
+| Flight outcome and validator | `clip_6` COMPLETE, PASS (state sequences, handshake order, per-state durations); so are `clip_5` and the four terrain-check flights |
+| HUD against logs and CSV | PASS on `clip_6` and `clip_5` |
+| Clip length | 82.3 s |
+| Camera against no-camera within 1% | `clip_6` −0.5%: pass; `clip_5` +6.0%: fails (EKF hover at the fix, section 5) |
+| Peak RSS, camera run | 3.46 to 3.57 GB (Gazebo 2.1 GB, encoders 1.04 GB, PX4 21 MB, ROS nodes 24 to 51 MB each) |
+| Peak disk of frame streaming | 215 to 219 MB per camera run, H.264 only |
+| Free disk | 908 GB before Phase 8, 904 GB after; 3.9 GB of run logs and camera masters in `px4/runs/` |
+
+Failed or repeated flights along the way, all kept in `px4/runs/hero/`:
+
+- **`terrain_try1`, `terrain_try2`:** no takeoff, from the barometer datum (fixed, A96).
+- **`camsmoke`:** a 2-minute camera check, stopped by hand.
+- **`clip_1`:** a complete early version, cut before the chase camera moved closer.
+- **`clip_2`:** Gazebo was killed by SIGKILL about 7 minutes in. Memory pressure stayed at
+  zero, with no OOM or kernel record, so the cause is unknown. Runs now end at once when
+  Gazebo or PX4 dies.
+- **`clip_3`:** the hop failed: OUT marker not seen, from baro drift (fixed by measuring the hop
+  from the landed position).
+
+## Limitations
+
+- **One run per clip.** The clip is one visit. Gazebo and PX4 are not seeded, so a rerun
+  differs in timing (`clip_5` against `clip_6`).
+- **Estimator drift.** The barometric height wanders by up to 1.65 m over the 190 m climb and
+  descent. It cost one hop (fixed) and one minute-long hover at the fix (open).
+- **Placeholders.** Building heights are placeholders for 1447 of the 1635 buildings. Roads
+  are flat strips, bridges straight ramps.
+- **Collision.** Nothing but the pads collides, so the clearance check is the only guard
+  against terrain and buildings.
+- **No wind** and no failure branches.
+- **Battery.** The HUD battery is PX4's time-based SITL battery, not the energy proxy.
