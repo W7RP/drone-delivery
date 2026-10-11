@@ -12,6 +12,9 @@
 #   vtol1x_<kg>_<seed>    the same at 1x (speed-factor check)
 #   vtolheld_<lane>_<seed> 5 kg on catalog lane <lane> at 2x (held-out validation)
 #   vtolwind_<m/s>_<seed>  5 kg on the fit lane at 2x in a crosswind of <m/s>, gusts 50% (A94)
+# and the Phase 8 terrain check (airframe vtol, 5 kg, 1x, the clip's lane 5):
+#   heroterrain_<seed>    over the generated terrain world (px4/sim/hero), no render cameras
+#   heroflat_<seed>       over the flat world, Phase 7 style
 # then validates every run and writes the summary (tools/summarize.py).
 # Usage: tools/run_batch.sh <batch name> [run names...]   (default: all of the above)
 set -uo pipefail
@@ -45,6 +48,8 @@ for name in "${runs[@]}"; do
     vtolwind_*) IFS=_ read -r _ mps seed <<< "$name"
       args=(--airframe vtol --payload-kg 5 --seed "$seed" --speed 2 --wind-mps "$mps"
             --wind-from-deg "$CROSSWIND_FROM_DEG" --gust-frac "$GUST_FRAC") ;;
+    heroterrain_*) args=(--airframe vtol --payload-kg 5 --seed "${name##*_}" --world-dir "$HERE/sim/hero") ;;
+    heroflat_*) args=(--airframe vtol --payload-kg 5 --seed "${name##*_}" --lane-id 5) ;;
     *) echo "unknown run $name" >&2; exit 2 ;;
   esac
   rm -rf "${batch:?}/$name"

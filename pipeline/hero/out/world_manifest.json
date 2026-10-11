@@ -20,7 +20,7 @@
   "USGS_1_n41w080.tif",
   "USGS_1_n41w081.tif"
  ],
- "config_sha256": "b4ede63903f295daf36e8bc3184772b472747eb49074af743f67725615376c2c",
+ "config_sha256": "d2de092450bba07f3f7ca24ddc4c56820799c8552395e8a24e722173eb57414d",
  "elevation_m": {
   "pad_a": 222.26,
   "pad_b": 224.74,

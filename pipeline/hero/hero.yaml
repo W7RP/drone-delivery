@@ -78,7 +78,7 @@ cameras:
   far_m: 15000.0
   # Posed every sim step by the dd_chase_camera system: behind the drone along its ground track,
   # above and to the left, following with a first-order lag.
-  chase: {back_m: 14.0, up_m: 5.0, side_m: 3.0, lag_s: 0.8, min_track_speed_mps: 2.0}
+  chase: {back_m: 9.0, up_m: 3.5, side_m: 2.5, lag_s: 0.3, min_track_speed_mps: 2.0}
   # Fixed at pad B: this far from the pad centre (east, north, up), looking at a point this
   # high above it.
   pad: {offset_m: [-20.0, -11.0, 7.0], look_up_m: 3.0}
