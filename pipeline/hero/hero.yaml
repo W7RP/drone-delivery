@@ -1,0 +1,5 @@
+# Phase 8 hero clip inputs (docs/hero-clip.md). Every number is a placeholder unless it says
+# where it comes from.
+lane_choice:
+  # The demo scenario's seed (docs/vtol.md).
+  demo_seed: 42
