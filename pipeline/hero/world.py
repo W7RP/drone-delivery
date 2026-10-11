@@ -556,7 +556,8 @@ clip's corridor (visual only). The world includes the meshes directly.</descript
                         "sha256": manifest["files"][k]["sha256"]}
                     for k in ("osm_pennsylvania", "dem_n41w080", "dem_n41w081")},
         "dem_files": list(DEM_FILES),
-        "config_sha256": hashlib.sha256((REPO / "pipeline" / "hero" / "hero.yaml").read_bytes()).hexdigest(),
+        # The `world` section of hero.yaml, the only configuration the world is built from.
+        "world_config_sha256": hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest(),
         "elevation_m": {"pad_a": round(elev_a, NDIGITS), "pad_b": round(elev_b, NDIGITS),
                         "lane_max_terrain": round(max_terrain, NDIGITS)},
         "cruise_alt_above_pad_a_m": lane["cruise_alt_m"],
