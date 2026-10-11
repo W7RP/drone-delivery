@@ -60,3 +60,9 @@ world:
   sun:
     direction: [-0.45, 0.35, -0.82]
     diffuse_rgb: [0.95, 0.93, 0.86]
+
+# Flight checks over the terrain world (px4/tools/hero_check.py). Placeholder margins: the
+# lane's minimum clearance below them is flagged.
+flight:
+  terrain_margin_m: 30.0
+  building_margin_m: 30.0

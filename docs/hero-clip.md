@@ -101,3 +101,55 @@ lane's highest terrain is 350.89 m (`lanes.csr.bin` `max_terrain_m`, 18% of the 
 the constant cruise altitude is 350.89 + 60.96 − 222.26 = 189.59 m above pad A.
 
 Running the command twice gives an identical manifest: every generated file is byte-identical.
+
+## 4. Flight over terrain
+
+`px4/run_flight.sh --airframe vtol --payload-kg 5 --seed 1 --world-dir px4/sim/hero` flies the
+full Phase 7 VTOL visit over the generated world at 1x:
+
+1. take off in multicopter mode from OUT at A, climb, transition;
+2. fixed-wing cruise, back-transition;
+3. land on IN at B by marker, release the pod, verify, hop, land on OUT, latch, verify, park.
+
+It uses the Phase 7 airframe and fit-lane parameters unchanged, a 5 kg pod and the normal path
+only. `run.json` records the px4/ commit (`script_git`), `run_flight.sh`'s last commit, the
+world generator's commit (`world_git`) and the hash of the world flown.
+
+What the terrain changed (spec A95):
+
+- **Constant cruise altitude** of 189.59 m above pad A: the lane's highest terrain plus the
+  60.96 m airspace cruise height.
+- **Pad ground heights.** Each pad's ground height is in `scene.json`. The approach height
+  (6 m) and the hop height (2.5 m) are measured from the pad's own ground, which is 2.48 m
+  higher at B. The pad controller's on-spot and pod-rest checks, and the spawn poses, use the
+  same ground. On the flat world every pad's ground is 0, so nothing changes there.
+- **PX4's landing speed near B.** Without a rangefinder, PX4 slows its descent by height
+  above home (pad A), not above B. Over the 2.48 m difference that changes the speed only in
+  the last metres; there is no fix for it.
+- **Barometer datum (fixed in this repo, as in A67).** The world is at pad A's real
+  elevation, 222.26 m NAVD88, and Gazebo's GPS reports that.
+  - *Failure:* Gazebo's air pressure sensor reads pressure at world z alone and ignores
+    `<reference_altitude>`. PX4's baro-to-GNSS auto-calibration moved the baro by 222 m after
+    the EKF origin was set. The EKF height jumped by 222 m at arming, the cruise setpoint lay
+    below it, and PX4 disarmed without flying (runs `terrain_try1` and `terrain_try2`).
+  - *Fix:* a per-run `SENS_BARO_QNH` (1040.37 hPa) makes PX4 read Gazebo's sea-level
+    pressure as 222.26 m. Baro, GPS, EKF origin and home then agree from boot. The baro's
+    altitude scale differs from Gazebo's by about 0.5% (lapse × elevation / T0), roughly 1 m
+    at cruise.
+
+Run `terrain_try3` (`px4/tools/hero_check.py`), validator PASS:
+
+| Measure | Value |
+|---|---|
+| Outcome | COMPLETE, 926 s wall at 1x |
+| Takeoff (climb to 189.6 m) / cruise / approach and landing at IN / hop (s) | 70.9 / 742.4 / 110.3 / 23.6 |
+| EKF height minus truth (from the start), max over the flight | 1.38 m (mean −0.82 m over the lane; 0.16 m back on the ground at B) |
+| Minimum clearance to terrain, lane | 63.4 m, at the ridge 1.7 km along (margin 30 m) |
+| Minimum clearance to buildings, lane | 57.0 m, OSM way 535864533 on that ridge (margin 30 m) |
+| Landing error IN / OUT | 11.8 / 7.1 cm (latch capture radius 15 cm) |
+
+Height drift is the EKF's altitude above its origin minus the ground-truth climb, sampled at
+20 Hz. Clearance to terrain is vertical, against the terrain mesh under the path. Clearance to
+buildings is the 3D distance to the nearest extruded prism, sampled every 0.5 s. Both exclude
+the pads' 15 m clear circles, where the drone stands on its pad. The minima over the whole
+airborne flight equal the lane's. Neither margin is violated.
