@@ -120,9 +120,13 @@ What the terrain changed (spec A95):
 - **Constant cruise altitude** of 189.59 m above pad A: the lane's highest terrain plus the
   60.96 m airspace cruise height.
 - **Pad ground heights.** Each pad's ground height is in `scene.json`. The approach height
-  (6 m) and the hop height (2.5 m) are measured from the pad's own ground, which is 2.48 m
-  higher at B. The pad controller's on-spot and pod-rest checks, and the spawn poses, use the
-  same ground. On the flat world every pad's ground is 0, so nothing changes there.
+  (6 m) is measured from the pad's own ground, which is 2.48 m higher at B. The pad
+  controller's on-spot and pod-rest checks, and the spawn poses, use the same ground. On the
+  flat world every pad's ground is 0, so nothing changes there.
+- **Hop height** (2.5 m) is measured from where the drone stands on IN, not from the EKF
+  origin. In run `clip_3` the baro height had drifted 0.9 m by the hop, and the drone hovered
+  over OUT 1.2 to 1.8 m above the ground instead of 2.5 m. The OUT marker, 1 m beside the
+  spot, stayed out of the camera's view, and the visit failed ("marker 4 not detected").
 - **PX4's landing speed near B.** Without a rangefinder, PX4 slows its descent by height
   above home (pad A), not above B. Over the 2.48 m difference that changes the speed only in
   the last metres; there is no fix for it.

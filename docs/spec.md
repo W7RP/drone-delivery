@@ -1782,8 +1782,10 @@ that:
   pipeline's DEM and OSM data.
   - *Datum.* World z is DEM elevation (NAVD88) minus pad A's.
   - *Pads.* Each pad stands on a flat apron at its DEM elevation.
-  - *Heights.* The approach and hop heights are measured from the pad's own ground. The cruise
-    altitude is one constant: the lane's `max_terrain_m` plus the airspace cruise height.
+  - *Heights.* The approach height is measured from the pad's own ground, the hop height from
+    where the drone stands on IN (the baro height drifts by about a metre over a long visit).
+    The cruise altitude is one constant: the lane's `max_terrain_m` plus the airspace cruise
+    height.
   - *Collision.* The terrain, water, roads and buildings are visual only; the drone collides
     with the aprons and spot slabs alone.
   - *Landing speed.* Without a rangefinder, PX4 slows its landing by height above home (pad A),

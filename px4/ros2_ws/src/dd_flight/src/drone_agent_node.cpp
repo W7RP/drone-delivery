@@ -268,8 +268,12 @@ private:
     if (!is_for_me(m) || m.pad_id != pad_ || mode_ != Mode::kOnPad) {return;}
     go(Mode::kHopping, "D15");
     const PadGeo & p = pad(pad_);
+    // Hop height above where the drone stands on IN, not above the EKF origin: after a long
+    // visit the baro height has drifted by up to a metre or so (A96), which put the hop low
+    // enough over terrain that the OUT marker left the camera's view.
     const Vec3 here = px4_.position();
-    const Vec3 out = ned(p.out, hop_alt_ + p.ground_alt_m);
+    const Vec3 out_xy = ned(p.out, 0.0);
+    const Vec3 out{out_xy[0], out_xy[1], here[2] - hop_alt_};
     begin_landing({{Leg::Kind::kEngage, {here[0], here[1], out[2]}},
         {Leg::Kind::kLine, out, hop_speed_}, {Leg::Kind::kHold, out}}, p.out_marker);
     grant_spot_ = kSpotOut;
