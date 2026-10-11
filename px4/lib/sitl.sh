@@ -30,6 +30,8 @@ sitl_env() {
   # terrain world's meshes (Phase 8), then PX4's.
   export GZ_SIM_RESOURCE_PATH="$run/models:$DD_PX4/sim/models:$DD_PX4/sim/worlds:$DD_PX4/sim/hero/models:$GZ_SIM_RESOURCE_PATH"
   export GZ_SIM_SERVER_CONFIG_PATH="$DD_PX4/sim/server.config"
+  # This repo's Gazebo systems (tools/build_gz_systems.sh): the Phase 8 chase camera.
+  export GZ_SIM_SYSTEM_PLUGIN_PATH="$DD_PX4/sim/systems/build:${GZ_SIM_SYSTEM_PLUGIN_PATH:-}"
   export GZ_IP=127.0.0.1
   export PX4_GZ_WORLD="$WORLD_NAME"
   export PX4_GZ_MODEL_NAME="$DRONE_MODEL"
@@ -57,6 +59,8 @@ sitl_start_gz() {
   [[ -f "$run/world_src.sdf" ]] && src="$run/world_src.sdf"
   sed "s|<real_time_factor>1.0</real_time_factor>|<real_time_factor>$rtf</real_time_factor>|" \
     "$src" > "$run/$WORLD_NAME.sdf"
+  # Phase 8 render cameras (tools/hero_cameras.py): the chase camera's system.
+  [[ -f "$run/server_cameras.config" ]] && export GZ_SIM_SERVER_CONFIG_PATH="$run/server_cameras.config"
   # Phase 7 wind check: DD_WIND="<m/s> <from deg> <gust fraction>" adds Gazebo wind (A94).
   if [[ -n "${DD_WIND:-}" ]]; then
     read -r w_mps w_from w_gust <<< "$DD_WIND"
@@ -146,6 +150,47 @@ sitl_spawn_scene() {
     fi
   done
   sitl_log "spawned $names"
+}
+
+# sitl_spawn_cameras <run_dir>: the render cameras of <run>/cameras.json (Phase 8), posed
+# with pitch and yaw.
+sitl_spawn_cameras() {
+  local run="$1" name x y z qw qx qy qz
+  while read -r name x y z qw qx qy qz; do
+    gz service -s "/world/$WORLD_NAME/create" --reqtype gz.msgs.EntityFactory \
+      --reptype gz.msgs.Boolean --timeout 10000 \
+      --req "name: \"$name\", allow_renaming: false, sdf_filename: \"$run/models/$name/model.sdf\", pose: {position: {x: $x, y: $y, z: $z}, orientation: {w: $qw, x: $qx, y: $qy, z: $qz}}" \
+      | grep -q "data: true" || { sitl_log "could not spawn $name"; return 1; }
+  done < <(python3 -c "
+import json, sys
+for n, c in json.load(open(sys.argv[1]))['cameras'].items():
+    print(n, *c['xyz_m'], *c['quat_wxyz'])" "$run/cameras.json")
+  sitl_log "spawned the render cameras"
+}
+
+# sitl_start_recorder <run_dir>: stream the render cameras to <run>/video (tools/frame_recorder.py)
+# until sitl_stop_recorder.
+REC_PID=""
+sitl_start_recorder() {
+  local run="$1" ffmpeg args=()
+  ffmpeg="$("$DD_PX4/py.sh" tools/ffmpeg_path.py)"
+  while read -r name topic; do args+=(--camera "$name=$topic"); done < <(python3 -c "
+import json, sys
+for c in json.load(open(sys.argv[1]))['cameras'].values():
+    print(c['name'], c['topic'])" "$run/cameras.json")
+  python3 "$DD_PX4/tools/frame_recorder.py" --out "$run/video" --ffmpeg "$ffmpeg" "${args[@]}" \
+    > "$run/recorder.log" 2>&1 &
+  REC_PID=$!
+}
+
+# The recorder must close its encoders before Gazebo goes, or the videos are cut short.
+sitl_stop_recorder() {
+  local i
+  [[ -n "$REC_PID" ]] || return 0
+  kill -INT "$REC_PID" 2>/dev/null || true
+  for i in $(seq 1 120); do kill -0 "$REC_PID" 2>/dev/null || break; sleep 0.5; done
+  kill -KILL "$REC_PID" 2>/dev/null || true
+  REC_PID=""
 }
 
 sitl_stop() {

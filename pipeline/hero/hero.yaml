@@ -66,3 +66,22 @@ world:
 flight:
   terrain_margin_m: 30.0
   building_margin_m: 30.0
+
+# Render cameras (px4/tools/hero_cameras.py), each on its own static, massless model. Placement
+# is chosen for the picture; nothing here is measured.
+cameras:
+  width: 1280
+  height: 720
+  rate_hz: 30
+  hfov_rad: 1.1
+  near_m: 0.3
+  far_m: 15000.0
+  # Posed every sim step by the dd_chase_camera system: behind the drone along its ground track,
+  # above and to the left, following with a first-order lag.
+  chase: {back_m: 14.0, up_m: 5.0, side_m: 3.0, lag_s: 0.8, min_track_speed_mps: 2.0}
+  # Fixed at pad B: this far from the pad centre (east, north, up), looking at a point this
+  # high above it.
+  pad: {offset_m: [-16.0, -9.0, 6.0], look_up_m: 1.0}
+  # Fixed overview: behind pad A on the lane line and to its left, high, looking at a point
+  # this far down the lane.
+  wide: {behind_m: 500.0, left_m: 150.0, up_m: 420.0, look_along_m: 2500.0}

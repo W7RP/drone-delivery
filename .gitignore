@@ -20,3 +20,4 @@ px4/.venv/
 # Phase 8 hero clip: generated corridor world and the rendered mp4 (docs/hero-clip.md).
 video/
 px4/sim/hero/
+px4/sim/systems/build/
