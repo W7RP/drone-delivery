@@ -94,7 +94,9 @@ sitl_start_px4() {
     [[ -z "$name" || "$name" == \#* ]] && continue
     params+=("$name=$value")
     export "PX4_PARAM_$name=$value"
-  done < <(cat "$DD_PX4/params/sitl.params"; [[ "$AIRFRAME" == vtol ]] && cat "$DD_PX4/params/sitl_vtol.params")
+  done < <(cat "$DD_PX4/params/sitl.params"; [[ "$AIRFRAME" == vtol ]] && cat "$DD_PX4/params/sitl_vtol.params"
+           # The world's own parameters (tools/make_vehicle.py), on a terrain world only.
+           [[ -f "$run/world.params" ]] && cat "$run/world.params"; true)
   mkdir -p "$run/px4"
   export PX4_SIM_SPEED_FACTOR="$speed"
   ( cd "$run/px4" && exec "$PX4_BUILD/bin/px4" -d "$PX4_BUILD/etc" ) > "$run/px4.log" 2>&1 &
