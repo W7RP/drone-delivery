@@ -1,10 +1,12 @@
 """Phase 8 step 7: the clip's lane flown flat (Phase 7 style) and over the terrain world, two
 repeats each, VTOL, 5 kg, 1x (px4/tools/run_batch.sh hero_check heroflat_1 heroflat_2
-heroterrain_1 heroterrain_2), next to the sim's flight-model prediction for the lane
+heroterrain_1 heroterrain_2), against the sim's flight-model prediction for the lane
 (docs/hero-clip.md 7).
 
-Phases and the energy proxy are pipeline/calib/vtol_phases.py's (spec A57, A92), so the
-numbers compare with Phase 7's. Every run must carry the same clean px4/ revision. Writes
+The comparison is Phase 7's held-out validation (pipeline/calib/vtol_heldout.py `evaluate`),
+so the numbers mean the same: the fitted VTOL profile on the SITL vehicle, phases takeoff,
+lane (top of climb to the holding fix), approach and landing, hop, and the energy proxy of
+spec A57/A92. Every run must carry the same clean px4/ revision. Writes
 hero/out/terrain_check.json and .md; skipped, keeping the committed files, when the runs are
 not on disk."""
 
@@ -12,33 +14,15 @@ import json
 import statistics
 import sys
 
-from .common import DEMO, OUT, REPO
+from .common import OUT, REPO
 
 sys.path.insert(0, str(REPO / "pipeline" / "calib"))
-from common import RUNS, flightlog, sim_flight_model  # noqa: E402
-from vtol_phases import run_rows  # noqa: E402
+from common import CALIB, RUNS  # noqa: E402
+from vtol_heldout import evaluate  # noqa: E402
 
 BATCH = RUNS / "hero_check"
 KINDS = {"flat": "heroflat", "terrain": "heroterrain"}
-PHASES = ["mc_takeoff", "transition", "cruise", "back_transition", "approach_landing", "hop"]
-# The flight model's phases against the flown ones: its takeoff is the multicopter climb, its
-# cruise covers the fixed-wing lane and the back-transition to the fix, its approach the
-# descent and precision landing.
-MODEL = {"takeoff": ["mc_takeoff"], "transition": ["transition"], "cruise": ["cruise", "back_transition"],
-         "approach": ["approach_landing"], "hop": ["hop"]}
-
-
-def run_doc(run) -> dict:
-    rows, outcome = run_rows(run)
-    by = {r["phase"]: r for r in rows}
-    meta = json.loads((run / "run.json").read_text())
-    return {"run": run.name, "status": outcome["status"], "validation": outcome["validation"],
-            "script_git": meta["script_git"], "wall_s": outcome["wall_s"], "peak_rss_mb": outcome["peak_rss_mb"],
-            "phases_s": {p: by[p]["duration_s"] for p in PHASES},
-            "phases_kj": {p: round(by[p]["energy_j"] / 1000, 1) for p in PHASES},
-            "airborne_s": round(sum(by[p]["duration_s"] for p in PHASES), 1),
-            "energy_kj": round(sum(by[p]["energy_j"] for p in PHASES) / 1000, 1),
-            "landing_cm": dict(zip(("IN", "OUT"), outcome["landings_cm"]))}
+PHASES = ["takeoff", "lane", "approach", "hop"]
 
 
 def main() -> dict | None:
@@ -50,30 +34,26 @@ def main() -> dict | None:
     versions = {json.loads((r / "run.json").read_text())["script_git"] for rs in runs.values() for r in rs}
     if len(versions) != 1 or any(v.endswith("-dirty") for v in versions):
         raise RuntimeError(f"{BATCH.name}: flights from mixed or uncommitted px4/ versions: {sorted(versions)}")
-    docs = {k: [run_doc(r) for r in rs] for k, rs in runs.items()}
-    lane = json.loads((runs["flat"][0] / "lane.json").read_text())
-    model = sim_flight_model(lane["length_m"], 5.0, DEMO / "scenario.toml")
-    predicted = {"airborne_s": round(model["total"]["time_s"], 1),
-                 "energy_kj": round(model["total"]["energy_j"] / 1000, 1),
-                 "phases_s": {k: round(model[k]["time_s"], 1) for k in MODEL},
-                 "phases_kj": {k: round(model[k]["energy_j"] / 1000, 1) for k in MODEL}}
-
-    def mean(kind, f):
-        return round(statistics.fmean(f(d) for d in docs[kind]), 1)
-
+    params = json.loads((CALIB / "vtol_fitted_params.json").read_text())["params"]
+    docs = {k: [evaluate(r, params) for r in rs] for k, rs in runs.items()}
     summary = {}
-    for kind in KINDS:
-        summary[kind] = {"airborne_s": mean(kind, lambda d: d["airborne_s"]),
-                         "energy_kj": mean(kind, lambda d: d["energy_kj"]),
-                         "model_phases_s": {m: mean(kind, lambda d, ps=ps: sum(d["phases_s"][p] for p in ps))
-                                            for m, ps in MODEL.items()},
-                         "model_phases_kj": {m: mean(kind, lambda d, ps=ps: sum(d["phases_kj"][p] for p in ps))
-                                             for m, ps in MODEL.items()}}
-        summary[kind]["vs_model_time"] = round(summary[kind]["airborne_s"] / predicted["airborne_s"] - 1, 4)
-        summary[kind]["vs_model_energy"] = round(summary[kind]["energy_kj"] / predicted["energy_kj"] - 1, 4)
+    for kind, ds in docs.items():
+        summary[kind] = {
+            "visit_time_s": round(statistics.fmean(d["visit_time_measured_s"] for d in ds), 1),
+            "visit_energy_kj": round(statistics.fmean(d["visit_energy_measured_j"] for d in ds) / 1000, 1),
+            "model_time_error": round(statistics.fmean(d["time_error"] for d in ds), 4),
+            "model_energy_error": round(statistics.fmean(d["energy_error"] for d in ds), 4),
+            "phase_time_s": {p: round(statistics.fmean(d["phases"][p]["meas_time_s"] for d in ds), 1) for p in PHASES},
+            "phase_energy_kj": {p: round(statistics.fmean(d["phases"][p]["meas_energy_j"] for d in ds) / 1000, 1)
+                                for p in PHASES}}
+    first = docs["flat"][0]
+    model = {"visit_time_s": first["visit_time_predicted_s"],
+             "visit_energy_kj": round(first["visit_energy_predicted_j"] / 1000, 1),
+             "phase_time_s": {p: first["phases"][p]["pred_time_s"] for p in PHASES},
+             "phase_energy_kj": {p: round(first["phases"][p]["pred_energy_j"] / 1000, 1) for p in PHASES}}
     doc = {"comment": "Generated by pipeline/run.sh hero terrain-check; do not edit.",
-           "lane_id": lane["lane_id"], "lane_m": lane["length_m"], "payload_kg": 5.0, "script_git": versions.pop(),
-           "model": predicted, "summary": summary, "runs": docs}
+           "lane_id": first["lane_id"], "lane_m": first["lane_length_m"], "payload_kg": 5.0,
+           "script_git": versions.pop(), "model": model, "summary": summary, "runs": docs}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "terrain_check.json").write_text(json.dumps(doc, indent=1) + "\n")
     (OUT / "terrain_check.md").write_text(report(doc))
@@ -82,25 +62,28 @@ def main() -> dict | None:
 
 
 def report(doc: dict) -> str:
-    lines = [f"Lane {doc['lane_id']}, {doc['lane_m']:.1f} m, VTOL, 5 kg, 1x, px4/ at {doc['script_git']}.", "",
-             "| Run | Airborne (s) | Takeoff | Transition | Cruise + back-transition | Approach + landing | Hop | "
-             "Energy proxy (kJ) | Landing IN / OUT (cm) | Outcome |", "|---|---|---|---|---|---|---|---|---|---|"]
+    lines = [f"Lane {doc['lane_id']}, {doc['lane_m']:.1f} m, VTOL, 5 kg, 1x, px4/ at {doc['script_git']}. "
+             "Phases as in Phase 7's held-out validation; model error is predicted / measured - 1.", "",
+             "| Run | Visit (s) | Takeoff (s) | Lane (s) | Approach + landing (s) | Hop (s) | Energy proxy (kJ) | "
+             "Model time error | Model energy error | Landing IN / OUT (cm) | Outcome |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
     for kind in KINDS:
         for d in doc["runs"][kind]:
-            p = d["phases_s"]
-            lines.append(f"| {d['run']} | {d['airborne_s']} | {p['mc_takeoff']:.1f} | {p['transition']:.1f} | "
-                         f"{p['cruise'] + p['back_transition']:.1f} | {p['approach_landing']:.1f} | {p['hop']:.1f} | "
-                         f"{d['energy_kj']} | {d['landing_cm']['IN']} / {d['landing_cm']['OUT']} | "
-                         f"{d['status']}, {d['validation']} |")
+            p = {k: v["meas_time_s"] for k, v in d["phases"].items()}
+            lines.append(f"| {d['run']} | {d['visit_time_measured_s']} | {p['takeoff']} | {p['lane']} | "
+                         f"{p['approach']} | {p['hop']} | {d['visit_energy_measured_j'] / 1000:.1f} | "
+                         f"{d['time_error']:+.1%} | {d['energy_error']:+.1%} | "
+                         f"{d['landings_cm'][0]} / {d['landings_cm'][1]} | {d['status']}, {d['validation']} |")
     m = doc["model"]
-    p = m["phases_s"]
-    lines.append(f"| sim flight model | {m['airborne_s']} | {p['takeoff']} | {p['transition']} | {p['cruise']} | "
-                 f"{p['approach']} | {p['hop']} | {m['energy_kj']} | - | - |")
-    lines += ["", "| Mean of two | Airborne vs model | Energy vs model |", "|---|---|---|"]
+    p = m["phase_time_s"]
+    lines.append(f"| sim flight model | {m['visit_time_s']} | {p['takeoff']} | {p['lane']} | {p['approach']} | "
+                 f"{p['hop']} | {m['visit_energy_kj']} | - | - | - | - |")
+    lines += ["", "| Mean of two | Visit (s) | Energy proxy (kJ) | Model time error | Model energy error |",
+              "|---|---|---|---|---|"]
     for kind in KINDS:
         s = doc["summary"][kind]
-        lines.append(f"| {kind} | {s['airborne_s']} s ({s['vs_model_time']:+.1%}) | "
-                     f"{s['energy_kj']} kJ ({s['vs_model_energy']:+.1%}) |")
+        lines.append(f"| {kind} | {s['visit_time_s']} | {s['visit_energy_kj']} | {s['model_time_error']:+.1%} | "
+                     f"{s['model_energy_error']:+.1%} |")
     return "\n".join(lines) + "\n"
 
 
