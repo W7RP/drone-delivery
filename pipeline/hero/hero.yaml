@@ -81,7 +81,40 @@ cameras:
   chase: {back_m: 14.0, up_m: 5.0, side_m: 3.0, lag_s: 0.8, min_track_speed_mps: 2.0}
   # Fixed at pad B: this far from the pad centre (east, north, up), looking at a point this
   # high above it.
-  pad: {offset_m: [-16.0, -9.0, 6.0], look_up_m: 1.0}
+  pad: {offset_m: [-20.0, -11.0, 7.0], look_up_m: 3.0}
   # Fixed overview: behind pad A on the lane line and to its left, high, looking at a point
   # this far down the lane.
-  wide: {behind_m: 500.0, left_m: 150.0, up_m: 420.0, look_along_m: 2500.0}
+  wide: {behind_m: 400.0, left_m: 300.0, up_m: 600.0, look_along_m: 1500.0}
+
+# The cut (px4/tools/hero_edit.py). Segments run from their anchor (plus offset) to the next
+# segment's; anchors are log events: msg:NAME, drone:ROW, vtol:STATE, run_status, with #n for
+# the n-th, or approach_height (the drone down to approach_height_m above pad B's ground).
+# A segment without duration_s plays at 1x; with it, it is compressed to that many seconds
+# and the HUD shows "x N". Every handshake and touchdown plays at 1x; the climb, cruise,
+# descent, hop and latch waits are compressed, because the visit (about 970 s of sim time,
+# 190 s of it outside the cruise) cannot fit 60 to 90 s otherwise (spec A97).
+edit:
+  crf: 20
+  title_s: 3.0
+  closing_s: 4.0
+  timer_origin: "msg:MISSION_ASSIGN"
+  approach_height_m: 8.5
+  locator_cameras: [wide]
+  locator_radius_px: 14
+  segments:
+    - {from: "msg:MISSION_ASSIGN", offset_s: -1.0, camera: chase}
+    - {from: "drone:D01", offset_s: 4.0, camera: chase, duration_s: 3.0}
+    - {from: "vtol:TRANSITION_FW", offset_s: -0.5, camera: chase}
+    - {from: "vtol:FW", offset_s: 1.0, camera: wide, duration_s: 4.0}
+    - {from: "vtol:FW", offset_s: 360.0, camera: chase, duration_s: 4.0}
+    - {from: "vtol:TRANSITION_MC", offset_s: -0.5, camera: chase}
+    - {from: "vtol:MC#2", offset_s: 0.5, camera: chase, duration_s: 1.5}
+    - {from: "drone:D03", offset_s: -1.0, camera: chase}
+    - {from: "msg:LANDING_GRANT", offset_s: 3.0, camera: chase, duration_s: 4.0}
+    - {from: "approach_height", offset_s: -1.0, camera: pad, duration_s: 2.0}
+    - {from: "msg:LANDED", offset_s: -8.0, camera: pad}
+    - {from: "msg:HOP_CMD", offset_s: 1.0, camera: pad, duration_s: 3.0}
+    - {from: "msg:LANDED#2", offset_s: -4.0, camera: pad}
+    - {from: "msg:LATCH_CMD", offset_s: 1.0, camera: pad, duration_s: 1.5}
+    - {from: "msg:LATCH_REPORT", offset_s: -1.0, camera: pad}
+  end: {at: "run_status", offset_s: 0.5}
