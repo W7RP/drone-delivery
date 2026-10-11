@@ -1,11 +1,11 @@
-"""`pipeline/run.sh hero <step>`: lane (step 2)."""
+"""`pipeline/run.sh hero <step>`: lane (step 2), world (step 3)."""
 
 import argparse
 import sys
 
-from . import select_lane
+from . import select_lane, world
 
-STEPS = {"lane": select_lane.main}
+STEPS = {"lane": select_lane.main, "world": world.main}
 
 
 def main() -> int:

@@ -3,3 +3,60 @@
 lane_choice:
   # The demo scenario's seed (docs/vtol.md).
   demo_seed: 42
+
+# Corridor world (hero/world.py). Placeholders, chosen for the look of the clip, not measured.
+world:
+  # Terrain mesh: 300 m either side of the lane and 500 m around each pad, as the brief sets.
+  lane_buffer_m: 300.0
+  pad_buffer_m: 500.0
+  # Vertex spacing; the DEM is 1 arc-second (about 31 m north-south, 23 m east-west here).
+  terrain_grid_m: 30.0
+  # Ground around a pad is flat at the pad's DEM elevation out to this radius, then blends back.
+  pad_flat_radius_m: 25.0
+  pad_blend_m: 40.0
+  # Concrete apron under the IN and OUT slabs (collision), top at the pad's ground; the
+  # flattened terrain sits this far below it.
+  apron_side_m: 12.0
+  apron_thickness_m: 0.3
+  apron_inset_m: 0.05
+  apron_rgb: [0.62, 0.62, 0.6]
+  # Water: slabs at the polygon's median DEM elevation (3DEP is hydro-flattened) plus the
+  # offset; terrain inside is pushed this far below the surface. Smaller pieces are dropped.
+  water_offset_m: 0.3
+  water_depth_m: 1.0
+  min_water_area_m2: 200.0
+  water_rgb: [0.24, 0.36, 0.48]
+  # Roads: drivable OSM ways as strips this wide, this far above the terrain, cut every
+  # road_step_m to follow it. Bridges span linearly between their ends.
+  road_width_m: {motorway: 14.0, trunk: 14.0, primary: 10.0, secondary: 9.0, other: 6.0}
+  road_offset_m: 0.4
+  road_step_m: 15.0
+  road_rgb: [0.2, 0.2, 0.22]
+  # Buildings: footprints within 150 m of the lane and 300 m of each pad, as the brief sets.
+  building_lane_buffer_m: 150.0
+  building_pad_buffer_m: 300.0
+  # A footprint touching this circle around a pad is left out: the pad is a ground slab.
+  pad_clear_radius_m: 15.0
+  # Height without an OSM height tag: building:levels times level_height_m, else the default.
+  level_height_m: 3.0
+  default_height_m: 8.0
+  # Walls start this far below the lowest ground under the footprint; a roof at least
+  # min_exposed_m above the highest ground.
+  building_sink_m: 1.0
+  min_exposed_m: 2.0
+  building_rgb: [0.72, 0.7, 0.66]
+  # Triangle cap for the whole world. Over it, footprints are simplified with the next
+  # tolerance (shapely, topology kept) until it fits.
+  max_triangles: 600000
+  simplify_tolerances_m: [0.0, 0.5, 1.0, 2.0, 4.0]
+  # Ground tint by elevation band (metres NAVD88): river terrace, slopes, hilltops.
+  elevation_bands:
+    - {below_m: 235.0, rgb: [0.45, 0.52, 0.36]}
+    - {below_m: 265.0, rgb: [0.42, 0.5, 0.33]}
+    - {below_m: 300.0, rgb: [0.47, 0.5, 0.34]}
+    - {below_m: 9999.0, rgb: [0.53, 0.52, 0.38]}
+  ambient_rgb: [0.42, 0.42, 0.45]
+  sky_rgb: [0.66, 0.76, 0.88]
+  sun:
+    direction: [-0.45, 0.35, -0.82]
+    diffuse_rgb: [0.95, 0.93, 0.86]
