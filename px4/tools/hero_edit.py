@@ -121,8 +121,9 @@ class Hud:
         for _, key, value in self.changes[:bisect_right(self.change_t, t)]:
             state[key] = value
         k = bisect_right(self.msg_t, t)
-        last = [{"t_s": round(m["t"], 3), "seq": m["seq"], "sender": m["sender"], "name": m["name"],
-                 "text": self.label(m)} for m in self.logs.msgs[max(0, k - 3):k]]
+        last = [{"t_s": round(m["t"], 3), "timer_s": round(m["t"] - self.origin_t, 1), "seq": m["seq"],
+                 "sender": m["sender"], "name": m["name"], "text": self.label(m)}
+                for m in self.logs.msgs[max(0, k - 3):k]]
         i = min(max(0, bisect_right(self.logs.t, t) - 1), len(self.logs.t) - 1)
         x, y, z = (float(v) for v in self.logs.samples["truth_enu_m"][i])
         ground = terrain_z(self.grid, self.x0, self.y0, self.g, x, y)
@@ -184,13 +185,21 @@ class Reader:
         return np.frombuffer(self.frame, np.uint8).reshape(H, W, 3), self.k
 
     def close(self) -> None:
-        self.proc.stdout.close()
+        # Stopped before its end on purpose: kill first, so it never writes to a closed pipe.
         self.proc.kill()
         self.proc.wait()
+        self.proc.stdout.close()
 
 
 def font(size: int):
     return ImageFont.load_default(size=size)
+
+
+def clock(seconds: float) -> str:
+    """mm:ss.s of a time from the timer origin; times before it show a minus sign."""
+    tenths = round(abs(seconds) * 10)
+    m, rest = divmod(tenths, 600)
+    return f"{'-' if seconds < 0 and tenths else ''}{m:02d}:{rest // 10:02d}.{rest % 10}"
 
 
 def fmt_min(s: float) -> str:
@@ -214,21 +223,19 @@ def draw_hud(img: Image.Image, hud: dict, seg: dict, panel: dict, cfg: dict, loc
     d = ImageDraw.Draw(img, "RGBA")
     f_big, f, f_small = font(26), font(19), font(15)
     d.rectangle([12, 12, 470, 196], fill=(0, 0, 0, 150))
-    m, s = divmod(hud["timer_s"], 60)
-    d.text((24, 20), f"SIM  T+{int(m):02d}:{s:04.1f}", font=f_big, fill="white")
+    d.text((24, 20), f"SIM  T+{clock(hud['timer_s'])}", font=f_big, fill="white")
     rate = "real time" if seg["speed"] == 1.0 else f"x {seg['speed']:.0f}"
     d.text((300, 24), rate, font=f, fill=(255, 210, 80) if seg["speed"] != 1.0 else (180, 220, 180))
     d.text((24, 58), f"Drone   {hud['drone']}  ({hud['vtol']})", font=f, fill="white")
     d.text((24, 84), f"Pad A   {hud['pad_A']}", font=f, fill="white")
     d.text((24, 110), f"Pad B   {hud['pad_B']}", font=f, fill="white")
     d.text((24, 140), f"Height above ground  {hud['agl_m']:6.1f} m", font=f, fill="white")
-    d.text((24, 166), f"Battery (PX4 SITL)   {hud['battery_pct']:5.1f} %", font=f, fill="white")
+    d.text((24, 166), f"Battery {hud['battery_pct']:5.1f} % (PX4 SITL, drains with time)", font=f, fill="white")
     # Handshake messages, newest last.
     d.rectangle([W - 472, 12, W - 12, 128], fill=(0, 0, 0, 150))
     d.text((W - 460, 18), "Handshake", font=f_small, fill=(200, 200, 200))
     for i, msg in enumerate(hud["messages"]):
-        mm, ss = divmod(msg["t_s"] - (hud["sim_t_s"] - hud["timer_s"]), 60)
-        d.text((W - 460, 40 + 28 * i), f"{int(mm):02d}:{ss:04.1f}  {msg['text']}", font=f, fill="white")
+        d.text((W - 460, 40 + 28 * i), f"{clock(msg['timer_s'])}  {msg['text']}", font=f, fill="white")
     # Drone vs truck on this lane, from the demo scenario.
     p = panel
     x0, y0 = W - 472, H - 168

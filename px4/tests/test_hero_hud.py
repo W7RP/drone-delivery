@@ -5,7 +5,8 @@ For the camera run that tools/hero_edit.py cut (<run>/edit/hud_timeline.json):
   of a segment is caused by a log event of that value in between: the HUD changes within one
   frame of the log timestamp, never early;
 - every state event inside a shown segment is on screen by the first frame at or after it,
-  unless a later event replaced it within the same frame;
+  unless a later event replaced it by then (two transitions in one sim tick show only the
+  second);
 - every handshake message shown carries its log send time exactly, first appears on the first
   frame at or after that time, and messages appear in send order;
 - the battery and height figures are the samples' values at the frame's sim time;
@@ -66,11 +67,13 @@ def check_states(frames, segments, events, problems):
         if not fs:
             continue
         times = [f["sim_t_s"] for f in fs]
-        for t, key, value in events:
+        for n, (t, key, value) in enumerate(events):
             if not fs[0]["sim_t_s"] < t <= fs[-1]["sim_t_s"]:
                 continue
             k = next(i for i, ft in enumerate(times) if ft >= t - 1e-6)
-            later = [e for e in events if e[1] == key and t < e[0] <= times[k] + 1e-6]
+            # Replaced before the frame: a later event of the same key (log order, which may
+            # share its sim time) at or before the frame's time.
+            later = [e for e in events[n + 1:] if e[1] == key and e[0] <= times[k] + 1e-6]
             if fs[k][key] != value and not later:
                 problems.append(f"{key} {value} at {t:.3f} s not on frame {fs[k]['frame']} ({times[k]:.3f} s)")
 
