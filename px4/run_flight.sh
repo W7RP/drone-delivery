@@ -139,6 +139,11 @@ while [[ ! -f "$out/run_status" ]]; do
     echo "TIMEOUT after ${timeout_s} s" > "$out/run_status"
     break
   fi
+  dead="$(sitl_dead)"
+  if [[ -n "$dead" && ! -f "$out/run_status" ]]; then
+    echo "FAILED: $dead exited during the run" > "$out/run_status"
+    break
+  fi
   sleep 1
 done
 status="$(cat "$out/run_status")"

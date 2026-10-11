@@ -16,6 +16,7 @@ case "$AIRFRAME" in
   *) echo "unknown AIRFRAME $AIRFRAME" >&2; exit 2 ;;
 esac
 SITL_PIDS=()
+GZ_PID="" PX4_PID=""
 
 sitl_log() { printf '[sitl %s] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
 
@@ -70,6 +71,7 @@ sitl_start_gz() {
   fi
   gz sim --verbose=1 -s -r --headless-rendering "$run/$WORLD_NAME.sdf" > "$run/gz_server.log" 2>&1 &
   SITL_PIDS+=($!)
+  GZ_PID=$!
   local pid=$! i
   for i in $(seq 1 120); do
     kill -0 "$pid" 2>/dev/null || { sitl_log "Gazebo exited (see $run/gz_server.log)"; return 1; }
@@ -105,6 +107,7 @@ sitl_start_px4() {
   export PX4_SIM_SPEED_FACTOR="$speed"
   ( cd "$run/px4" && exec "$PX4_BUILD/bin/px4" -d "$PX4_BUILD/etc" ) > "$run/px4.log" 2>&1 &
   SITL_PIDS+=($!)
+  PX4_PID=$!
   for i in $(seq 1 240); do
     grep -q "Startup script returned successfully" "$run/px4.log" 2>/dev/null && break
     sleep 0.5
@@ -191,6 +194,14 @@ sitl_stop_recorder() {
   for i in $(seq 1 120); do kill -0 "$REC_PID" 2>/dev/null || break; sleep 0.5; done
   kill -KILL "$REC_PID" 2>/dev/null || true
   REC_PID=""
+}
+
+# sitl_dead: names the simulator process that has exited during a run (Gazebo or PX4), or
+# nothing. A visit cannot go on without either, so a run stops at once instead of at its timeout.
+sitl_dead() {
+  [[ -n "$GZ_PID" ]] && ! kill -0 "$GZ_PID" 2>/dev/null && { echo "Gazebo"; return; }
+  [[ -n "$PX4_PID" ]] && ! kill -0 "$PX4_PID" 2>/dev/null && { echo "PX4"; return; }
+  true
 }
 
 sitl_stop() {
