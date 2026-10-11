@@ -26,8 +26,9 @@ sitl_env() {
   # shellcheck disable=SC1091
   source "$PX4_BUILD/rootfs/gz_env.sh"
   set -u
-  # Per-run models first (vehicle, pods), then this repo's world and markers, then PX4's.
-  export GZ_SIM_RESOURCE_PATH="$run/models:$DD_PX4/sim/models:$DD_PX4/sim/worlds:$GZ_SIM_RESOURCE_PATH"
+  # Per-run models first (vehicle, pods), then this repo's world and markers, the generated
+  # terrain world's meshes (Phase 8), then PX4's.
+  export GZ_SIM_RESOURCE_PATH="$run/models:$DD_PX4/sim/models:$DD_PX4/sim/worlds:$DD_PX4/sim/hero/models:$GZ_SIM_RESOURCE_PATH"
   export GZ_SIM_SERVER_CONFIG_PATH="$DD_PX4/sim/server.config"
   export GZ_IP=127.0.0.1
   export PX4_GZ_WORLD="$WORLD_NAME"

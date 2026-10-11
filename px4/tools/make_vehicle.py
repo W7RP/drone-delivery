@@ -386,12 +386,15 @@ def main() -> int:
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
     scene = json.loads(run_file(args.out, "scene.json").read_text())
-    slab = scene["slab_top_m"]
+    # A terrain world (Phase 8) gives each pad's ground height; the flat world is at 0 (A54).
+    ground = scene.get("pad_ground_z_m", {"A": 0.0, "B": 0.0})
+    slab_a = ground["A"] + scene["slab_top_m"]
+    slab_b = ground["B"] + scene["slab_top_m"]
     a_out = scene["spots"]["A_OUT"]["enu_m"]
     b_out = scene["spots"]["B_OUT"]["enu_m"]
     sz = cfg["vehicle"]["pod"]["size_m"][2]
     base_height, skid_bottom = (-VTOL_SKID_BOTTOM_Z, VTOL_SKID_BOTTOM_Z) if vtol else (BASE_HEIGHT_M, SKID_BOTTOM_Z)
-    carry_z = slab + base_height + skid_bottom + cfg["vehicle"]["pod"]["carry_clearance_m"] + sz / 2
+    carry_z = slab_a + base_height + skid_bottom + cfg["vehicle"]["pod"]["carry_clearance_m"] + sz / 2
     # Spawn poses (x, y, z, yaw) for lib/sitl.sh: the drone on A's OUT facing east (along the
     # spots), pod 1 in the latch, pod 2 waiting on B's OUT.
     s = vtol_scale(lane) if vtol else thrust_scale(lane, cfg)
@@ -411,9 +414,9 @@ def main() -> int:
             "latch_kg": latch, "pod_kg": pod_kg,
             "payload_kg": args.payload_kg,
             "pods": pods, "skid_bottom_z": skid_bottom, "base_height_m": base_height,
-            "spawn": {name: [*a_out, slab, 0.0],
+            "spawn": {name: [*a_out, slab_a, 0.0],
                       "dd_pod_1": [*a_out, carry_z, 0.0],
-                      "dd_pod_2": [*b_out, slab + sz / 2, 0.0]}}
+                      "dd_pod_2": [*b_out, slab_b + sz / 2, 0.0]}}
     (args.out / "vehicle.json").write_text(json.dumps(info, indent=1) + "\n")
     print(json.dumps(info))
     return 0

@@ -2,6 +2,7 @@
 # One delivery visit in PX4 SITL + Gazebo, headless, end to end:
 #   px4/run_flight.sh --payload-kg X --seed N --out <dir> [--speed F] [--timeout S] [--lane-id L]
 #                     [--airframe quad|vtol] [--wind-mps W --wind-from-deg D --gust-frac G]
+#                     [--world-dir DIR]
 # Takes off from A's OUT with a pod of X kg, flies lane 3 to B, lands on IN, releases, hops to
 # OUT, latches the pod waiting there, and parks. Writes the logs into <dir>.
 # --seed sets only the injected offsets (start position, detector corner noise); Gazebo and PX4
@@ -13,6 +14,8 @@
 # pads. --timeout defaults to three times the visit's expected wall time; a run that outlasts
 # it is stopped (Gazebo, PX4 and every node) and marked TIMEOUT. The run refuses to start with
 # less than MIN_FREE_GB free. --wind-mps, even 0, flies with Gazebo's wind systems on (A94).
+# --world-dir flies a generated terrain world (Phase 8, `pipeline/run.sh hero world`, default
+# px4/sim/hero): its lane.json, scene.json and world_src.sdf replace the flat lane's.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MIN_FREE_GB=20
@@ -20,7 +23,7 @@ MIN_FREE_GB=20
 EXPECTED_FIXED_S=200
 EXPECTED_CRUISE_MPS=15
 
-payload="" seed="" out="" speed=1 timeout_s="" lane_id="" airframe=quad
+payload="" seed="" out="" speed=1 timeout_s="" lane_id="" airframe=quad world_dir=""
 wind=false wind_mps=0 wind_from=0 gust_frac=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,7 +37,8 @@ while [[ $# -gt 0 ]]; do
     --speed) speed="$2"; shift ;;
     --timeout) timeout_s="$2"; shift ;;
     --lane-id|--lane) lane_id="$2"; shift ;;
-    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
+    --world-dir) world_dir="$2"; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -50,6 +54,19 @@ free_gb=$(df -BG --output=avail "$HERE" | tail -1 | tr -dc 0-9)
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 rm -f "$out/run_status"
+[[ -z "$lane_id" || -z "$world_dir" ]] || { echo "--lane-id and --world-dir exclude each other" >&2; exit 2; }
+world_git="" world_sha=""
+if [[ -n "$world_dir" ]]; then
+  world_dir="$(cd "$world_dir" && pwd)"
+  for f in lane.json scene.json world_src.sdf; do
+    [[ -f "$world_dir/$f" ]] || { echo "$world_dir/$f missing: pipeline/run.sh hero world" >&2; exit 1; }
+    cp "$world_dir/$f" "$out/$f"
+  done
+  # The generator's commit, marked dirty when pipeline/hero differs from it.
+  world_git="$(git -C "$HERE" rev-parse --short=12 HEAD)"
+  [[ -z "$(git -C "$HERE/.." status --porcelain -- pipeline/hero)" ]] || world_git="$world_git-dirty"
+  world_sha="$(sha256sum "$out/world_src.sdf" | cut -c1-16)"
+fi
 if [[ -n "$lane_id" ]]; then
   "$HERE/py.sh" tools/select_lane.py --lane-id "$lane_id" --out "$out/lane.json"
   "$HERE/py.sh" tools/make_world.py --lane "$out/lane.json" --out-world "$out/world_src.sdf" \
@@ -72,9 +89,11 @@ fi
 # batch can be checked to be all one version.
 script_git="$(git -C "$HERE" rev-parse --short=12 HEAD)"
 [[ -z "$(git -C "$HERE" status --porcelain -- . ':!runs')" ]] || script_git="$script_git-dirty"
-printf '{"payload_kg": %s, "seed": %s, "speed": %s, "airframe": "%s", "timeout_s": %s, "wind": %s, "wind_mps": %s, "wind_from_deg": %s, "gust_frac": %s, "script_git": "%s", "started_utc": "%s"}\n' \
+# run_flight.sh's own last commit, and the world generator's (empty on a flat world).
+run_flight_git="$(git -C "$HERE" log -1 --format=%h --abbrev=12 -- run_flight.sh)"
+printf '{"payload_kg": %s, "seed": %s, "speed": %s, "airframe": "%s", "timeout_s": %s, "wind": %s, "wind_mps": %s, "wind_from_deg": %s, "gust_frac": %s, "script_git": "%s", "run_flight_git": "%s", "world_dir": "%s", "world_git": "%s", "world_sdf_sha256": "%s", "started_utc": "%s"}\n' \
   "$payload" "$seed" "$speed" "$airframe" "$timeout_s" "$wind" "$wind_mps" "$wind_from" "$gust_frac" \
-  "$script_git" "$(date -u +%FT%TZ)" > "$out/run.json"
+  "$script_git" "$run_flight_git" "$world_dir" "$world_git" "$world_sha" "$(date -u +%FT%TZ)" > "$out/run.json"
 
 python3 "$HERE/tools/rss_monitor.py" $$ "$out/rss.json" &
 monitor=$!

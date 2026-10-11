@@ -52,6 +52,8 @@ public:
     spot_radius_ = declare_parameter<double>("spot_sensor_radius_m");
     pod_radius_ = declare_parameter<double>("in_pod_sensor_radius_m");
     pod_rest_z_ = declare_parameter<double>("pod_rest_max_z_m");
+    // Terrain worlds (Phase 8): the pad's ground in world z; 0 on the flat world (A54).
+    ground_z_ = declare_parameter<double>("ground_z_m", 0.0);
     capture_m_ = declare_parameter<double>("latch_capture_radius_m");
     release_verify_s_ = declare_parameter<double>("release_verify_s");
     latch_verify_s_ = declare_parameter<double>("latch_verify_s");
@@ -109,7 +111,8 @@ private:
   [[nodiscard]] bool drone_on(const Vec3 & spot) const
   {
     const Vec3 p = truth_.enu("drone");
-    return truth_.horizontal_distance("drone", spot[0], spot[1]) <= spot_radius_ && p[2] < 0.5;
+    return truth_.horizontal_distance("drone", spot[0], spot[1]) <= spot_radius_ &&
+           p[2] < ground_z_ + kOnSpotMaxHeightM;
   }
 
   // A pod resting on IN (not hanging in a latch): close to the spot and down on the slab.
@@ -278,7 +281,9 @@ private:
   TruthPoses truth_;
   std::uint16_t id_{};
   Vec3 in_{}, out_{};
-  double spot_radius_{}, pod_radius_{}, pod_rest_z_{}, capture_m_{};
+  // The drone counts as on a spot below this height above the pad's ground.
+  static constexpr double kOnSpotMaxHeightM = 0.5;
+  double spot_radius_{}, pod_radius_{}, pod_rest_z_{}, capture_m_{}, ground_z_ = 0.0;
   double release_verify_s_{}, latch_verify_s_{};
   std::map<std::uint16_t, Visit> visits_;
   std::uint16_t in_drone_ = kNoId16, out_drone_ = kNoId16, in_reserved_ = kNoId16,

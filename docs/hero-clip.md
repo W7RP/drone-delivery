@@ -73,7 +73,7 @@ sha256s, the counts below and the sha256 of every generated file. Placeholders a
 |---|---|---|
 | Terrain | 30 m grid over 300 m either side of the lane and 500 m around each pad, bilinear DEM heights; four meshes tinted by elevation band (below 235, 265, 300 m and above) | 8544 cells, 17 088 triangles |
 | Pads | ground flat at the pad's DEM elevation for 25 m, blending back over 40 m; a 12 m concrete apron (collision) carrying the IN and OUT slabs and markers | 2 |
-| Water | OSM water polygons cut to the corridor, flat at the median DEM elevation inside each (3DEP is hydro-flattened) plus 0.3 m; terrain under them is pushed below | 4 polygons (Allegheny 216.3 m, Monongahela 216.6 m, two ponds), 285 triangles |
+| Water | OSM water polygons cut to the corridor, flat at the median DEM elevation inside each (3DEP is hydro-flattened) plus 0.3 m; terrain under them is pushed below | 4 polygons: the Allegheny by pad A (216.3 m), the river by pad B (216.6 m) and two smaller water bodies along the lane (227.9 and 245.9 m); 285 triangles |
 | Roads | drivable OSM ways as 6 to 14 m dark strips 0.4 m above the terrain mesh, cut every 15 m; bridges span between their ends; tunnels are left out | 849 ways, 17 016 triangles |
 | Buildings | footprints within 150 m of the lane or 300 m of a pad, extruded from 1 m below the lowest ground under them | 1635 buildings, 26 875 triangles |
 
