@@ -382,10 +382,15 @@ def main() -> int:
     if args.wind:
         # Gazebo's WindEffects pushes only on links that ask for it (A94).
         sdf = sdf.replace("<inertial>", "<enable_wind>true</enable_wind><inertial>")
+    scene = json.loads(run_file(args.out, "scene.json").read_text())
+    if scene.get("elevation_m", 0.0) != 0.0:
+        # A terrain world (Phase 8) sits at its real elevation, which Gazebo's NavSat adds to
+        # the GPS altitude but its air pressure sensor does not: without the same reference the
+        # EKF's height jumped by the elevation at arming and the vehicle never took off.
+        sdf = sdf.replace("<air_pressure>", f"<air_pressure>\n          <reference_altitude>{scene['elevation_m']}</reference_altitude>", 1)
     write(args.out / "models" / name / "model.sdf", sdf)
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
-    scene = json.loads(run_file(args.out, "scene.json").read_text())
     # A terrain world (Phase 8) gives each pad's ground height; the flat world is at 0 (A54).
     ground = scene.get("pad_ground_z_m", {"A": 0.0, "B": 0.0})
     slab_a = ground["A"] + scene["slab_top_m"]
