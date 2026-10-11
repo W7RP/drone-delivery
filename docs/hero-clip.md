@@ -158,7 +158,7 @@ buildings is the 3D distance to the nearest extruded prism, sampled every 0.5 s.
 the pads' 15 m clear circles, where the drone stands on its pad. The minima over the whole
 airborne flight equal the lane's. Neither margin is violated.
 
-The four later terrain flights repeat these numbers at the final revision:
+The four terrain flights flown at the final revision repeat these numbers:
 
 | Measure | Range |
 |---|---|
@@ -261,7 +261,7 @@ The HUD is drawn from the logs only:
 `px4/tests/test_hero_hud.py <run>` checks the HUD of every frame (`<run>/edit/hud_timeline.json`):
 
 - **State changes:** every HUD state change lies within one frame after the log event that
-  causes it. Every logged state is on screen by the first frame after it, unless a later event
+  causes it. Every logged state is on screen by the first frame after it, unless another event
   in the same tick replaced it.
 - **Messages:** every message shows its log send time exactly, appears first on the first frame
   at or after it, and keeps send order.
