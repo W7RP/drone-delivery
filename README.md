@@ -1,7 +1,7 @@
 # drone-delivery
 
 A fully simulated B2B drone delivery network: fixed lanes between autonomous pads, pods that
-circulate like the drones do, and a truck baseline serving the same orders over real roads.
+circulate like the drones do, and a truck baseline serving the same orders over roads.
 No residential delivery. The network is a graph of pads and lanes, so an A-B shuttle, a
 hub-and-spoke and a mesh run on the same engine and differ only in config.
 
@@ -13,35 +13,44 @@ recipients of alerts.
 
 ## Status
 
-Phase 1 is done: the specification and interfaces are frozen. There is no simulator code yet.
+Phase 2 is done: a Rust discrete-event core runs the spec. It has no fixed time step, flat
+arrays indexed by ID, seeded streams, and a streamed event log. The core implements every
+pad and drone transition, failure branch and silent-peer rule in the spec, the fleet
+manager's six policies with simple defaults, pods as a finite circulating resource, a truck
+baseline with costs, and online metrics. There is still no Python pipeline and no PX4/ROS
+flight; those are the next phases.
 
-- `docs/spec.md`: entities, record schemas, pad state machine, pad-drone handshake, event
-  model and seeding, fleet manager policy interfaces, metrics, config format, binary file
-  layouts, assumptions.
+What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
+sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
+written back as an amendment. For example, a re-sent landing grant that did not restart its
+timer let two drones be granted the same spot. The fleet manager also forgot drones it could
+not place, and an order to a closed pad blocked its origin forever.
+
+Results on synthetic networks are in `docs/results.md`. Where pods circulate freely the
+drone is about 2.7 times faster than the truck door to door. Where pods run short it loses,
+because shippers wait for an empty pod; one OUT spot per pad, held through latch and charge,
+is the network's real bottleneck. Every number behind those results is a placeholder.
+
+- `docs/spec.md`: entities, records, pad state machine, handshake, event model, policies,
+  metrics, config format, binary layouts, assumptions, amendments.
 - `docs/paper-run.md`: a normal A-B delivery and a marker-miss, hold, divert case walked
-  through the spec step by step, plus the gaps that walk found.
-- `schemas/`: JSON Schema (2020-12) for the config, entity records, and events/messages.
-- `configs/ab_synthetic/`: a complete example scenario. `configs/<preset>/`: stubs for the
-  parts logistics, hospital/lab, retail transfer and remote terrain presets (Pittsburgh).
+  through the spec by hand.
+- `docs/results.md`: drone against truck on four scenarios, and the performance numbers.
+- `sim/`: the Rust core (`sim run`, `sim dump`) and its tests.
+- `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
+  `hub_spoke_6`, `mesh_small` and `scale_200` run; the four presets are still stubs.
 
-Every number in `configs/` is a placeholder flagged `assumption = true`. None is real data.
+## Running it
 
-Planned shape: a Rust discrete-event core, a Python offline pipeline that builds the lane
-graph and truck matrix, and PX4/Gazebo/ROS 2 flights, decoupled through files, for flight
-model calibration and video.
-
-## Checking the contract
-
-`scripts/verify.sh` (needs [uv](https://docs.astral.sh/uv/)) validates every config against
-the schema, applies the cross-field rules from spec section 8.3, and cross-checks the spec's
-tables, message lists, state names and config key references against the schemas. It exits
-non-zero on any mismatch.
+Build, run, read the event log and run the tests: see `docs/running.md`. One command,
+`scripts/verify.sh`, checks everything.
 
 ## Layout
 
 ```
-docs/       spec.md, paper-run.md
+docs/       spec.md, paper-run.md, results.md, running.md
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml
+sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
 scripts/    verify.sh, check_spec.py
 ```

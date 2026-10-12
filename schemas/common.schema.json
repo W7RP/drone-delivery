@@ -123,7 +123,8 @@
     "Spot": {
       "enum": [
         "IN",
-        "OUT"
+        "OUT",
+        "PARKING"
       ]
     },
     "VisitState": {
@@ -270,7 +271,8 @@
         "D_PC_SILENCE_ALERT",
         "D_ENERGY_RESERVE",
         "FM_HOLD_LIMIT",
-        "END_OF_RUN"
+        "END_OF_RUN",
+        "FM_PAD_RECHECK"
       ]
     },
     "FlightSource": {
@@ -566,6 +568,56 @@
           "maximum": 18446744073709551615
         }
       }
+    },
+    "q_m_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_cost_per_m": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "cu/m"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_cost_per_s": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "cu/s"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "q_cost_per_j": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "cu/J"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
+    "NetworkTopology": {
+      "enum": [
+        "HUB_SPOKE",
+        "MESH"
+      ]
     }
   }
 }

@@ -3,7 +3,7 @@
 # The single scheduled fault at the bottom exists to exercise the marker-miss -> hold -> divert
 # path walked in docs/paper-run.md (b).
 
-schema_version = "1.0.0"
+schema_version = "1.2.0"
 
 [meta]
 name = "ab_synthetic"
@@ -31,6 +31,7 @@ is_hub = false
 service_mode = "AUTO"
 pod_return_policy = "KEEP_LOCAL"
 initial_empty_pods = { value = 3, unit = "count", assumption = true }
+parking_capacity = { value = 0, unit = "count", assumption = true }
 
 [[pads]]
 name = "B"
@@ -40,6 +41,7 @@ is_hub = false
 service_mode = "AUTO"
 pod_return_policy = "KEEP_LOCAL"
 initial_empty_pods = { value = 3, unit = "count", assumption = true }
+parking_capacity = { value = 0, unit = "count", assumption = true }
 
 [[lanes]]
 pad_a = "A"
@@ -74,6 +76,7 @@ pod_empty_mass_kg = { value = 1.2, unit = "kg", assumption = true }
 mode = "OUT_CONTACTS"
 power_w = { value = 1500.0, unit = "W", assumption = true }
 efficiency = { value = 0.9, unit = "1", assumption = true }
+charge_while_parked = false
 
 [pad_ops]
 pod_place_s = { value = 60.0, unit = "s", assumption = true }
@@ -166,6 +169,12 @@ tod_speed_factors = [
 [metrics]
 hist_bin_s = { value = 10.0, unit = "s", assumption = true }
 hist_max_s = { value = 14400.0, unit = "s", assumption = true }
+
+[costs]
+truck_per_m = { value = 0.0008, unit = "cu/m", assumption = true }
+truck_per_s = { value = 0.012, unit = "cu/s", assumption = true }
+drone_per_s = { value = 0.002, unit = "cu/s", assumption = true }
+energy_per_j = { value = 4.0e-8, unit = "cu/J", assumption = true }
 
 [[faults]]
 kind = "MARKER_NOT_DETECTED"

@@ -71,7 +71,7 @@ def enu_m(lat_deg, lon_deg, lat0_deg, lon0_deg):
 
 
 def check_dispatch_energy(cfg: dict, name: str) -> None:
-    """R12: every directed lane passes dispatch_ok (spec 6) from charge_target_soc."""
+    """R12/R16: every directed lane and every demand flow passes dispatch_ok (spec 6)."""
     d, po, pol = cfg["drone"], cfg["pad_ops"], cfg["policy"]
     lat0, lon0 = q(cfg["geo"]["origin_lat_deg"]), q(cfg["geo"]["origin_lon_deg"])
     pos = {
@@ -122,26 +122,78 @@ def check_dispatch_energy(cfg: dict, name: str) -> None:
     hub_only = cfg["charging"]["mode"] == "HUB_ONLY"
     chargers = [p["name"] for p in cfg["pads"] if not hub_only or p["is_hub"]]
     cap = q(d["battery_capacity_j"])
-    for a in pos:
-        for b in adj[a]:
-            alts = [e_route(b, qq, payload_kg) for qq in pos if qq != b]
-            e_div = min(alts) + p_hover(payload_kg) * t_cycle
-            e_chg = 0.0 if b in chargers else min(e_route(b, h, 0.0) for h in chargers)
-            need = (
-                p_hover(payload_kg) * q(d["takeoff_s"])
-                + e_route(a, b, payload_kg)
-                + p_hover(payload_kg) * t_cont
-                + e_div
-                + e_chg
+    pairs = [(a, b, "R12 lane") for a in pos for b in adj[a]]
+    flows = cfg["demand"].get("flows", [])
+    pairs += [(f["origin"], f["destination"], "R16 flow") for f in flows]
+    for a, b, rule in pairs:
+        alts = [e_route(b, qq, payload_kg) for qq in pos if qq != b]
+        e_div = min(alts) + p_hover(payload_kg) * t_cycle
+        e_chg = 0.0 if b in chargers else min(e_route(b, h, 0.0) for h in chargers)
+        need = (
+            p_hover(payload_kg) * q(d["takeoff_s"])
+            + e_route(a, b, payload_kg)
+            + p_hover(payload_kg) * t_cont
+            + e_div
+            + e_chg
+        )
+        have = (q(d["charge_target_soc"]) - q(d["reserve_soc"])) * cap
+        if need > have:
+            fail(
+                f"{name}: {rule} {a}->{b} needs {need:.0f} J, has {have:.0f} J above reserve"
             )
-            have = (q(d["charge_target_soc"]) - q(d["reserve_soc"])) * cap
-            if need > have:
-                fail(
-                    f"{name}: R12 lane {a}->{b} needs {need:.0f} J, has {have:.0f} J above reserve"
-                )
+
+
+def parking_slots(pad: dict) -> int:
+    """slots(p) from spec 6.4: parking capacity, or 1 for the OUT spot when it is 0."""
+    capacity = q(pad["parking_capacity"]) if "parking_capacity" in pad else 0
+    return capacity if capacity > 0 else 1
+
+
+def check_synthetic_config(cfg: dict, name: str) -> None:
+    """Rules that need no generated pads; the core checks the rest after generation (8.3)."""
+    net = cfg["synthetic_network"]
+    n = q(net["n_pads"])
+    generated = {f"P{i}" for i in range(n)}
+    refs = list(cfg["drone"].get("initial_pads", [])) + [
+        f["pad"] for f in cfg["faults"]
+    ]
+    for flow in cfg["demand"].get("flows", []):
+        refs += [flow["origin"], flow["destination"]]
+    for ref in refs:
+        if ref not in generated:
+            fail(f"{name}: pad name {ref} is not one of the generated P0..P{n - 1}")
+    if cfg["charging"]["mode"] == "HUB_ONLY" and net["topology"] != "HUB_SPOKE":
+        fail(f"{name}: R11 HUB_ONLY requires a hub (HUB_SPOKE topology)")
 
 
 def check_complete_config(cfg: dict, name: str) -> None:
+    check_common_rules(cfg, name)
+    if "synthetic_network" in cfg:
+        check_synthetic_config(cfg, name)
+    else:
+        check_explicit_network(cfg, name)
+
+
+def check_common_rules(cfg: dict, name: str) -> None:
+    d = cfg["drone"]
+    pl = cfg["payload"]
+    margin = q(d["mtow_kg"]) - q(d["empty_mass_kg"]) - q(d["latch_mass_kg"])
+    if q(pl["pod_gross_mass_kg"]) > margin or q(pl["pod_empty_mass_kg"]) >= q(
+        pl["pod_gross_mass_kg"]
+    ):
+        fail(f"{name}: R6 payload does not fit")
+    if not (
+        q(d["reserve_soc"]) < q(d["charge_target_soc"])
+        and q(d["reserve_soc"]) < q(d["initial_soc"])
+    ):
+        fail(f"{name}: R7 soc ordering")
+    if q(cfg["sim"]["warmup_s"]) >= q(cfg["sim"]["duration_s"]):
+        fail(f"{name}: R8 warmup >= duration")
+    if q(cfg["metrics"]["hist_max_s"]) <= q(cfg["metrics"]["hist_bin_s"]):
+        fail(f"{name}: R13 histogram range")
+
+
+def check_explicit_network(cfg: dict, name: str) -> None:
     pads = [p["name"] for p in cfg["pads"]]
     pad_set = set(pads)
     if len(pad_set) != len(pads):
@@ -166,30 +218,20 @@ def check_complete_config(cfg: dict, name: str) -> None:
     if seen != pad_set:
         fail(f"{name}: R3 lane graph not connected")
     d = cfg["drone"]
-    init = d["initial_pads"]
-    if (
+    slots = {p["name"]: parking_slots(p) for p in cfg["pads"]}
+    init = d.get("initial_pads", [])
+    if init and (
         len(init) != q(d["fleet_size"])
-        or len(set(init)) != len(init)
         or not set(init) <= pad_set
+        or any(init.count(p) > slots[p] for p in set(init))
     ):
-        fail(f"{name}: R4 drone.initial_pads inconsistent with fleet_size or pads")
-    if q(d["fleet_size"]) > len(pads):
-        fail(f"{name}: R5 fleet_size exceeds pad count")
-    pl = cfg["payload"]
-    margin = q(d["mtow_kg"]) - q(d["empty_mass_kg"]) - q(d["latch_mass_kg"])
-    if q(pl["pod_gross_mass_kg"]) > margin or q(pl["pod_empty_mass_kg"]) >= q(
-        pl["pod_gross_mass_kg"]
-    ):
-        fail(f"{name}: R6 payload does not fit")
-    if not (
-        q(d["reserve_soc"]) < q(d["charge_target_soc"])
-        and q(d["reserve_soc"]) < q(d["initial_soc"])
-    ):
-        fail(f"{name}: R7 soc ordering")
+        fail(
+            f"{name}: R4 drone.initial_pads inconsistent with fleet_size, pads or slots"
+        )
+    if q(d["fleet_size"]) > sum(slots.values()):
+        fail(f"{name}: R5 fleet_size exceeds total parking slots")
     duration = q(cfg["sim"]["duration_s"])
-    if q(cfg["sim"]["warmup_s"]) >= duration:
-        fail(f"{name}: R8 warmup >= duration")
-    for f in cfg["demand"]["flows"]:
+    for f in cfg["demand"].get("flows", []):
         if (
             f["origin"] not in pad_set
             or f["destination"] not in pad_set
@@ -212,8 +254,6 @@ def check_complete_config(cfg: dict, name: str) -> None:
     ):
         fail(f"{name}: R11 HUB_ONLY without hub")
     check_dispatch_energy(cfg, name)
-    if q(cfg["metrics"]["hist_max_s"]) <= q(cfg["metrics"]["hist_bin_s"]):
-        fail(f"{name}: R13 histogram range")
 
 
 def check_configs(schemas: dict, registry: Registry) -> int:
@@ -222,7 +262,11 @@ def check_configs(schemas: dict, registry: Registry) -> int:
     for path in sorted((ROOT / "configs").glob("*/scenario.toml")):
         n += 1
         name = path.parent.name
-        cfg = tomli.loads(path.read_text())
+        try:
+            cfg = tomli.loads(path.read_text())
+        except tomli.TOMLDecodeError as err:
+            fail(f"{name}: not valid TOML: {err}")
+            continue
         for err in validator.iter_errors(cfg):
             fail(
                 f"{name}: schema: {'/'.join(map(str, err.absolute_path))}: {err.message[:200]}"
