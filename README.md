@@ -11,6 +11,12 @@ pad and the spot assignments; the drone does fiducial precision landing and owns
 fleet manager decides who flies where. People appear only as "pod placed" events and as the
 recipients of alerts.
 
+![The VTOL in transition over the Strip District, with the HUD](docs/media/hero_transition.png)
+
+One delivery visit flown in PX4 SITL over Pittsburgh terrain and OSM buildings, from the Phase 8
+clip (`docs/hero-clip.md`). The HUD is drawn from the flight's logs; the drone-versus-truck panel
+comes from the simulated demo week, and every input behind it is a placeholder.
+
 ## Status
 
 Phase 8 is done: one VTOL delivery visit is flown in PX4 SITL over real Pittsburgh terrain and buildings and cut into a clip with a HUD from the logs. Phase 7 flew, fitted and ran a VTOL over three years of weather. A Rust discrete-event core runs the spec (phase
@@ -131,6 +137,11 @@ Phase 8 renders one delivery for a clip (`docs/hero-clip.md`), Gazebo only:
 - **Terrain:** over flat ground the fitted flight model predicts the 11.1 km visit within 1% in
   time and energy proxy. Over terrain it is 11% short in time and 25% in energy, because the
   core has no altitude and so misses the climb and descent.
+
+![Track of the clip flight over the corridor world, and its height along the lane](docs/media/hero_track.png)
+
+The clip flight (run `clip_6`, seed 1): its ground-truth track over the corridor world, and its
+height along the lane against the terrain and buildings under the straight A-B line.
 
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
