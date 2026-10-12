@@ -1,0 +1,257 @@
+{
+ "flights": [
+  {
+   "run": "heldout_long_1",
+   "seed": 1,
+   "payload_kg": 5.0,
+   "speed_factor": 2,
+   "valid": true,
+   "problems": [],
+   "lane_id": 4,
+   "from": "Consumer_Fresh_Produce",
+   "to": "Mon_Valley_Works_Edgar_Thomson_P",
+   "lane_length_m": 12895.6,
+   "along_track_m": 12890.86,
+   "straight_m": 12890.71,
+   "along_track_over_lane": 0.9996,
+   "meas_time_s": 965.04,
+   "pred_time_s": 963.47,
+   "time_error": -0.0016,
+   "meas_energy_j": 1988261,
+   "pred_energy_j": 1982235,
+   "energy_error": -0.003,
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.596,
+     "pred_time_s": 34.18,
+     "meas_energy_j": 50447.9,
+     "pred_energy_j": 62565
+    },
+    "cruise": {
+     "meas_time_s": 865.4,
+     "pred_time_s": 857.82,
+     "meas_energy_j": 1814115.8,
+     "pred_energy_j": 1808167
+    },
+    "approach_landing": {
+     "meas_time_s": 49.5,
+     "pred_time_s": 48.85,
+     "meas_energy_j": 102896.6,
+     "pred_energy_j": 89420
+    },
+    "hop": {
+     "meas_time_s": 23.548,
+     "pred_time_s": 22.63,
+     "meas_energy_j": 20800.5,
+     "pred_energy_j": 22083
+    }
+   }
+  },
+  {
+   "run": "heldout_long_2",
+   "seed": 2,
+   "payload_kg": 5.0,
+   "speed_factor": 2,
+   "valid": true,
+   "problems": [],
+   "lane_id": 4,
+   "from": "Consumer_Fresh_Produce",
+   "to": "Mon_Valley_Works_Edgar_Thomson_P",
+   "lane_length_m": 12895.6,
+   "along_track_m": 12890.67,
+   "straight_m": 12890.54,
+   "along_track_over_lane": 0.9996,
+   "meas_time_s": 965.25,
+   "pred_time_s": 963.47,
+   "time_error": -0.0018,
+   "meas_energy_j": 1990470,
+   "pred_energy_j": 1982235,
+   "energy_error": -0.0041,
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.848,
+     "pred_time_s": 34.18,
+     "meas_energy_j": 50893.9,
+     "pred_energy_j": 62565
+    },
+    "cruise": {
+     "meas_time_s": 865.348,
+     "pred_time_s": 857.82,
+     "meas_energy_j": 1816217.4,
+     "pred_energy_j": 1808167
+    },
+    "approach_landing": {
+     "meas_time_s": 49.252,
+     "pred_time_s": 48.85,
+     "meas_energy_j": 102296.2,
+     "pred_energy_j": 89420
+    },
+    "hop": {
+     "meas_time_s": 23.8,
+     "pred_time_s": 22.63,
+     "meas_energy_j": 21062.5,
+     "pred_energy_j": 22083
+    }
+   }
+  },
+  {
+   "run": "heldout_short_1",
+   "seed": 1,
+   "payload_kg": 5.0,
+   "speed_factor": 2,
+   "valid": true,
+   "problems": [],
+   "lane_id": 14,
+   "from": "UPMC_Oakland",
+   "to": "UPMC_Magee_Womens_Hospital",
+   "lane_length_m": 441.3,
+   "along_track_m": 442.45,
+   "straight_m": 442.24,
+   "along_track_over_lane": 1.0027,
+   "meas_time_s": 133.4,
+   "pred_time_s": 135.01,
+   "time_error": 0.0121,
+   "meas_energy_j": 248436,
+   "pred_energy_j": 235940,
+   "energy_error": -0.0503,
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.044,
+     "pred_time_s": 34.18,
+     "meas_energy_j": 49387.1,
+     "pred_energy_j": 62565
+    },
+    "cruise": {
+     "meas_time_s": 37.1,
+     "pred_time_s": 29.35,
+     "meas_energy_j": 79918.7,
+     "pred_energy_j": 61872
+    },
+    "approach_landing": {
+     "meas_time_s": 48.6,
+     "pred_time_s": 48.85,
+     "meas_energy_j": 100779.1,
+     "pred_energy_j": 89420
+    },
+    "hop": {
+     "meas_time_s": 21.652,
+     "pred_time_s": 22.63,
+     "meas_energy_j": 18351.0,
+     "pred_energy_j": 22083
+    }
+   }
+  },
+  {
+   "run": "heldout_short_2",
+   "seed": 2,
+   "payload_kg": 5.0,
+   "speed_factor": 2,
+   "valid": true,
+   "problems": [],
+   "lane_id": 14,
+   "from": "UPMC_Oakland",
+   "to": "UPMC_Magee_Womens_Hospital",
+   "lane_length_m": 441.3,
+   "along_track_m": 442.21,
+   "straight_m": 442.06,
+   "along_track_over_lane": 1.0021,
+   "meas_time_s": 134.05,
+   "pred_time_s": 135.01,
+   "time_error": 0.0072,
+   "meas_energy_j": 248713,
+   "pred_energy_j": 235940,
+   "energy_error": -0.0514,
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.796,
+     "pred_time_s": 34.18,
+     "meas_energy_j": 50779.9,
+     "pred_energy_j": 62565
+    },
+    "cruise": {
+     "meas_time_s": 37.052,
+     "pred_time_s": 29.35,
+     "meas_energy_j": 80033.4,
+     "pred_energy_j": 61872
+    },
+    "approach_landing": {
+     "meas_time_s": 47.4,
+     "pred_time_s": 48.85,
+     "meas_energy_j": 98139.4,
+     "pred_energy_j": 89420
+    },
+    "hop": {
+     "meas_time_s": 22.8,
+     "pred_time_s": 22.63,
+     "meas_energy_j": 19760.4,
+     "pred_energy_j": 22083
+    }
+   }
+  }
+ ],
+ "max_abs_error": {
+  "time": 0.0121,
+  "energy": 0.0514
+ },
+ "targets": {
+  "time": 0.05,
+  "energy": 0.15
+ },
+ "within_targets": true,
+ "fitlane_check": [
+  {
+   "run": "fitlane_1",
+   "seed": 1,
+   "payload_kg": 5.0,
+   "speed_factor": 2,
+   "valid": true,
+   "problems": [],
+   "lane_id": 3,
+   "from": "Consumer_Fresh_Produce",
+   "to": "VA_Pittsburgh_Healthcare_System",
+   "lane_length_m": 2093.4,
+   "along_track_m": 2092.55,
+   "straight_m": 2092.36,
+   "along_track_over_lane": 0.9996,
+   "meas_time_s": 247.04,
+   "pred_time_s": 244.91,
+   "time_error": -0.0087,
+   "meas_energy_j": 486176,
+   "pred_energy_j": 467591,
+   "energy_error": -0.0382,
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.444,
+     "pred_time_s": 34.18,
+     "meas_energy_j": 50137.1,
+     "pred_energy_j": 62565
+    },
+    "cruise": {
+     "meas_time_s": 146.5,
+     "pred_time_s": 139.25,
+     "meas_energy_j": 310439.2,
+     "pred_energy_j": 293523
+    },
+    "approach_landing": {
+     "meas_time_s": 50.252,
+     "pred_time_s": 48.85,
+     "meas_energy_j": 104462.3,
+     "pred_energy_j": 89420
+    },
+    "hop": {
+     "meas_time_s": 23.848,
+     "pred_time_s": 22.63,
+     "meas_energy_j": 21137.4,
+     "pred_energy_j": 22083
+    }
+   },
+   "fit_runs": {
+    "runs": 12,
+    "mean_time_s": 244.82,
+    "mean_energy_j": 481235
+   },
+   "time_vs_fit_runs": 0.0091,
+   "energy_vs_fit_runs": 0.0103
+  }
+ ]
+}

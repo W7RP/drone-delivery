@@ -1,0 +1,158 @@
+{
+ "scenario_drone": {
+  "empty_mass_kg": 9.0,
+  "latch_mass_kg": 0.6,
+  "mtow_kg": 16.0
+ },
+ "thrust_to_weight_at_mtow_placeholder": 2.0,
+ "per_payload": [
+  {
+   "run": "payload_0",
+   "payload_kg": 0.0,
+   "gazebo_airframe_kg": 9.0,
+   "gazebo_latch_kg": 0.6,
+   "gazebo_pod_kg": 0.001,
+   "gazebo_total_kg": 9.601,
+   "motor_constant": 7.84532e-05,
+   "max_thrust_n": 313.8,
+   "thrust_margin": 3.333,
+   "hover": {
+    "empty": {
+     "samples": 17,
+     "throttle_mean": 0.5423,
+     "omega_rms_radps": 542.3
+    },
+    "with_pod": {
+     "samples": 39,
+     "throttle_mean": 0.5404,
+     "omega_rms_radps": 542.4
+    }
+   },
+   "cruise": {
+    "samples": 2663,
+    "speed_mps": 15.036,
+    "thrust_over_weight": 0.9509,
+    "rotor_unevenness": 1.0024
+   },
+   "hover_thrust_over_weight": 0.981
+  },
+  {
+   "run": "payload_2",
+   "payload_kg": 2.0,
+   "gazebo_airframe_kg": 9.0,
+   "gazebo_latch_kg": 0.6,
+   "gazebo_pod_kg": 2.0,
+   "gazebo_total_kg": 11.6,
+   "motor_constant": 7.84532e-05,
+   "max_thrust_n": 313.8,
+   "thrust_margin": 2.759,
+   "hover": {
+    "empty": {
+     "samples": 19,
+     "throttle_mean": 0.542,
+     "omega_rms_radps": 543.1
+    },
+    "with_pod": {
+     "samples": 41,
+     "throttle_mean": 0.6031,
+     "omega_rms_radps": 603.2
+    }
+   },
+   "cruise": {
+    "samples": 2663,
+    "speed_mps": 15.036,
+    "thrust_over_weight": 0.9551,
+    "rotor_unevenness": 1.0037
+   },
+   "hover_thrust_over_weight": 1.004
+  },
+  {
+   "run": "payload_5",
+   "payload_kg": 5.0,
+   "gazebo_airframe_kg": 9.0,
+   "gazebo_latch_kg": 0.6,
+   "gazebo_pod_kg": 5.0,
+   "gazebo_total_kg": 14.6,
+   "motor_constant": 7.84532e-05,
+   "max_thrust_n": 313.8,
+   "thrust_margin": 2.192,
+   "hover": {
+    "empty": {
+     "samples": 18,
+     "throttle_mean": 0.5421,
+     "omega_rms_radps": 542.1
+    },
+    "with_pod": {
+     "samples": 39,
+     "throttle_mean": 0.676,
+     "omega_rms_radps": 676.0
+    }
+   },
+   "cruise": {
+    "samples": 2664,
+    "speed_mps": 15.035,
+    "thrust_over_weight": 0.9616,
+    "rotor_unevenness": 1.0052
+   },
+   "hover_thrust_over_weight": 1.002
+  },
+  {
+   "run": "payload_10",
+   "payload_kg": 10.0,
+   "gazebo_airframe_kg": 9.0,
+   "gazebo_latch_kg": 0.6,
+   "gazebo_pod_kg": 10.0,
+   "gazebo_total_kg": 19.6,
+   "motor_constant": 7.84532e-05,
+   "max_thrust_n": 313.8,
+   "thrust_margin": 1.633,
+   "hover": {
+    "empty": {
+     "samples": 18,
+     "throttle_mean": 0.5426,
+     "omega_rms_radps": 542.6
+    },
+    "with_pod": {
+     "samples": 41,
+     "throttle_mean": 0.7833,
+     "omega_rms_radps": 783.4
+    }
+   },
+   "cruise": {
+    "samples": 2665,
+    "speed_mps": 15.033,
+    "thrust_over_weight": 0.9682,
+    "rotor_unevenness": 1.0059
+   },
+   "hover_thrust_over_weight": 1.002
+  }
+ ],
+ "proxy": {
+  "rotor_radius_m": 0.1396,
+  "rotor_disc_area_m2": 0.06122,
+  "rotors": 4,
+  "air_density_kgpm3": 1.225,
+  "figure_of_merit": 1.0,
+  "motor_and_esc_efficiency": 1.0,
+  "form": "P = sum over rotors of (k_f omega^2)^1.5 / sqrt(2 rho A), integrated"
+ },
+ "mass_check": {
+  "cruise_power_ratio_10_over_0": 2.998,
+  "pure_mass_1p5_ratio": 2.917,
+  "effective_empty_mass_kg": 9.27,
+  "actual_empty_mass_kg": 9.601
+ },
+ "px4": {
+  "describe": "v1.17.0",
+  "commit": "d6f12ad1c4f70ad3230afd7d86e971421e02fef4",
+  "modified_files": [
+   "src/modules/simulation/gz_bridge/GZBridge.cpp",
+   "src/modules/uxrce_dds_client/dds_topics.yaml"
+  ],
+  "patches_from": "quad-autonomy-sim firmware/px4_patches",
+  "patch_sha256_16": {
+   "0001-uxrce-dds-export-estimation-topics.patch": "025294e3ef66cf87",
+   "0002-gz-bridge-use-wmm-mag-sim.patch": "27dfc568dc2f8ee2"
+  }
+ }
+}

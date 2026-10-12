@@ -1,12 +1,15 @@
 """Phase 4 step 2: pick the lane to fly and record everything the SITL flight takes from the
 rest of the repo, in px4/config/lane.json.
 
-The lane runs from the Strip District hub to the nearest Oakland pad of the Pittsburgh catalog.
+The default lane runs from the Strip District hub to the nearest Oakland pad of the Pittsburgh
+catalog. `--lane-id N --out <file>` records any directed lane of the catalog instead (held-out
+flights), into a run directory rather than px4/config.
 Positions are local ENU metres with the hub as origin, using the sim's projection (spec section
 0). Commanded cruise speed comes from the scenario's flight model; the sim has no altitude
 (spec A03), so the cruise altitude is the pipeline's airspace placeholder (params.yaml), the
 altitude the lanes were checked against."""
 
+import argparse
 import hashlib
 import json
 import math
@@ -18,7 +21,9 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
-SCENARIO = REPO / "configs" / "parts_logistics_pittsburgh"
+# Phase 3's catalog and flight values: the placeholder variant keeps them byte-identical, while
+# the fitted variant's network drops pads and renumbers its lanes (spec A65).
+SCENARIO = REPO / "configs" / "parts_logistics_pittsburgh_placeholder"
 DERIVED = SCENARIO / "derived"
 PIPELINE_PARAMS = REPO / "pipeline" / "params.yaml"
 OUT = REPO / "px4" / "config" / "lane.json"
@@ -60,6 +65,10 @@ def q(table):
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--lane-id", type=int, default=None)
+    ap.add_argument("--out", type=Path, default=OUT)
+    args = ap.parse_args()
     report = json.loads((DERIVED / "report.json").read_text())
     catalog_bytes = (DERIVED / "pads.toml").read_bytes()
     pads = tomllib.loads(catalog_bytes.decode())["pads"]
@@ -71,6 +80,9 @@ def main() -> int:
     candidates = [(i, f, t, l) for i, (f, t, l) in enumerate(lanes)
                   if f == hub["id"] and report["pads"][t]["cluster"] == DEST_CLUSTER]
     lane_id, a, b, length = min(candidates, key=lambda c: (c[3], c[0]))
+    if args.lane_id is not None:
+        a, b, length = lanes[args.lane_id]
+        lane_id = args.lane_id
     reverse_id = next(i for i, (f, t, _) in enumerate(lanes) if (f, t) == (b, a))
     pa, pb = pads[a], pads[b]
     lat0, lon0 = q(pa["lat_deg"]), q(pa["lon_deg"])
@@ -94,11 +106,12 @@ def main() -> int:
         "cruise_alt_m": q(params["airspace"]["cruise_altitude_agl_ft"]) * M_PER_FT,
         "sources": {
             "pads.toml_sha256": hashlib.sha256(catalog_bytes).hexdigest(),
-            "scenario": "configs/parts_logistics_pittsburgh/scenario.toml",
+            "scenario": str(SCENARIO.relative_to(REPO) / "scenario.toml"),
             "cruise_altitude": "pipeline/params.yaml airspace.cruise_altitude_agl_ft",
         },
     }
-    OUT.write_text(json.dumps(lane, indent=1) + "\n")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(lane, indent=1) + "\n")
     print(f"lane {lane_id}: {pa['name']} -> {pb['name']}, {length:.1f} m "
           f"(ENU {bx:.1f}, {by:.1f}), cruise {lane['drone']['cruise_speed_mps']} m/s at "
           f"{lane['cruise_alt_m']:.2f} m")

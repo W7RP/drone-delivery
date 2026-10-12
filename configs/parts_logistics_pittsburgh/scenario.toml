@@ -4,7 +4,7 @@
 # come from public data through the pipeline (derived/); every number below is a placeholder
 # (assumption = true), not real data.
 
-schema_version = "1.3.0"
+schema_version = "1.5.0"
 
 # No scheduled faults; random pad-controller faults still follow pad_ops.pc_fault_rate_per_h.
 faults = []
@@ -14,7 +14,7 @@ name = "parts_logistics_pittsburgh"
 preset = "PARTS_LOGISTICS"
 status = "COMPLETE"
 city = "Pittsburgh"
-description = "Anchor preset on real Pittsburgh sites: Strip District warehouses to Mon Valley plants and Oakland hospitals, seven days."
+description = "Anchor preset on real Pittsburgh sites with the flight profile fitted to PX4 SITL: Strip District warehouses to the pads their drones can reach, seven days."
 
 [sim]
 seed = { value = 42, unit = "1", assumption = true }
@@ -32,9 +32,14 @@ origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }
 [network_files]
 dir = "derived"
 
+# Flight profile (spec 8.7): replaces the drone section's flight-model keys,
+# which stay the placeholder profile.
+[flight_profile]
+file = "../flight_profiles/px4_sitl_proxy.toml"
+
 [drone]
-# Rule (spec A52): ceil(offered drone-hours per hour 3.563 / target utilisation 0.5).
-fleet_size = { value = 8, unit = "count", assumption = true }
+# Rule (spec A52): ceil(offered drone-hours per hour 2.396 / target utilisation 0.5).
+fleet_size = { value = 5, unit = "count", assumption = true }
 empty_mass_kg = { value = 9.0, unit = "kg", assumption = true }
 latch_mass_kg = { value = 0.6, unit = "kg", assumption = true }
 mtow_kg = { value = 16.0, unit = "kg", assumption = true }
@@ -152,57 +157,33 @@ deadline_offset_s = { value = 3600.0, unit = "s", assumption = true }
 # About five hours of one warehouse's requests; beyond that a shipper books another carrier.
 max_backlog_per_pad = { value = 20, unit = "count", assumption = true }
 # Each warehouse sends 4.0 requests per hour, split evenly over the pads its drones can reach (R16).
-# Left out, beyond the energy guard: Consumer_Fresh_Produce -> Mon_Valley_Works_Clairton_Plant.
-# Left out, beyond the energy guard: Consumer_Fresh_Produce -> Old_Koppers_Area.
-# Left out, beyond the energy guard: Achieva_Mailing_Service -> Mon_Valley_Works_Clairton_Plant.
-# Left out, beyond the energy guard: Achieva_Mailing_Service -> Old_Koppers_Area.
 
 [[demand.flows]]
 origin = "Consumer_Fresh_Produce"
 destination = "UPMC_Oakland"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }
 
 [[demand.flows]]
 origin = "Consumer_Fresh_Produce"
 destination = "UPMC_Magee_Womens_Hospital"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }
 
 [[demand.flows]]
 origin = "Consumer_Fresh_Produce"
 destination = "VA_Pittsburgh_Healthcare_System"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
-
-[[demand.flows]]
-origin = "Consumer_Fresh_Produce"
-destination = "Mon_Valley_Works_Edgar_Thomson_P"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
-
-[[demand.flows]]
-origin = "Consumer_Fresh_Produce"
-destination = "Josh_Steel"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }
 
 [[demand.flows]]
 origin = "Achieva_Mailing_Service"
 destination = "UPMC_Oakland"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }
 
 [[demand.flows]]
 origin = "Achieva_Mailing_Service"
 destination = "UPMC_Magee_Womens_Hospital"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }
 
 [[demand.flows]]
 origin = "Achieva_Mailing_Service"
 destination = "VA_Pittsburgh_Healthcare_System"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
-
-[[demand.flows]]
-origin = "Achieva_Mailing_Service"
-destination = "Mon_Valley_Works_Edgar_Thomson_P"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
-
-[[demand.flows]]
-origin = "Achieva_Mailing_Service"
-destination = "Josh_Steel"
-rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+rate_per_h = { value = 1.333333, unit = "1/h", assumption = true }

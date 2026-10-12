@@ -7,8 +7,9 @@
 #  4. Rust core: formatting, clippy with warnings as errors, all tests (debug build, so the
 #     invariants run after every event). Includes loading the committed Pittsburgh network files.
 #  5. Release budget runs (spec A39: 60 s wall, 200 MB peak RSS each): the 200-drone 7-day scale
-#     case, the 7-day Pittsburgh scenario, and Pittsburgh at three times its demand, which must
-#     turn requests away at the backlog cap instead of queueing them without limit.
+#     case; the 7-day Pittsburgh scenario with each flight profile (fitted, placeholder, and fitted
+#     with the 1370 Wh battery); and the placeholder Pittsburgh at three times its demand, which
+#     must turn requests away at the backlog cap instead of queueing them without limit.
 #     Skip with VERIFY_SKIP_SCALE=1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -61,7 +62,11 @@ if [ "${VERIFY_SKIP_SCALE:-0}" != "1" ]; then
   (cd sim && cargo build --quiet --release)
   budget_run scale_200 configs/scale_200/scenario.toml "$out/scale_200"
   budget_run pittsburgh configs/parts_logistics_pittsburgh/scenario.toml "$out/pittsburgh"
-  triple="$(python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh/scenario.toml 3 "$out/x3")"
+  budget_run pittsburgh_placeholder configs/parts_logistics_pittsburgh_placeholder/scenario.toml \
+    "$out/pittsburgh_placeholder"
+  budget_run pittsburgh_battery_1370wh configs/parts_logistics_pittsburgh_battery_1370wh/scenario.toml \
+    "$out/pittsburgh_battery_1370wh"
+  triple="$(python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh_placeholder/scenario.toml 3 "$out/x3")"
   budget_run pittsburgh_3x "$triple" "$out/pittsburgh_3x"
   python3 - "$out/pittsburgh_3x/metrics.json" <<'PY'
 import json, sys

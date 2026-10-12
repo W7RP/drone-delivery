@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drone-delivery.invalid/schemas/flight_profile.schema.json",
+  "title": "drone-delivery flight profile (configs/flight_profiles/<name>.toml)",
+  "description": "Flight-model values a scenario can select (spec 8.7). Every value is a quantity; units are fixed per key as in config.schema.json.",
+  "type": "object",
+  "required": [
+    "name",
+    "source",
+    "drone"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "drone": {
+      "type": "object",
+      "required": [
+        "cruise_speed_mps",
+        "cruise_power_ref_w",
+        "hover_power_ref_w",
+        "power_ref_mass_kg",
+        "takeoff_s",
+        "approach_s",
+        "hop_s"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cruise_speed_mps": {
+          "$ref": "common.schema.json#/$defs/q_mps_pos"
+        },
+        "cruise_power_ref_w": {
+          "$ref": "common.schema.json#/$defs/q_W_pos"
+        },
+        "hover_power_ref_w": {
+          "$ref": "common.schema.json#/$defs/q_W_pos"
+        },
+        "power_ref_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "takeoff_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "approach_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "hop_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        }
+      }
+    }
+  }
+}

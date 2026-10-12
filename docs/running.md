@@ -86,6 +86,23 @@ The run directory holds `flight_log.bin` (spec 9.3), `flight_samples.bin` (9.5),
 `events.jsonl` and `visits.json` (9.6), every process's log, the PX4 ULog under `px4/log/`,
 and `rss.json` (peak resident memory of the whole process tree).
 
+## Calibrate the flight model (Phase 5)
+
+```
+px4/tools/run_batch.sh accept                     # the 15 fit flights, if px4/runs/accept is gone
+pipeline/run.sh calib                             # audit, phases, fit, profile, consequences, ...
+pipeline/run.sh calib fit profile                 # or named steps only
+sim/target/release/sim flight-model --lane-m 2093.4 --payload-kg 5
+```
+
+`run.sh calib` builds the release sim, then writes `pipeline/calib/out/`, the fitted profile
+`configs/flight_profiles/px4_sitl_proxy.toml` and the plots in `docs/media/`. The fit is seeded
+and reruns byte-identically. The held-out flights are
+`px4/tools/run_batch.sh heldout heldout_short_1 heldout_short_2 heldout_long_1 heldout_long_2`
+(5 kg, 2x speed), and `px4/tools/run_batch.sh fitlane fitlane_1` checks a SITL change against
+the fit lane. `run_flight.sh --lane-id N` flies any directed lane of the Pittsburgh catalog.
+`docs/calibration.md` has the results.
+
 ## Test and verify
 
 ```
@@ -100,8 +117,9 @@ runs everything and stops at the first failure:
   committed sample flight log against the validator (`VERIFY_SKIP_PX4=1` skips them);
 - rustfmt and clippy with warnings as errors;
 - all Rust tests in a debug build, where invariants are checked after every event;
-- release runs of the 200-drone scale case, the Pittsburgh week and Pittsburgh at 3x demand,
-  each against the 60 s and 200 MB budget.
+- release runs of the 200-drone scale case, the Pittsburgh week with each flight profile
+  (fitted, placeholder, fitted with the 1370 Wh battery) and the placeholder Pittsburgh at 3x
+  demand, each against the 60 s and 200 MB budget.
 
 `VERIFY_SKIP_SCALE=1` skips the release runs.
 

@@ -17,6 +17,12 @@ UXRCE_DDS_DOM_ID 0
 UXRCE_DDS_SYNCT 0
 # PX4's simulated GPS has no latency; the hardware default of 110 ms puts EKF2 ahead of truth.
 EKF2_GPS_DELAY 0
+# Height from the baro, not GPS (spec A67). Gazebo's world is flat, but its NavSat reports
+# WGS84 altitude, which rises above a flat plane by d^2 / 2R: 13 m at 12.9 km from the origin.
+# With GPS height, the drone touched down at B while PX4 read 13 m. GPS still gives lat/lon
+# and velocity; at the origin both height sources agree.
+EKF2_HGT_REF 0
+EKF2_GPS_CTRL 5
 # Cruise at the scenario's 15 m/s needs a higher limit than the 12 m/s default.
 MPC_XY_VEL_MAX 16.0
 # Climb and descent limits (config/flight.yaml flight.climb_mps / descend_mps).

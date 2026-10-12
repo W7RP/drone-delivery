@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # One delivery visit in PX4 SITL + Gazebo, headless, end to end:
-#   px4/run_flight.sh --payload-kg X --seed N --out <dir> [--speed F] [--timeout S]
+#   px4/run_flight.sh --payload-kg X --seed N --out <dir> [--speed F] [--timeout S] [--lane-id L]
 # Takes off from A's OUT with a pod of X kg, flies lane 3 to B, lands on IN, releases, hops to
 # OUT, latches the pod waiting there, and parks. Writes the logs into <dir>.
 # --seed sets only the injected offsets (start position, detector corner noise); Gazebo and PX4
 # are not seeded, so two runs with one seed are not bit-identical.
 # --speed runs Gazebo and PX4 lockstep at F times real time (default 1).
+# --lane-id flies any directed lane of the Pittsburgh catalog instead of lane 3: its lane record,
+# world and scene are generated into <dir>.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/sitl.sh
 source "$HERE/lib/sitl.sh"
 
-payload="" seed="" out="" speed=1 timeout_s=1200
+payload="" seed="" out="" speed=1 timeout_s=1200 lane_id=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --payload-kg) payload="$2"; shift ;;
@@ -19,6 +21,7 @@ while [[ $# -gt 0 ]]; do
     --out) out="$2"; shift ;;
     --speed) speed="$2"; shift ;;
     --timeout) timeout_s="$2"; shift ;;
+    --lane-id) lane_id="$2"; shift ;;
     -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -30,6 +33,11 @@ done
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 rm -f "$out/run_status"
+if [[ -n "$lane_id" ]]; then
+  "$HERE/py.sh" tools/select_lane.py --lane-id "$lane_id" --out "$out/lane.json"
+  "$HERE/py.sh" tools/make_world.py --lane "$out/lane.json" --out-world "$out/world_src.sdf" \
+    --out-scene "$out/scene.json" > /dev/null
+fi
 
 "$HERE/py.sh" tools/make_vehicle.py --out "$out" --payload-kg "$payload" > /dev/null
 "$HERE/py.sh" tools/make_ros_params.py --run "$out" --seed "$seed"

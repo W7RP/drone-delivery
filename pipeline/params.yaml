@@ -38,3 +38,20 @@ demand:
   rate_per_warehouse_per_h: { value: 4.0, unit: "1/h", assumption: true }
   # Fleet size rule: offered drone-hours per hour divided by this target utilisation (scenario.py).
   target_utilisation: { value: 0.5, unit: "1", assumption: true }
+
+# One generated scenario directory per entry (ddpipe/variants.py), all on the same pads.
+# flight_profile selects configs/flight_profiles/<name>.toml (spec 8.7); drone overrides keys of
+# the template's drone section. Each variant's lanes, flows and fleet follow its own flight model.
+scenarios:
+  - name: parts_logistics_pittsburgh
+    flight_profile: px4_sitl_proxy
+    description: "Anchor preset on real Pittsburgh sites with the flight profile fitted to PX4 SITL: Strip District warehouses to the pads their drones can reach, seven days."
+  - name: parts_logistics_pittsburgh_placeholder
+    description: "The anchor preset with the placeholder flight profile (as in Phase 3): Strip District warehouses to Oakland hospitals and Mon Valley plants, seven days."
+  # Battery sized for the longest legal lane at 5 kg under the fitted profile (spec A66):
+  # 1367.1 Wh from pipeline/calib/out/consequences.json, rounded up to 1370 Wh.
+  - name: parts_logistics_pittsburgh_battery_1370wh
+    flight_profile: px4_sitl_proxy
+    description: "The anchor preset with the fitted flight profile and a 1370 Wh battery, enough for its longest legal lane at 5 kg, seven days."
+    drone:
+      battery_capacity_j: { value: 4932000.0, unit: "J", assumption: true }

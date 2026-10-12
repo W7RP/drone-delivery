@@ -1,0 +1,38 @@
+{
+ "payload_range": [
+  {
+   "payload_kg": 2.0,
+   "within_mtow": true,
+   "placeholder_max_lane_m": 36078.3,
+   "px4_sitl_proxy_max_lane_m": 12802.1
+  },
+  {
+   "payload_kg": 5.0,
+   "within_mtow": true,
+   "placeholder_max_lane_m": 21060.0,
+   "px4_sitl_proxy_max_lane_m": 5661.5
+  },
+  {
+   "payload_kg": 10.0,
+   "within_mtow": false,
+   "placeholder_max_lane_m": 8043.8,
+   "px4_sitl_proxy_max_lane_m": 0.0
+  }
+ ],
+ "mtow_payload_margin_kg": 6.4,
+ "battery_for_longest_legal_lane": {
+  "lane": {
+   "from": "Consumer_Fresh_Produce",
+   "to": "Mon_Valley_Works_Edgar_Thomson_P",
+   "length_m": 12895.6
+  },
+  "payload_kg": 5.0,
+  "need_above_reserve_j": 3691184,
+  "usable_fraction": 0.75,
+  "required_capacity_j": 4921578,
+  "required_capacity_wh": 1367.1,
+  "configured_capacity_j": 3240000.0,
+  "configured_capacity_wh": 900.0,
+  "variant_capacity_wh": 1370
+ }
+}

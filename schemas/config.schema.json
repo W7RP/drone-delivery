@@ -11,7 +11,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "1.3.0"
+      "enum": [
+        "1.3.0",
+        "1.5.0"
+      ],
+      "description": "1.5.0 adds flight_profile; 1.3.0 files stay valid without it."
     },
     "meta": {
       "type": "object",
@@ -217,6 +221,20 @@
       "additionalProperties": false,
       "properties": {
         "dir": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "flight_profile": {
+      "type": "object",
+      "description": "A flight profile file (spec 8.7) whose values replace the drone section's flight-model keys; relative to scenario.toml.",
+      "required": [
+        "file"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
           "type": "string",
           "minLength": 1
         }

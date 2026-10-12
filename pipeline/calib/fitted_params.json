@@ -1,0 +1,23 @@
+{
+ "source": "px4-sitl-proxy",
+ "assumption": true,
+ "params": {
+  "cruise_speed_mps": 15.033,
+  "takeoff_s": 34.179,
+  "approach_s": 48.85,
+  "hop_s": 22.626,
+  "cruise_power_ref_w": 2107.87,
+  "hover_power_ref_w": 1830.508,
+  "power_ref_mass_kg": 14.6
+ },
+ "uncertainty_std": {
+  "cruise_speed_mps": 0.0,
+  "takeoff_s": 0.072,
+  "approach_s": 0.16,
+  "hop_s": 0.147,
+  "cruise_power_ref_w": 3.218,
+  "hover_power_ref_w": 1.979,
+  "power_ref_mass_kg": 0.0
+ },
+ "fit": "pipeline/calib/fit.py on px4/runs/accept (Phase 4 acceptance runs)"
+}

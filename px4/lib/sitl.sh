@@ -44,8 +44,11 @@ sitl_start_gz() {
     sitl_log "a Gazebo server is already running; stop it first: pkill -KILL -f '^gz sim'"
     return 1
   fi
+  # A run flown on its own lane brings its world (world_src.sdf); else the default lane's.
+  local src="$DD_PX4/sim/worlds/$WORLD_NAME.sdf"
+  [[ -f "$run/world_src.sdf" ]] && src="$run/world_src.sdf"
   sed "s|<real_time_factor>1.0</real_time_factor>|<real_time_factor>$rtf</real_time_factor>|" \
-    "$DD_PX4/sim/worlds/$WORLD_NAME.sdf" > "$run/$WORLD_NAME.sdf"
+    "$src" > "$run/$WORLD_NAME.sdf"
   gz sim --verbose=1 -s -r --headless-rendering "$run/$WORLD_NAME.sdf" > "$run/gz_server.log" 2>&1 &
   SITL_PIDS+=($!)
   local pid=$! i
@@ -98,19 +101,31 @@ sitl_start_px4() {
   sitl_log "PX4 ready, ${#params[@]} parameters applied"
 }
 
-# sitl_spawn_scene <run_dir>: drone, then pod 2 (detached at once: a detachable joint starts
-# attached, and pod 2 waits on B's OUT), then pod 1, whose joint forms in the carry pose.
+# sitl_spawn_scene <run_dir>: drone, then pod 2 (detached: a detachable joint starts attached,
+# and pod 2 waits on B's OUT), then pod 1, whose joint forms in the carry pose.
+# Pod 2's detach is confirmed on the joint's state topic. A detach sent before the joint exists
+# is lost and leaves pod 2 welded to the drone from across the lane; on a 441 m lane that
+# showed up as a drone pinned off its climb with motors at 150 and 985 rad/s.
 sitl_spawn_scene() {
-  local run="$1" spec name
+  local run="$1" spec name i
+  local state="$run/pod2_joint_state.txt"
+  timeout 30 gz topic -e -t /dd/dd_pod_2/state > "$state" 2>/dev/null &
+  sleep 0.5
   for name in dd_quad dd_pod_2 dd_pod_1; do
     spec="$(python3 -c "import json,sys; print(*json.load(open(sys.argv[1]))['spawn'][sys.argv[2]])" "$run/vehicle.json" "$name")"
     # shellcheck disable=SC2086
     sitl_spawn "$name" "$run/models/$name/model.sdf" $spec || { sitl_log "could not spawn $name"; return 1; }
     if [[ "$name" == dd_pod_2 ]]; then
-      gz topic -t /dd/dd_pod_2/detach -m gz.msgs.Empty -p ' '
+      for i in $(seq 1 50); do grep -q '"attached"' "$state" && break; sleep 0.1; done
+      for i in $(seq 1 10); do
+        gz topic -t /dd/dd_pod_2/detach -m gz.msgs.Empty -p ' '
+        sleep 0.5
+        grep -q '"detached"' "$state" && break
+      done
+      grep -q '"detached"' "$state" || { sitl_log "pod 2 did not detach"; return 1; }
     fi
   done
-  sitl_log "spawned dd_quad, dd_pod_2 (detached), dd_pod_1 (latched)"
+  sitl_log "spawned dd_quad, dd_pod_2 (detached, confirmed), dd_pod_1 (latched)"
 }
 
 sitl_stop() {

@@ -293,6 +293,27 @@ def check_pad_rules(cfg: dict, name: str, pad_list: list) -> None:
         fail(f"{name}: R11 HUB_ONLY without hub")
 
 
+def check_flight_profiles(schemas: dict, registry: Registry) -> None:
+    """Spec 8.7: every profile under configs/flight_profiles is valid and flags each value as an
+    assumption (R15); every scenario that selects one points at an existing file."""
+    validator = Draft202012Validator(schemas["flight_profile.schema.json"], registry=registry)
+    for path in sorted((ROOT / "configs" / "flight_profiles").glob("*.toml")):
+        try:
+            prof = tomli.loads(path.read_text())
+        except tomli.TOMLDecodeError as err:
+            fail(f"{path.name}: not valid TOML: {err}")
+            continue
+        for err in validator.iter_errors(prof):
+            fail(f"{path.name}: schema: {'/'.join(map(str, err.absolute_path))}: {err.message[:200]}")
+        for qpath, node in iter_quantities(prof):
+            if node is None or node["assumption"] is not True:
+                fail(f"{path.name}: R15 {qpath} not flagged assumption = true")
+    for path in sorted((ROOT / "configs").glob("*/scenario.toml")):
+        cfg = tomli.loads(path.read_text())
+        if "flight_profile" in cfg and not (path.parent / cfg["flight_profile"]["file"]).exists():
+            fail(f"{path.parent.name}: flight_profile.file does not exist")
+
+
 def check_configs(schemas: dict, registry: Registry) -> int:
     validator = Draft202012Validator(schemas["config.schema.json"], registry=registry)
     n = 0
@@ -533,7 +554,7 @@ def check_config_keys(sections, schemas, texts: dict[str, str]) -> None:
     for k, unit in table.items():
         if k in keys and keys[k] != unit:
             fail(f"spec 8.2: {k} unit '{unit}' != schema '{keys[k]}'")
-    sections_re = r"(?:meta|sim|geo|network_files|pads\[\]|lanes\[\]|drone|payload|charging|pad_ops|handshake|policy|demand|truck|metrics|faults\[\])\."
+    sections_re = r"(?:meta|sim|geo|network_files|flight_profile|pads\[\]|lanes\[\]|drone|payload|charging|pad_ops|handshake|policy|demand|truck|metrics|faults\[\])\."
     token_re = re.compile(
         r"(?<![/\w.])" + sections_re + r"[a-z_]+(?:\[\])?(?:\.[a-z_]+)*"
     )
@@ -604,6 +625,7 @@ def check_forbidden_words() -> None:
 def main() -> int:
     schemas, registry = load_schemas()
     n_cfg = check_configs(schemas, registry)
+    check_flight_profiles(schemas, registry)
     spec_text = SPEC.read_text()
     paper_text = PAPER_RUN.read_text() if PAPER_RUN.exists() else ""
     if not paper_text:

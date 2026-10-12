@@ -1,0 +1,222 @@
+[
+ {
+  "payload_kg": 0.0,
+  "phase": "takeoff",
+  "runs": 1,
+  "pred_time_s": 30.0,
+  "meas_time_s": 25.85,
+  "time_residual": -0.1605,
+  "pred_energy_j": 19195,
+  "meas_energy_j": 26441,
+  "energy_residual": 0.2741
+ },
+ {
+  "payload_kg": 0.0,
+  "phase": "cruise",
+  "runs": 1,
+  "pred_time_s": 139.56,
+  "meas_time_s": 148.45,
+  "time_residual": 0.0599,
+  "pred_energy_j": 74410,
+  "meas_energy_j": 164285,
+  "energy_residual": 0.5471
+ },
+ {
+  "payload_kg": 0.0,
+  "phase": "approach_landing",
+  "runs": 1,
+  "pred_time_s": 45.0,
+  "meas_time_s": 46.6,
+  "time_residual": 0.0343,
+  "pred_energy_j": 28792,
+  "meas_energy_j": 51464,
+  "energy_residual": 0.4405
+ },
+ {
+  "payload_kg": 0.0,
+  "phase": "hop",
+  "runs": 1,
+  "pred_time_s": 20.0,
+  "meas_time_s": 22.9,
+  "time_residual": 0.1266,
+  "pred_energy_j": 12796,
+  "meas_energy_j": 19926,
+  "energy_residual": 0.3578
+ },
+ {
+  "payload_kg": 0.0,
+  "phase": "visit",
+  "runs": 1,
+  "pred_time_s": 234.56,
+  "meas_time_s": 243.8,
+  "pred_energy_j": 135192.86,
+  "meas_energy_j": 262116.5,
+  "time_residual": 0.0379,
+  "energy_residual": 0.4842
+ },
+ {
+  "payload_kg": 2.0,
+  "phase": "takeoff",
+  "runs": 1,
+  "pred_time_s": 30.0,
+  "meas_time_s": 26.35,
+  "time_residual": -0.1384,
+  "pred_energy_j": 25495,
+  "meas_energy_j": 35553,
+  "energy_residual": 0.2829
+ },
+ {
+  "payload_kg": 2.0,
+  "phase": "cruise",
+  "runs": 1,
+  "pred_time_s": 139.56,
+  "meas_time_s": 146.8,
+  "time_residual": 0.0493,
+  "pred_energy_j": 98835,
+  "meas_energy_j": 217144,
+  "energy_residual": 0.5448
+ },
+ {
+  "payload_kg": 2.0,
+  "phase": "approach_landing",
+  "runs": 1,
+  "pred_time_s": 45.0,
+  "meas_time_s": 49.0,
+  "time_residual": 0.0816,
+  "pred_energy_j": 38243,
+  "meas_energy_j": 72075,
+  "energy_residual": 0.4694
+ },
+ {
+  "payload_kg": 2.0,
+  "phase": "hop",
+  "runs": 1,
+  "pred_time_s": 20.0,
+  "meas_time_s": 23.0,
+  "time_residual": 0.1304,
+  "pred_energy_j": 12796,
+  "meas_energy_j": 20133,
+  "energy_residual": 0.3644
+ },
+ {
+  "payload_kg": 2.0,
+  "phase": "visit",
+  "runs": 1,
+  "pred_time_s": 234.56,
+  "meas_time_s": 245.15,
+  "pred_energy_j": 175369.6,
+  "meas_energy_j": 344904.5,
+  "time_residual": 0.0432,
+  "energy_residual": 0.4915
+ },
+ {
+  "payload_kg": 5.0,
+  "phase": "takeoff",
+  "runs": 12,
+  "pred_time_s": 30.0,
+  "meas_time_s": 26.8,
+  "time_residual": -0.1196,
+  "pred_energy_j": 36000,
+  "meas_energy_j": 50794,
+  "energy_residual": 0.2913
+ },
+ {
+  "payload_kg": 5.0,
+  "phase": "cruise",
+  "runs": 12,
+  "pred_time_s": 139.56,
+  "meas_time_s": 146.5,
+  "time_residual": 0.0474,
+  "pred_energy_j": 139557,
+  "meas_energy_j": 309156,
+  "energy_residual": 0.5486
+ },
+ {
+  "payload_kg": 5.0,
+  "phase": "approach_landing",
+  "runs": 12,
+  "pred_time_s": 45.0,
+  "meas_time_s": 49.01,
+  "time_residual": 0.0819,
+  "pred_energy_j": 54000,
+  "meas_energy_j": 101742,
+  "energy_residual": 0.4692
+ },
+ {
+  "payload_kg": 5.0,
+  "phase": "hop",
+  "runs": 12,
+  "pred_time_s": 20.0,
+  "meas_time_s": 22.51,
+  "time_residual": 0.1114,
+  "pred_energy_j": 12796,
+  "meas_energy_j": 19542,
+  "energy_residual": 0.3452
+ },
+ {
+  "payload_kg": 5.0,
+  "phase": "visit",
+  "runs": 12,
+  "pred_time_s": 234.56,
+  "meas_time_s": 244.82,
+  "pred_energy_j": 242353.76,
+  "meas_energy_j": 481234.81,
+  "time_residual": 0.0419,
+  "energy_residual": 0.4964
+ },
+ {
+  "payload_kg": 10.0,
+  "phase": "takeoff",
+  "runs": 1,
+  "pred_time_s": 30.0,
+  "meas_time_s": 27.3,
+  "time_residual": -0.0989,
+  "pred_energy_j": 55996,
+  "meas_energy_j": 79743,
+  "energy_residual": 0.2978
+ },
+ {
+  "payload_kg": 10.0,
+  "phase": "cruise",
+  "runs": 1,
+  "pred_time_s": 139.56,
+  "meas_time_s": 146.5,
+  "time_residual": 0.0474,
+  "pred_energy_j": 217074,
+  "meas_energy_j": 486013,
+  "energy_residual": 0.5534
+ },
+ {
+  "payload_kg": 10.0,
+  "phase": "approach_landing",
+  "runs": 1,
+  "pred_time_s": 45.0,
+  "meas_time_s": 49.0,
+  "time_residual": 0.0816,
+  "pred_energy_j": 83994,
+  "meas_energy_j": 158035,
+  "energy_residual": 0.4685
+ },
+ {
+  "payload_kg": 10.0,
+  "phase": "hop",
+  "runs": 1,
+  "pred_time_s": 20.0,
+  "meas_time_s": 23.4,
+  "time_residual": 0.1453,
+  "pred_energy_j": 12796,
+  "meas_energy_j": 20611,
+  "energy_residual": 0.3791
+ },
+ {
+  "payload_kg": 10.0,
+  "phase": "visit",
+  "runs": 1,
+  "pred_time_s": 234.56,
+  "meas_time_s": 246.2,
+  "pred_energy_j": 369860.37,
+  "meas_energy_j": 744401.6,
+  "time_residual": 0.0473,
+  "energy_residual": 0.5031
+ }
+]

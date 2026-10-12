@@ -11,6 +11,7 @@ that. Every vehicle and pad number is a placeholder (spec A01, A54 to A61).
 | Host | WSL2, Ubuntu 22.04, i9-13900K, headless (Gazebo server only) |
 | PX4 | v1.17.0 (`d6f12ad1`), SITL, airframe 4001 (x500), parameters in `px4/params/sitl.params`. The build in `~/PX4-Autopilot` already carries quad-autonomy-sim's two patches (extra uXRCE-DDS topics, gz_bridge deferring to PX4's magnetometer simulator); this phase relies on neither and changes nothing in that tree |
 | Gazebo | Harmonic, gz-sim 8.15.0, physics step 4 ms |
+| Height source | GPS, PX4's default. Phase 5 switched SITL to the barometer after a 12.9 km lane showed GPS height drifting from the flat world (spec A67); over this 2.1 km lane the two differ by 0.34 m at B |
 | ROS 2 | Humble; px4_msgs `86d8239`; Micro XRCE-DDS agent v2.4.3; ros_gz 0.244.12 |
 | Detector | OpenCV 4.5.4 ArUco 4x4, 320x240 at 10 Hz, 1.2 rad field of view |
 | Lane | 3 of the Pittsburgh network: Strip District hub (Consumer Fresh Produce) to VA Pittsburgh Healthcare, 2093.4 m; flown in local ENU at the hub over flat ground |

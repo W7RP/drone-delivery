@@ -90,13 +90,20 @@ def bridge(world: str) -> list[dict]:
     return out
 
 
+def run_file(run: Path, name: str) -> Path:
+    """A run flown on its own lane keeps lane.json and scene.json in its directory; otherwise
+    the default lane's files in px4/config apply."""
+    own = run / name
+    return own if own.exists() else PX4 / "config" / name
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", type=Path, required=True)
     ap.add_argument("--seed", type=int, required=True)
     args = ap.parse_args()
-    lane = json.loads((PX4 / "config" / "lane.json").read_text())
-    scene = json.loads((PX4 / "config" / "scene.json").read_text())
+    lane = json.loads(run_file(args.run, "lane.json").read_text())
+    scene = json.loads(run_file(args.run, "scene.json").read_text())
     cfg = yaml.safe_load((PX4 / "config" / "flight.yaml").read_text())
     vehicle_path = args.run / "vehicle.json"
     vehicle = json.loads(vehicle_path.read_text())

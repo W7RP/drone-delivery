@@ -19,7 +19,9 @@ use crate::ids::{
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 
-pub const SCHEMA_VERSION: &str = "1.3.0";
+pub const SCHEMA_VERSION: &str = "1.5.0";
+/// Earlier minor versions this core still reads: 1.5.0 only added `flight_profile`.
+const COMPATIBLE_VERSIONS: [&str; 1] = ["1.3.0"];
 const PADS_FILE: &str = "pads.toml";
 const LANES_FILE: &str = "lanes.csr.bin";
 const TRUCK_FILE: &str = "truck_matrix.bin";
@@ -197,6 +199,14 @@ pub struct NetworkFiles {
     pub truck: Option<TruckFile>,
 }
 
+/// A flight-model profile file (spec 8.7): its name and where its values came from.
+#[derive(Debug, Clone)]
+pub struct FlightProfile {
+    pub path: PathBuf,
+    pub name: String,
+    pub source: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub name: String,
@@ -212,6 +222,8 @@ pub struct Config {
     pub pads: Vec<PadCfg>,
     pub lanes: Vec<(PadId, PadId)>,
     pub network_files: Option<NetworkFiles>,
+    /// The flight profile applied over the drone section's flight-model keys, if any.
+    pub flight_profile: Option<FlightProfile>,
     pub drone: DroneCfg,
     pub pod_gross_mass_kg: f64,
     pub pod_empty_mass_kg: f64,
@@ -464,6 +476,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "lanes",
         "synthetic_network",
         "network_files",
+        "flight_profile",
         "drone",
         "payload",
         "charging",
@@ -477,9 +490,14 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "faults",
     ])?;
     let version = top.string("schema_version")?;
-    if version != SCHEMA_VERSION {
+    if version != SCHEMA_VERSION && !COMPATIBLE_VERSIONS.contains(&version) {
         return err(format!(
-            "schema_version: \"{version}\", this core reads \"{SCHEMA_VERSION}\""
+            "schema_version: \"{version}\", this core reads \"{SCHEMA_VERSION}\" and {COMPATIBLE_VERSIONS:?}"
+        ));
+    }
+    if top.has("flight_profile") && version != SCHEMA_VERSION {
+        return err(format!(
+            "flight_profile: needs schema_version \"{SCHEMA_VERSION}\", the file says \"{version}\""
         ));
     }
     let meta = top.section("meta")?;
@@ -531,7 +549,12 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         parse_network(&top, origin_lat_deg, origin_lon_deg, seed, scenario_dir)?;
     let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
 
-    let drone = parse_drone(&top.section("drone")?, &names, &pads)?;
+    let mut drone = parse_drone(&top.section("drone")?, &names, &pads)?;
+    let flight_profile = if top.has("flight_profile") {
+        Some(apply_flight_profile(&top, scenario_dir, &mut drone)?)
+    } else {
+        None
+    };
     let payload = top.section("payload")?;
     payload.allow(&["pod_gross_mass_kg", "pod_empty_mass_kg"])?;
     let pod_gross_mass_kg = payload.quantity("pod_gross_mass_kg", "kg", Range::Pos)?;
@@ -620,6 +643,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         pads,
         lanes,
         network_files,
+        flight_profile,
         drone,
         pod_gross_mass_kg,
         pod_empty_mass_kg,
@@ -833,6 +857,56 @@ fn parse_network(
         return err("lanes: at least one lane is required");
     }
     Ok((pads, lanes, None))
+}
+
+/// Flight-model keys a profile sets (spec 8.7), with their units.
+const PROFILE_KEYS: [(&str, &str); 7] = [
+    ("cruise_speed_mps", "m/s"),
+    ("cruise_power_ref_w", "W"),
+    ("hover_power_ref_w", "W"),
+    ("power_ref_mass_kg", "kg"),
+    ("takeoff_s", "s"),
+    ("approach_s", "s"),
+    ("hop_s", "s"),
+];
+
+/// `[flight_profile] file`: read the profile (relative to the scenario's directory) and put
+/// its values over the drone section's, which stay the scenario's placeholder profile.
+fn apply_flight_profile(
+    top: &Section<'_>,
+    scenario_dir: Option<&Path>,
+    drone: &mut DroneCfg,
+) -> Result<FlightProfile> {
+    let s = top.section("flight_profile")?;
+    s.allow(&["file"])?;
+    let Some(base) = scenario_dir else {
+        return err(
+            "flight_profile: needs the scenario's directory; load the scenario from its file",
+        );
+    };
+    let path = base.join(s.string("file")?);
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| ConfigError(format!("{}: {e}", path.display())))?;
+    let in_file = |e: ConfigError| ConfigError(format!("{}: {e}", path.display()));
+    let root: Table = text
+        .parse()
+        .map_err(|e| in_file(ConfigError(format!("not valid TOML: {e}"))))?;
+    let p = Section::new(&root, "");
+    p.allow(&["name", "source", "drone"]).map_err(in_file)?;
+    let name = p.string("name").map_err(in_file)?.to_owned();
+    let source = p.string("source").map_err(in_file)?.to_owned();
+    let d = p.section("drone").map_err(in_file)?;
+    let keys: Vec<&str> = PROFILE_KEYS.iter().map(|(k, _)| *k).collect();
+    d.allow(&keys).map_err(in_file)?;
+    let value = |key: &str, unit: &str| d.quantity(key, unit, Range::Pos).map_err(in_file);
+    drone.cruise_speed_mps = value("cruise_speed_mps", "m/s")?;
+    drone.cruise_power_ref_w = value("cruise_power_ref_w", "W")?;
+    drone.hover_power_ref_w = value("hover_power_ref_w", "W")?;
+    drone.power_ref_mass_kg = value("power_ref_mass_kg", "kg")?;
+    drone.takeoff_s = value("takeoff_s", "s")?;
+    drone.approach_s = value("approach_s", "s")?;
+    drone.hop_s = value("hop_s", "s")?;
+    Ok(FlightProfile { path, name, source })
 }
 
 fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<DroneCfg> {

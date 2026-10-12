@@ -96,7 +96,19 @@ source here was fetched by work-in-progress pipeline code, so each entry's revis
    - **Pods:** they belong to the warehouses and every pad sends one home once it is unloaded.
    - **Fleet:** ceil(offered drone-hours per hour / 0.5) = 8 drones, where an order's drone time
      includes recharging both legs.
-7. **Plot.** `pipeline/out/pittsburgh_overview.png` shows the pads, the kept lanes coloured by
+7. **Variants.** Steps 2 to 6 run once per entry of `params.yaml` `scenarios`, each into its own
+   `configs/<name>/`:
+   - `parts_logistics_pittsburgh`: the anchor, with the flight profile fitted to PX4 SITL
+     (`docs/calibration.md`).
+   - `parts_logistics_pittsburgh_placeholder`: Phase 3's placeholder profile. Its catalog, lanes
+     and truck matrix are byte-identical to Phase 3's.
+   - `parts_logistics_pittsburgh_battery_1370wh`: the fitted profile with a 1370 Wh battery,
+     sized for the longest legal lane at 5 kg (spec A66).
+
+   A variant can select a flight profile and override drone keys. Its lane range, energy guard,
+   flows and fleet all follow its own model. If its lanes no longer reach a pad cluster, the
+   scenario keeps the hub's side (spec A65).
+8. **Plot.** `pipeline/out/pittsburgh_overview.png` shows the pads, the kept lanes coloured by
    ground risk, the rejected lanes, the exclusion cells and the rivers.
 
 ## Running it
