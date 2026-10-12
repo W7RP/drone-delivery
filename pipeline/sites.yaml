@@ -1,0 +1,65 @@
+# Pad selection rules (spec 8.6 does not apply; these pads are real places). Each cluster has an
+# approximate search centre. The pipeline takes the largest named OSM site footprints that match
+# the cluster's tags within the search radius, skips any whose pad point is in water or an
+# exclusion zone, and keeps pads at least min_separation_m apart. Final coordinates come from
+# OSM, never from this file. Whether a lot or roof is actually available is not checked (spec A45).
+
+min_site_area_m2: { value: 2000.0, unit: "m2", assumption: true }
+min_separation_m: { value: 400.0, unit: "m", assumption: true }
+
+clusters:
+  - name: strip_district
+    role: WAREHOUSE
+    center_deg: [40.4510, -79.9840]
+    search_radius_m: { value: 1500.0, unit: "m", assumption: true }
+    # Only two mapped warehouse footprints of at least min_site_area_m2 lie min_separation_m
+    # apart within the radius (OSM extract of 2026-10-07).
+    pads: 2
+    # The largest warehouse becomes the hub (charging and parking, spec 2.3 is_hub).
+    hub: true
+    match:
+      building: [warehouse]
+
+  - name: oakland
+    role: HOSPITAL_LAB
+    center_deg: [40.4406, -79.9600]
+    search_radius_m: { value: 1500.0, unit: "m", assumption: true }
+    pads: 3
+    match:
+      amenity: [hospital, research_institute]
+      building: [hospital]
+      healthcare: [hospital, laboratory]
+
+  - name: braddock
+    role: INDUSTRIAL
+    center_deg: [40.4034, -79.8664]
+    search_radius_m: { value: 2500.0, unit: "m", assumption: true }
+    pads: 2
+    match:
+      landuse: [industrial]
+      man_made: [works]
+      building: [industrial, warehouse]
+
+  - name: clairton
+    role: INDUSTRIAL
+    center_deg: [40.2926, -79.8817]
+    search_radius_m: { value: 2500.0, unit: "m", assumption: true }
+    pads: 2
+    match:
+      landuse: [industrial]
+      man_made: [works]
+      building: [industrial, warehouse]
+
+# Operational fields of every pad in the catalog (spec 8.2 pads[]). Pods are the warehouses'
+# returnable containers: the warehouses hold them all at t = 0, so each pod's home is the
+# warehouse that owns it, and every pad sends a pod home once it is unloaded there (RETURN_HOME,
+# spec 6.5), including a warehouse that received another warehouse's pod after a diversion.
+pad_defaults:
+  service_mode: AUTO
+  pod_return_policy: RETURN_HOME
+  parking_capacity: { value: 2, unit: "count", assumption: true }
+  hub_parking_capacity: { value: 4, unit: "count", assumption: true }
+initial_empty_pods_by_role:
+  WAREHOUSE: { value: 8, unit: "count", assumption: true }
+  HOSPITAL_LAB: { value: 0, unit: "count", assumption: true }
+  INDUSTRIAL: { value: 0, unit: "count", assumption: true }

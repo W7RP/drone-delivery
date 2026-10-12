@@ -1,10 +1,12 @@
 //! Scenario config loader (spec section 8). Reads `scenario.toml`, checks every key, unit and
-//! range against `schemas/config.schema.json`, expands the synthetic generator (8.6), applies
-//! the cross-field rules R1 to R11 and R13, and converts to SI seconds and integer ms.
+//! range against `schemas/config.schema.json`, expands the synthetic generator (8.6) or reads
+//! the pipeline's network files (8.4, 9.1, 9.2), applies the cross-field rules R1 to R11, R13
+//! and R17, and converts to SI seconds and integer ms.
 //!
 //! R12 and R16 need routes, so they are checked in `crate::scenario` after the network is built.
 
 use std::fmt;
+use std::path::{Path, PathBuf};
 
 use toml::{Table, Value};
 
@@ -14,9 +16,13 @@ use crate::ids::{
     NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset, ReturnPolicy,
     ServiceMode, TimeMs, ms_from_s,
 };
+use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 
-pub const SCHEMA_VERSION: &str = "1.2.0";
+pub const SCHEMA_VERSION: &str = "1.3.0";
+const PADS_FILE: &str = "pads.toml";
+const LANES_FILE: &str = "lanes.csr.bin";
+const TRUCK_FILE: &str = "truck_matrix.bin";
 const HOURS_PER_DAY: usize = 24;
 const SECONDS_PER_DAY: f64 = 86_400.0;
 const SECONDS_PER_HOUR: f64 = 3600.0;
@@ -156,11 +162,17 @@ pub struct PolicyCfg {
     pub pod_min_per_pad: u32,
 }
 
+/// `truck.synthetic_*` (spec 9.2 SYNTHETIC); absent when the matrix comes from a file.
+#[derive(Debug, Clone, Copy)]
+pub struct SyntheticTruckCfg {
+    pub detour_factor: f64,
+    pub free_flow_speed_mps: f64,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct TruckCfg {
     pub matrix_source: MatrixSource,
-    pub detour_factor: f64,
-    pub free_flow_speed_mps: f64,
+    pub synthetic: Option<SyntheticTruckCfg>,
     pub dispatch_delay_s: f64,
     pub load_s: f64,
     pub unload_s: f64,
@@ -173,6 +185,16 @@ pub struct CostsCfg {
     pub truck_per_s: f64,
     pub drone_per_s: f64,
     pub energy_per_j: f64,
+}
+
+/// The pipeline's network for a `network_files` scenario (spec 8.4): the lane graph always, the
+/// truck matrix when `truck.matrix_source` = FILE.
+#[derive(Debug, Clone)]
+pub struct NetworkFiles {
+    pub dir: PathBuf,
+    pub catalog_hash: u64,
+    pub lanes: LaneFile,
+    pub truck: Option<TruckFile>,
 }
 
 #[derive(Debug, Clone)]
@@ -189,6 +211,7 @@ pub struct Config {
     pub origin_lon_deg: f64,
     pub pads: Vec<PadCfg>,
     pub lanes: Vec<(PadId, PadId)>,
+    pub network_files: Option<NetworkFiles>,
     pub drone: DroneCfg,
     pub pod_gross_mass_kg: f64,
     pub pod_empty_mass_kg: f64,
@@ -197,6 +220,9 @@ pub struct Config {
     pub handshake: HandshakeCfg,
     pub policy: PolicyCfg,
     pub deadline_offset_ms: TimeMs,
+    /// `demand.max_backlog_per_pad`: requests a pad holds before rejecting new ones (P08);
+    /// None when the key is absent (no cap).
+    pub max_backlog_per_pad: Option<u16>,
     pub flows: Vec<Flow>,
     pub truck: TruckCfg,
     pub hist_bin_ms: TimeMs,
@@ -417,8 +443,14 @@ fn pad_index(names: &[String], name: &str, path: &str) -> Result<PadId> {
     }
 }
 
-/// Parse and validate a scenario. `text` is the raw `scenario.toml`.
+/// Parse and validate a scenario. `text` is the raw `scenario.toml`. A `network_files` scenario
+/// needs `parse_in` with the scenario's directory.
 pub fn parse(text: &str) -> Result<Config> {
+    parse_in(text, None)
+}
+
+/// As `parse`, resolving `network_files.dir` against `scenario_dir`.
+pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     let root: Table = text
         .parse()
         .map_err(|e| ConfigError(format!("not valid TOML: {e}")))?;
@@ -431,6 +463,7 @@ pub fn parse(text: &str) -> Result<Config> {
         "pads",
         "lanes",
         "synthetic_network",
+        "network_files",
         "drone",
         "payload",
         "charging",
@@ -494,7 +527,8 @@ pub fn parse(text: &str) -> Result<Config> {
     let origin_lat_deg = geo.quantity("origin_lat_deg", "deg", Range::Lat)?;
     let origin_lon_deg = geo.quantity("origin_lon_deg", "deg", Range::Lon)?;
 
-    let (pads, lanes) = parse_network(&top, origin_lat_deg, origin_lon_deg, seed)?;
+    let (pads, lanes, mut network_files) =
+        parse_network(&top, origin_lat_deg, origin_lon_deg, seed, scenario_dir)?;
     let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
 
     let drone = parse_drone(&top.section("drone")?, &names, &pads)?;
@@ -522,8 +556,30 @@ pub fn parse(text: &str) -> Result<Config> {
     let pad_ops = parse_pad_ops(&top.section("pad_ops")?)?;
     let handshake = parse_handshake(&top.section("handshake")?)?;
     let policy = parse_policy(&top.section("policy")?)?;
-    let (deadline_offset_ms, flows) = parse_demand(&top.section("demand")?, &names, &pads)?;
+    let demand = top.section("demand")?;
+    let (deadline_offset_ms, flows) = parse_demand(&demand, &names, &pads)?;
+    let max_backlog_per_pad = if demand.has("max_backlog_per_pad") {
+        Some(narrow(
+            demand.count("max_backlog_per_pad", 1, i64::from(u16::MAX))?,
+            "demand.max_backlog_per_pad",
+        )?)
+    } else {
+        None
+    };
     let truck = parse_truck(&top.section("truck")?)?;
+    if truck.matrix_source == MatrixSource::File {
+        let Some(files) = network_files.as_mut() else {
+            return err(
+                "truck.matrix_source: R17 FILE needs network_files (the matrix is indexed by its pad catalog)",
+            );
+        };
+        let path = files.dir.join(TRUCK_FILE);
+        let bytes = read_file(&path)?;
+        files.truck = Some(
+            netfile::read_truck(&bytes, pads.len(), files.catalog_hash)
+                .map_err(|e| ConfigError(format!("{}: {e}", path.display())))?,
+        );
+    }
 
     let m = top.section("metrics")?;
     m.allow(&["hist_bin_s", "hist_max_s"])?;
@@ -563,6 +619,7 @@ pub fn parse(text: &str) -> Result<Config> {
         origin_lon_deg,
         pads,
         lanes,
+        network_files,
         drone,
         pod_gross_mass_kg,
         pod_empty_mass_kg,
@@ -571,6 +628,7 @@ pub fn parse(text: &str) -> Result<Config> {
         handshake,
         policy,
         deadline_offset_ms,
+        max_backlog_per_pad,
         flows,
         truck,
         hist_bin_ms,
@@ -630,60 +688,136 @@ fn parse_pads(top: &Section<'_>) -> Result<Vec<PadCfg>> {
     Ok(pads)
 }
 
-type PadsAndLanes = (Vec<PadCfg>, Vec<(PadId, PadId)>);
+type Network = (Vec<PadCfg>, Vec<(PadId, PadId)>, Option<NetworkFiles>);
 
-fn parse_network(top: &Section<'_>, lat0: f64, lon0: f64, seed: u64) -> Result<PadsAndLanes> {
-    let explicit = top.has("pads") || top.has("lanes");
-    match (explicit, top.has("synthetic_network")) {
-        (true, true) => return err("give either pads/lanes or synthetic_network, not both"),
-        (false, false) => return err("missing network: give pads and lanes, or synthetic_network"),
-        (false, true) => {
-            let s = top.section("synthetic_network")?;
-            s.allow(&[
-                "topology",
-                "n_pads",
-                "radius_m",
-                "mesh_neighbors",
-                "service_mode",
-                "pod_return_policy",
-                "initial_empty_pods",
-                "parking_capacity",
-                "hub_parking_capacity",
-            ])?;
-            let cfg = SyntheticNetworkCfg {
-                topology: s.enumeration("topology", NetworkTopology::from_name)?,
-                n_pads: narrow(s.count("n_pads", 2, 65_534)?, "synthetic_network.n_pads")?,
-                radius_m: s.quantity("radius_m", "m", Range::Pos)?,
-                mesh_neighbors: narrow(
-                    s.count("mesh_neighbors", 1, 65_534)?,
-                    "synthetic_network.mesh_neighbors",
-                )?,
-                service_mode: s.enumeration("service_mode", ServiceMode::from_name)?,
-                return_policy: s.enumeration("pod_return_policy", ReturnPolicy::from_name)?,
-                initial_empty_pods: narrow(
-                    s.count("initial_empty_pods", 0, i64::from(u32::MAX))?,
-                    "synthetic_network.initial_empty_pods",
-                )?,
-                parking_capacity: narrow(
-                    s.count("parking_capacity", 0, i64::from(u16::MAX))?,
-                    "synthetic_network.parking_capacity",
-                )?,
-                hub_parking_capacity: narrow(
-                    s.count("hub_parking_capacity", 0, i64::from(u16::MAX))?,
-                    "synthetic_network.hub_parking_capacity",
-                )?,
-            };
-            return Ok(network::generate(&cfg, lat0, lon0, seed));
+fn read_file(path: &Path) -> Result<Vec<u8>> {
+    std::fs::read(path).map_err(|e| ConfigError(format!("{}: {e}", path.display())))
+}
+
+fn check_unique_names(pads: &[PadCfg]) -> Result<()> {
+    for (i, p) in pads.iter().enumerate() {
+        if pads[..i].iter().any(|q| q.name == p.name) {
+            return err(format!("pads: R1 duplicate pad name \"{}\"", p.name));
         }
-        (true, false) => {}
+    }
+    Ok(())
+}
+
+/// `network_files`: pads from `<dir>/pads.toml`, lanes from `<dir>/lanes.csr.bin`, both checked
+/// against each other (spec 8.4, 9.0). The truck matrix is read once the truck section is known.
+fn parse_network_files(top: &Section<'_>, scenario_dir: Option<&Path>) -> Result<Network> {
+    let s = top.section("network_files")?;
+    s.allow(&["dir"])?;
+    let Some(base) = scenario_dir else {
+        return err(
+            "network_files: needs the scenario's directory; load the scenario from its file",
+        );
+    };
+    let dir = base.join(s.string("dir")?);
+    let catalog_path = dir.join(PADS_FILE);
+    let catalog = read_file(&catalog_path)?;
+    let in_catalog = |e: ConfigError| ConfigError(format!("{}: {e}", catalog_path.display()));
+    let text =
+        std::str::from_utf8(&catalog).map_err(|_| in_catalog(ConfigError("not UTF-8".into())))?;
+    let root: Table = text
+        .parse()
+        .map_err(|e| in_catalog(ConfigError(format!("not valid TOML: {e}"))))?;
+    let catalog_top = Section::new(&root, "");
+    catalog_top.allow(&["pads"]).map_err(in_catalog)?;
+    let pads = parse_pads(&catalog_top).map_err(in_catalog)?;
+    check_unique_names(&pads).map_err(in_catalog)?;
+    let catalog_hash = fnv1a64(&catalog);
+    let lanes_path = dir.join(LANES_FILE);
+    let lanes = netfile::read_lanes(&read_file(&lanes_path)?, pads.len(), catalog_hash)
+        .map_err(|e| ConfigError(format!("{}: {e}", lanes_path.display())))?;
+    if lanes.to_pad.is_empty() {
+        return err(format!(
+            "{}: at least one lane is required",
+            lanes_path.display()
+        ));
+    }
+    let undirected = lanes.undirected();
+    Ok((
+        pads,
+        undirected,
+        Some(NetworkFiles {
+            dir,
+            catalog_hash,
+            lanes,
+            truck: None,
+        }),
+    ))
+}
+
+fn parse_network(
+    top: &Section<'_>,
+    lat0: f64,
+    lon0: f64,
+    seed: u64,
+    scenario_dir: Option<&Path>,
+) -> Result<Network> {
+    let explicit = top.has("pads") || top.has("lanes");
+    let forms = [
+        explicit,
+        top.has("synthetic_network"),
+        top.has("network_files"),
+    ];
+    match forms.iter().filter(|&&f| f).count() {
+        0 => {
+            return err(
+                "missing network: give pads and lanes, synthetic_network, or network_files",
+            );
+        }
+        1 => {}
+        _ => {
+            return err("give exactly one of pads/lanes, synthetic_network or network_files");
+        }
+    }
+    if top.has("network_files") {
+        return parse_network_files(top, scenario_dir);
+    }
+    if top.has("synthetic_network") {
+        let s = top.section("synthetic_network")?;
+        s.allow(&[
+            "topology",
+            "n_pads",
+            "radius_m",
+            "mesh_neighbors",
+            "service_mode",
+            "pod_return_policy",
+            "initial_empty_pods",
+            "parking_capacity",
+            "hub_parking_capacity",
+        ])?;
+        let cfg = SyntheticNetworkCfg {
+            topology: s.enumeration("topology", NetworkTopology::from_name)?,
+            n_pads: narrow(s.count("n_pads", 2, 65_534)?, "synthetic_network.n_pads")?,
+            radius_m: s.quantity("radius_m", "m", Range::Pos)?,
+            mesh_neighbors: narrow(
+                s.count("mesh_neighbors", 1, 65_534)?,
+                "synthetic_network.mesh_neighbors",
+            )?,
+            service_mode: s.enumeration("service_mode", ServiceMode::from_name)?,
+            return_policy: s.enumeration("pod_return_policy", ReturnPolicy::from_name)?,
+            initial_empty_pods: narrow(
+                s.count("initial_empty_pods", 0, i64::from(u32::MAX))?,
+                "synthetic_network.initial_empty_pods",
+            )?,
+            parking_capacity: narrow(
+                s.count("parking_capacity", 0, i64::from(u16::MAX))?,
+                "synthetic_network.parking_capacity",
+            )?,
+            hub_parking_capacity: narrow(
+                s.count("hub_parking_capacity", 0, i64::from(u16::MAX))?,
+                "synthetic_network.hub_parking_capacity",
+            )?,
+        };
+        let (pads, lanes) = network::generate(&cfg, lat0, lon0, seed);
+        return Ok((pads, lanes, None));
     }
     let pads = parse_pads(top)?;
+    check_unique_names(&pads)?;
     let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
-    for (i, n) in names.iter().enumerate() {
-        if names[..i].contains(n) {
-            return err(format!("pads: R1 duplicate pad name \"{n}\""));
-        }
-    }
     let mut lanes: Vec<(PadId, PadId)> = Vec::new();
     for l in top.tables("lanes")? {
         l.allow(&["pad_a", "pad_b"])?;
@@ -698,7 +832,7 @@ fn parse_network(top: &Section<'_>, lat0: f64, lon0: f64, seed: u64) -> Result<P
     if lanes.is_empty() {
         return err("lanes: at least one lane is required");
     }
-    Ok((pads, lanes))
+    Ok((pads, lanes, None))
 }
 
 fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<DroneCfg> {
@@ -899,6 +1033,7 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
 fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(TimeMs, Vec<Flow>)> {
     d.allow(&[
         "deadline_offset_s",
+        "max_backlog_per_pad",
         "flows",
         "rate_per_pad_per_h",
         "hub_weight",
@@ -980,14 +1115,35 @@ fn parse_truck(t: &Section<'_>) -> Result<TruckCfg> {
             Range::Factor,
         )?;
     }
-    let detour_factor = t.quantity("synthetic_detour_factor", "1", Range::Factor)?;
-    if detour_factor < 1.0 {
-        return err("truck.synthetic_detour_factor: must be >= 1");
-    }
+    let matrix_source = t.enumeration("matrix_source", MatrixSource::from_name)?;
+    let synthetic_keys = ["synthetic_detour_factor", "synthetic_free_flow_speed_mps"];
+    let synthetic = match matrix_source {
+        MatrixSource::Synthetic => {
+            let detour_factor = t.quantity("synthetic_detour_factor", "1", Range::Factor)?;
+            if detour_factor < 1.0 {
+                return err("truck.synthetic_detour_factor: must be >= 1");
+            }
+            Some(SyntheticTruckCfg {
+                detour_factor,
+                free_flow_speed_mps: t.quantity(
+                    "synthetic_free_flow_speed_mps",
+                    "m/s",
+                    Range::Pos,
+                )?,
+            })
+        }
+        MatrixSource::File => {
+            if let Some(k) = synthetic_keys.iter().find(|k| t.has(k)) {
+                return err(format!(
+                    "truck.{k}: only used with matrix_source = SYNTHETIC; remove it"
+                ));
+            }
+            None
+        }
+    };
     Ok(TruckCfg {
-        matrix_source: t.enumeration("matrix_source", MatrixSource::from_name)?,
-        detour_factor,
-        free_flow_speed_mps: t.quantity("synthetic_free_flow_speed_mps", "m/s", Range::Pos)?,
+        matrix_source,
+        synthetic,
         dispatch_delay_s: t.quantity("dispatch_delay_s", "s", Range::NonNeg)?,
         load_s: t.quantity("load_s", "s", Range::NonNeg)?,
         unload_s: t.quantity("unload_s", "s", Range::NonNeg)?,

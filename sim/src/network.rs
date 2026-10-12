@@ -1,12 +1,15 @@
 //! Pads, lanes and routes: the synthetic generator (spec 8.6), the in-memory CSR lane graph
-//! (spec 9.1 layout), all-pairs shortest routes (spec 6) and the truck matrix (spec 9.2).
+//! (spec 9.1 layout), all-pairs shortest routes (spec 6) and the truck matrix (spec 9.2). A
+//! `network_files` scenario takes its lanes and, with `truck.matrix_source` = FILE, its truck
+//! matrix from the pipeline's files instead of computing them from pad positions.
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::f64::consts::PI;
 
-use crate::config::{Config, PadCfg, SyntheticNetworkCfg};
+use crate::config::{Config, PadCfg, SyntheticNetworkCfg, SyntheticTruckCfg};
 use crate::ids::{LaneId, NO_LANE, NetworkTopology, PadId};
+use crate::netfile::LaneFile;
 use crate::rng::{StreamKind, master_seed, stream};
 
 pub const EARTH_RADIUS_M: f64 = 6_371_000.0;
@@ -140,6 +143,41 @@ fn mesh_lanes(xy: &[(f64, f64)], k: usize, lanes: &mut Vec<(PadId, PadId)>) {
     lanes.sort_unstable();
 }
 
+/// CSR lane graph of undirected config lanes, lengths from ENU pad positions (spec 2.6).
+fn lanes_from_positions(lanes: &[(PadId, PadId)], pos_m: &[(f64, f64)]) -> LaneFile {
+    let mut directed: Vec<(PadId, PadId)> =
+        lanes.iter().flat_map(|&(a, b)| [(a, b), (b, a)]).collect();
+    directed.sort_unstable();
+    let mut row_offsets = vec![0u32; pos_m.len() + 1];
+    for &(a, _) in &directed {
+        row_offsets[usize::from(a) + 1] += 1;
+    }
+    for i in 0..pos_m.len() {
+        row_offsets[i + 1] += row_offsets[i];
+    }
+    #[allow(clippy::cast_possible_truncation)]
+    let length_m = directed
+        .iter()
+        .map(|&(a, b)| dist(pos_m[usize::from(a)], pos_m[usize::from(b)]) as f32)
+        .collect();
+    let reverse_lane = directed
+        .iter()
+        .map(|&(a, b)| {
+            lane_id(
+                directed
+                    .binary_search(&(b, a))
+                    .expect("every lane has a reverse"),
+            )
+        })
+        .collect();
+    LaneFile {
+        row_offsets,
+        to_pad: directed.iter().map(|l| l.1).collect(),
+        length_m,
+        reverse_lane,
+    }
+}
+
 /// Static network data, flat arrays indexed by pad and lane ID.
 pub struct Network {
     pub n_pads: usize,
@@ -189,36 +227,22 @@ impl Network {
             .iter()
             .map(|p| enu_from_geo(p.lat_deg, p.lon_deg, cfg.origin_lat_deg, cfg.origin_lon_deg))
             .collect();
-        let mut directed: Vec<(PadId, PadId)> = cfg
-            .lanes
-            .iter()
-            .flat_map(|&(a, b)| [(a, b), (b, a)])
-            .collect();
-        directed.sort_unstable();
-        let mut row_offsets = vec![0u32; n + 1];
-        for &(a, _) in &directed {
-            row_offsets[usize::from(a) + 1] += 1;
-        }
-        for i in 0..n {
-            row_offsets[i + 1] += row_offsets[i];
-        }
-        let lane_from: Vec<PadId> = directed.iter().map(|l| l.0).collect();
-        let lane_to: Vec<PadId> = directed.iter().map(|l| l.1).collect();
-        #[allow(clippy::cast_possible_truncation)]
-        let lane_len_m: Vec<f32> = directed
-            .iter()
-            .map(|&(a, b)| dist(pos_m[usize::from(a)], pos_m[usize::from(b)]) as f32)
-            .collect();
-        let reverse_lane: Vec<LaneId> = directed
-            .iter()
-            .map(|&(a, b)| {
-                lane_id(
-                    directed
-                        .binary_search(&(b, a))
-                        .expect("every lane has a reverse"),
-                )
+        let lanes = match &cfg.network_files {
+            Some(files) => files.lanes.clone(),
+            None => lanes_from_positions(&cfg.lanes, &pos_m),
+        };
+        let lane_from: Vec<PadId> = (0..n)
+            .flat_map(|p| {
+                let count = lanes.row_offsets[p + 1] - lanes.row_offsets[p];
+                std::iter::repeat_n(pad_id(p), count as usize)
             })
             .collect();
+        let LaneFile {
+            row_offsets,
+            to_pad: lane_to,
+            length_m: lane_len_m,
+            reverse_lane,
+        } = lanes;
         let mut net = Network {
             n_pads: n,
             pos_m,
@@ -233,7 +257,17 @@ impl Network {
             road_m: vec![0.0; n * n],
         };
         net.compute_routes();
-        net.compute_truck(cfg.truck.detour_factor, cfg.truck.free_flow_speed_mps);
+        match (
+            cfg.truck.synthetic,
+            cfg.network_files.as_ref().and_then(|f| f.truck.as_ref()),
+        ) {
+            (Some(synthetic), _) => net.compute_truck(synthetic),
+            (None, Some(file)) => {
+                net.truck_free_flow_s.copy_from_slice(&file.free_flow_s);
+                net.road_m.copy_from_slice(&file.road_m);
+            }
+            (None, None) => unreachable!("the config loader requires a matrix source (R17)"),
+        }
         net
     }
 
@@ -286,15 +320,16 @@ impl Network {
         }
     }
 
-    fn compute_truck(&mut self, detour_factor: f64, speed_mps: f64) {
+    fn compute_truck(&mut self, synthetic: SyntheticTruckCfg) {
         let n = self.n_pads;
         for a in 0..n {
             for b in 0..n {
-                let road = dist(self.pos_m[a], self.pos_m[b]) * detour_factor;
+                let road = dist(self.pos_m[a], self.pos_m[b]) * synthetic.detour_factor;
                 #[allow(clippy::cast_possible_truncation)]
                 {
                     self.road_m[a * n + b] = road as f32;
-                    self.truck_free_flow_s[a * n + b] = (road / speed_mps) as f32;
+                    self.truck_free_flow_s[a * n + b] =
+                        (road / synthetic.free_flow_speed_mps) as f32;
                 }
             }
         }

@@ -18,7 +18,7 @@ const VERSION_MINOR: u16 = 0;
 /// Buffer per output stream; large enough that the hot loop rarely reaches the OS.
 const BUFFER_BYTES: usize = 1 << 20;
 
-pub const DELIVERIES_HEADER: &str = "order_id,kind,status,fail_reason,origin_pad,dest_pad,delivered_pad,drone_id,requested_t_ms,placed_t_ms,latched_t_ms,delivered_t_ms,drone_door_to_door_s,truck_door_to_door_s,truck_cost_cu\n";
+pub const DELIVERIES_HEADER: &str = "order_id,kind,status,fail_reason,origin_pad,dest_pad,delivered_pad,drone_id,requested_t_ms,placed_t_ms,latched_t_ms,delivered_t_ms,drone_door_to_door_s,truck_door_to_door_s,truck_cost_cu,pod_wait_s,queue_s,pad_service_s,flight_s\n";
 
 pub enum Sink {
     File(BufWriter<File>),

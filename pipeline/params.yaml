@@ -1,0 +1,40 @@
+# Pipeline placeholders other than pad selection. Every number is an assumption (A01), not a
+# measured or published figure, except where the comment names the data it comes from.
+
+airspace:
+  # UAS facility-map cells whose LAANC ceiling is below this are exclusion zones.
+  cruise_altitude_agl_ft: { value: 200.0, unit: "ft", assumption: true }
+
+lanes:
+  # Lane range is computed with this payload from the scenario's flight model (lanes.py).
+  payload_kg: { value: 5.0, unit: "kg", assumption: true }
+  # Spacing of terrain and population samples along a lane.
+  sample_spacing_m: { value: 50.0, unit: "m", assumption: true }
+
+truck:
+  # Free-flow speed by OSM highway class when a way has no usable maxspeed tag.
+  default_speed_mps:
+    motorway: { value: 29.0, unit: "m/s", assumption: true }
+    motorway_link: { value: 18.0, unit: "m/s", assumption: true }
+    trunk: { value: 24.0, unit: "m/s", assumption: true }
+    trunk_link: { value: 16.0, unit: "m/s", assumption: true }
+    primary: { value: 18.0, unit: "m/s", assumption: true }
+    primary_link: { value: 13.0, unit: "m/s", assumption: true }
+    secondary: { value: 16.0, unit: "m/s", assumption: true }
+    secondary_link: { value: 12.0, unit: "m/s", assumption: true }
+    tertiary: { value: 13.0, unit: "m/s", assumption: true }
+    tertiary_link: { value: 11.0, unit: "m/s", assumption: true }
+    unclassified: { value: 11.0, unit: "m/s", assumption: true }
+    residential: { value: 11.0, unit: "m/s", assumption: true }
+    living_street: { value: 4.0, unit: "m/s", assumption: true }
+    service: { value: 4.0, unit: "m/s", assumption: true }
+  # Pad to nearest drivable node and back: a straight connector at this speed.
+  snap_speed_mps: { value: 3.0, unit: "m/s", assumption: true }
+  # Nodes of these classes are never snap targets (a truck cannot stop there).
+  no_snap_classes: [motorway, motorway_link, trunk, trunk_link]
+
+demand:
+  # Shipment requests per hour from each warehouse pad, split evenly over every non-warehouse pad.
+  rate_per_warehouse_per_h: { value: 4.0, unit: "1/h", assumption: true }
+  # Fleet size rule: offered drone-hours per hour divided by this target utilisation (scenario.py).
+  target_utilisation: { value: 0.5, unit: "1", assumption: true }

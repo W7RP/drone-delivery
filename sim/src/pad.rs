@@ -482,6 +482,10 @@ impl World {
     fn pc_on_out(&mut self, p: PadId, d: DroneId, soc: f32, codes: [u16; 3]) {
         let s = self.pad(p);
         if s.out_pod != NO_POD && s.pickup_drone == d {
+            let order = s.pickup_order;
+            if order != NO_ORDER {
+                self.fm.orders[order as usize].latch_start_t_ms = self.now;
+            }
             self.visit_mut(p, d).attempt = 1;
             self.visit_to(p, d, codes[0], VisitState::Latching);
             self.send_latch_cmd(p, d);
@@ -892,6 +896,15 @@ impl World {
     pub(crate) fn pc_shipment_request(&mut self, p: PadId, dest: PadId, deadline: TimeMs) {
         let stockout = self.pad(p).empty_pods == 0;
         self.metrics.shipment_request(self.now, stockout);
+        let full = self
+            .cfg
+            .max_backlog_per_pad
+            .is_some_and(|cap| self.pad(p).backlog.len() >= usize::from(cap));
+        if full {
+            self.metrics.request_rejected(self.now);
+            self.log_transition(tcode::p(8), p, NO_DRONE, NO_STATE, NO_STATE);
+            return;
+        }
         let now = self.now;
         self.pad_mut(p).backlog.push_back(Shipment {
             requested: now,

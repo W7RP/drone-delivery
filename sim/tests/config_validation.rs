@@ -1,4 +1,4 @@
-//! Spec 8: the loader checks every key, unit and range, and rules R1 to R16, and rejects bad
+//! Spec 8: the loader checks every key, unit and range, and rules R1 to R17, and rejects bad
 //! configs with an error that names the problem.
 
 mod common;
@@ -76,7 +76,7 @@ fn out_of_range_values_are_rejected() {
 fn stub_and_wrong_version_are_rejected() {
     let stub = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../configs/parts_logistics/scenario.toml"
+        "/../configs/hospital_lab/scenario.toml"
     ))
     .unwrap();
     let e = Scenario::from_toml(&stub).err().unwrap().0;
@@ -159,7 +159,7 @@ fn network_and_demand_forms_are_exclusive() {
     let mut net = toml::Table::new();
     net.insert("topology".into(), "MESH".into());
     t.insert("synthetic_network".into(), Value::Table(net));
-    assert_rejected(&t, "not both");
+    assert_rejected(&t, "exactly one of");
 
     let mut t = example();
     t["demand"]
@@ -170,8 +170,15 @@ fn network_and_demand_forms_are_exclusive() {
 }
 
 #[test]
-fn file_truck_matrix_is_rejected_until_the_pipeline_exists() {
+fn file_truck_matrix_needs_network_files_and_no_synthetic_keys() {
     let mut t = example();
     set(&mut t, "truck.matrix_source", "FILE");
-    assert_rejected(&t, "FILE");
+    assert_rejected(
+        &t,
+        "synthetic_detour_factor: only used with matrix_source = SYNTHETIC",
+    );
+    let truck = t["truck"].as_table_mut().unwrap();
+    truck.remove("synthetic_detour_factor");
+    truck.remove("synthetic_free_flow_speed_mps");
+    assert_rejected(&t, "R17");
 }

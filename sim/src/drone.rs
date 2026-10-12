@@ -21,11 +21,16 @@ impl World {
     fn drone_to(&mut self, d: DroneId, code: u16, to: DroneMode) {
         let now = self.now;
         let dr = self.dr_mut(d);
-        let from = dr.mode;
+        let (from, since, order) = (dr.mode, dr.mode_since, dr.order);
         dr.mode = to;
         dr.mode_since = now;
         let pad = dr.pad;
         self.log_transition(code, pad, d, from.code(), to.code());
+        // Holding with a pod is the queue part of its order's door-to-door time. Measured on the
+        // drone: the PC's HELD state can outlast the hold when a cancel message is lost.
+        if from == DroneMode::Holding && order != NO_ORDER {
+            self.fm.orders[order as usize].hold_ms += now - since;
+        }
     }
 
     fn drain(&mut self, d: DroneId, joules: f64) {
@@ -563,6 +568,10 @@ impl World {
         let (_, energy_j) = self.energy.model.segment(len, payload);
         self.drain(d, energy_j);
         self.flight_record(d, lane, energy_j);
+        let order = self.dr(d).order;
+        if order != NO_ORDER {
+            self.fm.orders[order as usize].flight_ms += self.now - self.dr(d).lane_start;
+        }
         let end = self.net.lane_to[lane as usize];
         self.dr_mut(d).lane = NO_LANE;
         if end == self.dr(d).dest {

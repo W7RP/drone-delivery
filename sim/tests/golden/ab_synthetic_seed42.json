@@ -35,6 +35,13 @@
     "p50": 2470.0,
     "p95": 9620.0
   },
+  "door_to_door_split_s": {
+    "flight": 400.009,
+    "n": 37,
+    "pad_service": 455.19678378378376,
+    "pod_wait": 2554.0707297297295,
+    "queue": 329.07781081081083
+  },
   "events_processed": 3059,
   "fleet_size": 2,
   "go_around_rate": 0.14492753623188406,
@@ -70,12 +77,14 @@
       "p95": 8530.0
     }
   },
+  "rejected_fraction": 0.0,
   "replication": 0,
+  "requests_rejected": 0,
   "saving_s": -1275.7714324324327,
   "scenario": "ab_synthetic",
   "seed": 42,
   "shipment_requests_in_window": 50,
-  "source_hash": "5b6bb9e91c19fc4d",
+  "source_hash": "cd943dae32e8e8a2",
   "speedup": 0.6586780528925578,
   "spot_utilization": {
     "in": [

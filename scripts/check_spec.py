@@ -166,12 +166,44 @@ def check_synthetic_config(cfg: dict, name: str) -> None:
         fail(f"{name}: R11 HUB_ONLY requires a hub (HUB_SPOKE topology)")
 
 
-def check_complete_config(cfg: dict, name: str) -> None:
+def check_complete_config(cfg: dict, name: str, scenario_dir: Path, validator) -> None:
     check_common_rules(cfg, name)
     if "synthetic_network" in cfg:
         check_synthetic_config(cfg, name)
+    elif "network_files" in cfg:
+        check_files_network(cfg, name, scenario_dir, validator)
     else:
         check_explicit_network(cfg, name)
+    if cfg["truck"]["matrix_source"] == "FILE" and "network_files" not in cfg:
+        fail(f"{name}: R17 truck.matrix_source FILE without network_files")
+
+
+def check_files_network(cfg: dict, name: str, scenario_dir: Path, validator) -> None:
+    """The pipeline's pad catalog against the pads[] schema, and the rules that need no lanes.
+    The core checks the binary files and the lane rules at load (spec 8.3)."""
+    path = scenario_dir / cfg["network_files"]["dir"] / "pads.toml"
+    try:
+        catalog = tomli.loads(path.read_text())
+    except (OSError, tomli.TOMLDecodeError) as err:
+        fail(f"{name}: {path}: {err}")
+        return
+    if set(catalog) != {"pads"}:
+        fail(f"{name}: {path}: expected only a pads array")
+        return
+    # Same base URI as the config schema, so its relative $refs resolve in the registry.
+    pad_schema = {
+        "$id": validator.schema["$id"].replace("config.schema.json", "pads-catalog.json"),
+        **validator.schema["properties"]["pads"],
+    }
+    for err in validator.evolve(schema=pad_schema).iter_errors(catalog["pads"]):
+        fail(f"{name}: pads.toml: {'/'.join(map(str, err.absolute_path))}: {err.message[:200]}")
+    for qpath, node in iter_quantities(catalog):
+        coordinate = qpath.endswith(".lat_deg") or qpath.endswith(".lon_deg")
+        if node is None:
+            fail(f"{name}: pads.toml: bare number at {qpath}")
+        elif not coordinate and node["assumption"] is not True:
+            fail(f"{name}: pads.toml: R15 {qpath} not flagged assumption = true")
+    check_pad_rules(cfg, name, catalog["pads"])
 
 
 def check_common_rules(cfg: dict, name: str) -> None:
@@ -196,8 +228,6 @@ def check_common_rules(cfg: dict, name: str) -> None:
 def check_explicit_network(cfg: dict, name: str) -> None:
     pads = [p["name"] for p in cfg["pads"]]
     pad_set = set(pads)
-    if len(pad_set) != len(pads):
-        fail(f"{name}: R1 duplicate pad names")
     pairs = set()
     for lane in cfg["lanes"]:
         a, b = lane["pad_a"], lane["pad_b"]
@@ -217,8 +247,18 @@ def check_explicit_network(cfg: dict, name: str) -> None:
                         todo.append(v)
     if seen != pad_set:
         fail(f"{name}: R3 lane graph not connected")
+    check_pad_rules(cfg, name, cfg["pads"])
+    check_dispatch_energy(cfg, name)
+
+
+def check_pad_rules(cfg: dict, name: str, pad_list: list) -> None:
+    """R1, R4, R5 and R9 to R11: the rules that need pads but no lanes."""
+    pads = [p["name"] for p in pad_list]
+    pad_set = set(pads)
+    if len(pad_set) != len(pads):
+        fail(f"{name}: R1 duplicate pad names")
     d = cfg["drone"]
-    slots = {p["name"]: parking_slots(p) for p in cfg["pads"]}
+    slots = {p["name"]: parking_slots(p) for p in pad_list}
     init = d.get("initial_pads", [])
     if init and (
         len(init) != q(d["fleet_size"])
@@ -249,11 +289,8 @@ def check_explicit_network(cfg: dict, name: str) -> None:
         ws.sort()
         if any(ws[i][1] > ws[i + 1][0] for i in range(len(ws) - 1)):
             fail(f"{name}: R10 overlapping fault windows on {pad}")
-    if cfg["charging"]["mode"] == "HUB_ONLY" and not any(
-        p["is_hub"] for p in cfg["pads"]
-    ):
+    if cfg["charging"]["mode"] == "HUB_ONLY" and not any(p["is_hub"] for p in pad_list):
         fail(f"{name}: R11 HUB_ONLY without hub")
-    check_dispatch_energy(cfg, name)
 
 
 def check_configs(schemas: dict, registry: Registry) -> int:
@@ -279,7 +316,7 @@ def check_configs(schemas: dict, registry: Registry) -> int:
             elif node["assumption"] is not True:
                 fail(f"{name}: R15 {qpath} not flagged assumption = true")
         if cfg.get("meta", {}).get("status") == "COMPLETE" and not errors:
-            check_complete_config(cfg, name)
+            check_complete_config(cfg, name, path.parent, validator)
     return n
 
 
@@ -496,7 +533,7 @@ def check_config_keys(sections, schemas, texts: dict[str, str]) -> None:
     for k, unit in table.items():
         if k in keys and keys[k] != unit:
             fail(f"spec 8.2: {k} unit '{unit}' != schema '{keys[k]}'")
-    sections_re = r"(?:meta|sim|geo|pads\[\]|lanes\[\]|drone|payload|charging|pad_ops|handshake|policy|demand|truck|metrics|faults\[\])\."
+    sections_re = r"(?:meta|sim|geo|network_files|pads\[\]|lanes\[\]|drone|payload|charging|pad_ops|handshake|policy|demand|truck|metrics|faults\[\])\."
     token_re = re.compile(
         r"(?<![/\w.])" + sections_re + r"[a-z_]+(?:\[\])?(?:\.[a-z_]+)*"
     )

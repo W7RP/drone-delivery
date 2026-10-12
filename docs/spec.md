@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.2.4. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.3.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -59,7 +59,7 @@ Components (the things that own state and send messages):
 | Fault injector (FI) | Produces `FAULT_START`/`FAULT_END` from `faults[]` and from `pad_ops.pc_fault_rate_per_h`. | fault RNG streams |
 | Remote ops (OPS) | Alert sink only. Receives `Alert` records, takes no action in the sim. | `alerts.jsonl` |
 | Truck baseline (TB) | Pure function evaluated by FM at order creation. | nothing persistent |
-| Offline pipeline | Python. Builds `lanes.csr.bin` and `truck_matrix.bin` from the config before a run. | derived files |
+| Offline pipeline | Python (`pipeline/`). Builds a scenario's pad catalog, `lanes.csr.bin` and `truck_matrix.bin` from public map data before a run. | derived files |
 
 Entities:
 
@@ -101,6 +101,9 @@ The flight model signature is in 2.7.
 | delivered_t_ms | u64 | ms | Release verified at `delivered_pad` (transition V18). |
 | truck_delivered_t_ms | u64 | ms | Baseline completion time, computed at creation (section 7, M2). |
 | fail_reason | u8 AlertCode | - | Why the order FAILED: RELEASE_FAULT (V20) or DRONE_GROUNDED (D14). Meaningful only when status = FAILED. |
+| latch_start_t_ms | u64 | ms | Start of the latch that picked the pod up (V08 or V24 into LATCHING). Measurement only, for the M2 split. |
+| flight_ms | u64 | ms | Lane time flown with this order's pod latched (sum over `LANE_DONE`). Measurement only. |
+| hold_ms | u64 | ms | Time the carrying drone spent in HOLDING with the pod. Measured on the drone, not the PC, whose HELD state can outlast a hold when a cancel is lost. Measurement only. |
 
 Order status: `CREATED` (on `POD_PLACED`) > `ASSIGNED` (drone chosen) > `LATCHED` (`POD_LATCHED`)
 > `IN_TRANSIT` (departed) > one of `DELIVERED` (released at `dest_pad`), `DIVERTED` (released at
@@ -184,8 +187,10 @@ failure returns an `ASSIGNED` order to `CREATED`.
 | lane_id | u32 | - | Index in the CSR edge arrays (sorted by from_pad, then to_pad). |
 | from_pad | u16 | - | Implicit in CSR row. |
 | to_pad | u16 | - | |
-| length_m | f32 | m | Straight-line ENU distance between pad positions. |
+| length_m | f32 | m | Straight-line distance between pad positions: ENU distance for explicit and synthetic networks, the great-circle distance from `lanes.csr.bin` for a pipeline network (A47). |
 | reverse_lane_id | u32 | - | The opposite direction of the same config lane. |
+| max_terrain_m | f32 | m | Highest terrain elevation (NAVD88) sampled along the lane (A48); 0 when the network does not come from the pipeline. Carried for routing and risk work; the phase-3 core does not use it. |
+| ground_risk_per_km2 | f32 | 1/km2 | Mean population density sampled along the lane, 0 over water (A48, A49); 0 when the network does not come from the pipeline. Carried for routing and risk work; the phase-3 core does not use it. |
 
 ### 2.7 Flight model
 
@@ -290,13 +295,14 @@ reason OUT_OF_SERVICE (transition V00).
 
 | ID | Owner | Trigger | Guard | Action | Messages |
 |---|---|---|---|---|---|
-| P01 | PC | `SHIPMENT_REQUEST` (DG) | none | Append `(requested_t_ms, dest_pad, deadline_t_ms)` to the backlog (FIFO). If `empty_pods` = 0 the request counts as a stockout (M6). Try P02. | In: `SHIPMENT_REQUEST`. Out: if OUT is held by a READY drone with no pickup, `SHIPMENT_PENDING` to FM. |
+| P01 | PC | `SHIPMENT_REQUEST` (DG) | backlog shorter than `demand.max_backlog_per_pad`, or no cap | Append `(requested_t_ms, dest_pad, deadline_t_ms)` to the backlog (FIFO). If `empty_pods` = 0 the request counts as a stockout (M6). Try P02. | In: `SHIPMENT_REQUEST`. Out: if OUT is held by a READY drone with no pickup, `SHIPMENT_PENDING` to FM. |
 | P02 | PC | Any change to OUT, inventory, backlog, return queue, or mode | mode = ONLINE; OUT drone-free; `out_pod` = NONE; and either backlog non-empty with `empty_pods` > 0, or return queue non-empty | Take the head of the return queue if the backlog is empty, else the backlog head. Shipments use the lowest-id unreserved empty pod; returns use their named pod. Set `out_placing`; schedule `POD_PLACE_DONE` after `pad_ops.pod_place_s`. | Out: `PAD_STATUS` to FM (inventory changed). |
 | P03 | PC | `POD_PLACE_DONE` | none | `out_pod` = pod, `out_placing` = false, pod location PAD_OUT. Re-evaluate any WAIT_OUT visit (V21). | Out: `POD_PLACED` to FM. |
 | P04 | PC | Drone leaves IN while `in_pod` != NONE (V24 to V26, or V36 from IN) | none | Schedule `POD_REMOVE_DONE` after `pad_ops.pod_remove_s` (recipient takes the pod; not modelled as a person). | In: `LANDED` (spot OUT) or `DEPARTED` (spot IN). |
 | P05 | PC | `POD_REMOVE_DONE` | none | `in_pod` = NONE; pod becomes empty, joins inventory (`empty_pods` += 1). Run the landing queue (3.5). | Out: `POD_REMOVED` to FM. |
 | P06 | PC | `POD_RETURN_REQUEST` (FM) | pod is in this pad's inventory | Mark pod reserved (`empty_pods` -= 1), append to return queue. Try P02. | In: `POD_RETURN_REQUEST`. Out: `PAD_STATUS` to FM. |
 | P07 | PC | `PICKUP_ASSIGNED` (FM) | `out_pod` or the placement in progress is that pod | Record pickup for the drone's visit (or for its next visit if it has none yet). Re-evaluate V21. | In: `PICKUP_ASSIGNED`. |
+| P08 | PC | `SHIPMENT_REQUEST` (DG) | backlog holds `demand.max_backlog_per_pad` requests | Reject the request: nothing is queued and no order will exist. Counts in M9, and as a stockout if `empty_pods` = 0 (M6). | In: `SHIPMENT_REQUEST`. |
 
 FM owns the decision to return a pod (6.5). The PC only places what it is told to place.
 
@@ -818,7 +824,7 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 | ID | Metric | Formula | Measurement point | Unit |
 |---|---|---|---|---|
 | M1 | deliveries_per_h | count(SHIPMENT, status DELIVERED, `delivered_t_ms` in W) / (T_W / 3600) | V18 at `dest_pad` | 1/h |
-| M2 | door_to_door_s, truck_door_to_door_s, speedup | drone: (`delivered_t_ms` - `requested_t_ms`) / 1000. Truck: (`truck_delivered_t_ms` - `requested_t_ms`) / 1000. Report mean, p50, p95 for both; speedup = mean truck / mean drone; saving_s = mean(truck - drone) over orders with both. | Drone at V18. Truck computed by FM at order creation from `requested_t_ms` (below). | s, s, 1 |
+| M2 | door_to_door_s, truck_door_to_door_s, speedup, door_to_door_split_s | drone: (`delivered_t_ms` - `requested_t_ms`) / 1000. Truck: (`truck_delivered_t_ms` - `requested_t_ms`) / 1000. Report mean, p50, p95 for both; speedup = mean truck / mean drone; saving_s = mean(truck - drone) over orders with both. Split, per order and as means over the same orders: pod_wait = `placed_t_ms` - `requested_t_ms`; queue = `latch_start_t_ms` - `placed_t_ms` + `hold_ms`; flight = `flight_ms`; pad_service = the rest (latch, charging before departure, takeoff, approaches and go-arounds, release). The four add up to the drone time exactly. | Drone at V18. Truck computed by FM at order creation from `requested_t_ms` (below). | s, s, 1, s |
 | M3 | spot_utilization (per pad, per spot) | (1 / T_W) * integral over W of [spot has a drone (`in_drone` or `out_drone` != NONE)] dt | Updated at V06 to V10, V24 to V26, V36 | 1 |
 | M4 | queue_time_s | Three components, each mean/p50/p95: placement_wait = `placed_t_ms` - `requested_t_ms`; pickup_wait = `latched_t_ms` - `placed_t_ms`; landing_hold = time a visit spends in HELD (V02 to V04 or V05). | P03, V31/V32, V04 | s |
 | M5 | battery_cycles | per drone: `energy_charged_j` / `drone.battery_capacity_j` (equivalent full cycles). Report per drone, fleet mean, and fleet total / count(M1 deliveries). | V33 (`energy_added_j`) | 1 |
@@ -826,6 +832,7 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 | M7 | abort_rate, go_around_rate, latch_abort_count, divert_count | abort_rate = SHIPMENT orders closed DIVERTED or FAILED / SHIPMENT orders closed (DELIVERED + DIVERTED + FAILED). go_around_rate = go-arounds / `APPROACH_DONE` count (all approaches in W). latch_abort_count = V30 count. divert_count = DIVERTED alerts. | FM order closure; D05; V30; 6.6 | 1, 1, count, count |
 
 | M8 | truck_cost_per_delivery, drone_cost_per_delivery, cost_ratio, breakeven_deliveries_per_drone_h, actual_deliveries_per_drone_h | Truck: mean of `truck_cost` (below) over M2's orders. Drone: (`costs.drone_per_s` * `drone.fleet_size` * T_W + `costs.energy_per_j` * E_grid) / count(M1), with E_grid = energy added in W / `charging.efficiency`. cost_ratio = drone / truck. Break-even = `costs.drone_per_s` * 3600 / (truck_cost_per_delivery - E_grid cost per delivery): the deliveries per drone-hour at which the drone cost per delivery equals the truck's; null if the denominator is <= 0 or there are no deliveries. Actual = count(M1) / `drone.fleet_size` / (T_W / 3600). | FM order closure; V33 | cu, cu, 1, 1/h, 1/h |
+| M9 | requests_rejected, rejected_fraction | requests_rejected = SHIPMENT_REQUESTs in W turned away at a full backlog; rejected_fraction = requests_rejected / all SHIPMENT_REQUESTs in W. A rejected request never becomes an order, so it appears in no other metric except M6. | P08 | count, 1 |
 
 Truck baseline per order:
 
@@ -860,15 +867,16 @@ UPPER_SNAKE strings. Pads, lanes and flows reference pads by `name`; pad IDs are
 `meta.status` = STUB files carry only `schema_version`, `meta` and optionally `geo`. The core
 and pipeline refuse to run them.
 
-A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) or as
-`synthetic_network` (8.6), never both, and gives demand either as `demand.flows[]` or as
+A COMPLETE config gives the network in exactly one of three forms: explicitly (`pads[]` and
+`lanes[]`), as `synthetic_network` (8.6), or as `network_files` (the pipeline's pad catalog,
+lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or as
 `demand.rate_per_pad_per_h` with `demand.hub_weight`, never both.
 
 ### 8.2 Keys
 
 | Key | Unit | Meaning |
 |---|---|---|
-| schema_version | - | Config schema version, "1.2.0". |
+| schema_version | - | Config schema version, "1.3.0". |
 | meta.name | - | Scenario name; must equal the directory name. |
 | meta.preset | - | Preset enum. |
 | meta.status | - | COMPLETE or STUB. |
@@ -898,6 +906,7 @@ A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) o
 | synthetic_network.initial_empty_pods | count | For every generated pad. |
 | synthetic_network.parking_capacity | count | For every generated pad except a HUB_SPOKE hub. |
 | synthetic_network.hub_parking_capacity | count | HUB_SPOKE hub only. |
+| network_files.dir | - | Directory holding `pads.toml`, `lanes.csr.bin` and `truck_matrix.bin` (8.4), relative to the `scenario.toml`. Pads come from `pads.toml` in the form of `pads[]`; lanes and their lengths from `lanes.csr.bin`. |
 | lanes[].pad_a | - | One end (undirected lane). |
 | lanes[].pad_b | - | Other end. |
 | drone.fleet_size | count | Number of drones. |
@@ -960,14 +969,15 @@ A COMPLETE config gives the network either explicitly (`pads[]` and `lanes[]`) o
 | policy.marker_max_hold_cycles | count | Marker hold cycles before divert. |
 | policy.pod_min_per_pad | count | Pod rebalancing threshold. |
 | demand.deadline_offset_s | s | Deadline = request + this. |
+| demand.max_backlog_per_pad | count | Optional, 1 to 65535. Shipment requests a pad queues before it rejects new ones (P08, M9). Absent: no cap, the backlog grows without limit when a pad cannot keep up. |
 | demand.flows[].origin | - | Origin pad name. |
 | demand.flows[].destination | - | Destination pad name. |
 | demand.flows[].rate_per_h | 1/h | Poisson rate of shipment requests. |
 | demand.rate_per_pad_per_h | 1/h | Instead of `demand.flows[]`: every pad's total request rate, split over destinations (8.6). |
 | demand.hub_weight | 1 | Destination weight of a hub relative to 1 for other pads; used with `demand.rate_per_pad_per_h`. |
-| truck.matrix_source | - | SYNTHETIC or FILE (how the pipeline builds the matrix). |
-| truck.synthetic_detour_factor | 1 | Road length / straight length for SYNTHETIC. |
-| truck.synthetic_free_flow_speed_mps | m/s | Road speed for SYNTHETIC. |
+| truck.matrix_source | - | SYNTHETIC (built from pad positions) or FILE (`truck_matrix.bin` of `network_files`). |
+| truck.synthetic_detour_factor | 1 | Road length / straight length. SYNTHETIC only; absent for FILE. |
+| truck.synthetic_free_flow_speed_mps | m/s | Road speed. SYNTHETIC only; absent for FILE. |
 | truck.dispatch_delay_s | s | Request to truck arrival at origin. |
 | truck.load_s | s | Loading at origin. |
 | truck.unload_s | s | Unloading at destination. |
@@ -1001,21 +1011,30 @@ Checked at load by the core and by `scripts/check_spec.py`:
 - R12 Every directed lane passes `dispatch_ok` with the gross payload from `drone.charge_target_soc`.
 - R13 `metrics.hist_max_s` > `metrics.hist_bin_s`.
 - R14 `meta.name` equals the scenario directory name.
-- R15 Phase 1: every quantity has `assumption` = true.
+- R15 Every quantity in a `scenario.toml` has `assumption` = true. In a pipeline pad catalog
+  only the coordinates, which are map data, have `assumption` = false.
 - R16 Every demand flow's route passes `dispatch_ok` with the gross payload from
   `drone.charge_target_soc`; otherwise its orders could never be served.
+- R17 `truck.matrix_source` = FILE requires `network_files`: the matrix is indexed by the pads
+  of its catalog.
 
 For a `synthetic_network` config the core checks R1 to R5, R9, R10, R12 and R16 after
 generation; `scripts/check_spec.py` checks only the rules that do not need the generated
-pads, plus that pad names it references follow the generated `P<index>` pattern.
+pads, plus that pad names it references follow the generated `P<index>` pattern. For a
+`network_files` config the core checks every rule after reading the files, and rejects files
+that break 9.0 or do not match the catalog; `scripts/check_spec.py` checks the catalog against
+the `pads[]` schema and the rules that need no lanes (R1, R4, R5, R9 to R11, R15, R17).
 
 ### 8.4 Scenario directory layout
 
 ```
-configs/<scenario>/scenario.toml           edited by hand, committed
-configs/<scenario>/derived/                written by the offline pipeline, git-ignored
+configs/<scenario>/scenario.toml           edited by hand (or generated from a pipeline template), committed
+configs/<scenario>/derived/                written by the offline pipeline, committed (A51)
+    pads.toml                              pad catalog: a `pads` array in the form of 8.2 pads[]
     lanes.csr.bin                          section 9.1
     truck_matrix.bin                       section 9.2
+    report.json                            every pad and lane the pipeline chose or rejected, and why
+    manifest.json                          source files: URL, retrieval date, license, sha256
 runs/<scenario>/<run_id>/                  written by the core, git-ignored
     metrics.json                           section 7
     alerts.jsonl                           one Alert (2.8) per line, enums as strings
@@ -1026,20 +1045,21 @@ calib/<scenario>/flight_log.bin            PX4 SITL flights, source = PX4_SITL, 
 ```
 
 `run_id` = `seed<sim.seed>_rep<r>`. The core refuses derived files whose `source_hash` does
-not match the current `scenario.toml`. The CLI may be given any output directory; it writes the
+not match the `pads.toml` next to them or whose pad count differs from it. The CLI may be given any output directory; it writes the
 files above into it.
 
 `deliveries.csv` columns: `order_id, kind, status, fail_reason, origin_pad, dest_pad,
 delivered_pad, drone_id, requested_t_ms, placed_t_ms, latched_t_ms, delivered_t_ms,
-drone_door_to_door_s, truck_door_to_door_s, truck_cost_cu`. Enums as strings, NONE IDs and
-unset times as empty fields.
+drone_door_to_door_s, truck_door_to_door_s, truck_cost_cu, pod_wait_s, queue_s, pad_service_s,
+flight_s`. The last four are the M2 split, filled for DELIVERED and DIVERTED orders. Enums as
+strings, NONE IDs and unset times as empty fields.
 
 ### 8.5 Presets
 
 | Directory | `meta.preset` | Status | Shape |
 |---|---|---|---|
 | ab_synthetic | SYNTHETIC | COMPLETE | Two pads, one lane, Pittsburgh. Reference example. |
-| parts_logistics | PARTS_LOGISTICS | STUB | Anchor preset. Hub-and-spoke, warehouse hub to plants and shops. |
+| parts_logistics_pittsburgh | PARTS_LOGISTICS | COMPLETE | Anchor preset on real Pittsburgh sites from the offline pipeline (`network_files`): Strip District warehouses (one the hub) to Oakland hospitals and Mon Valley plants. Generated from `pipeline/scenario.toml.in`. |
 | hospital_lab | HOSPITAL_LAB | STUB | Campuses to a central lab, tight deadlines. |
 | retail_transfer | RETAIL_TRANSFER | STUB | Mesh of stores, multi-hop routes, pod rebalancing. |
 | remote_terrain | REMOTE_TERRAIN | STUB | Long lanes where roads detour; range and hub-only charging. |
@@ -1091,14 +1111,20 @@ Runs once at load, before any check that needs pads, and produces exactly the `p
   | 24 | 8 | u64 | source_hash |
 
 - `source_hash` = FNV-1a 64 (offset basis 0xcbf29ce484222325, prime 0x100000001b3) over the raw
-  bytes of the `scenario.toml` that produced the file; 0 for PX4 calibration logs.
-- Readers reject: wrong magic, different `version_major`, `header_bytes` < 32, file shorter
-  than the layout implies, any NaN or infinity, any value outside the ranges below. A higher
-  `version_minor` is accepted; data starts at `header_bytes`.
+  bytes of the file that defines what the data is indexed by: the `scenario.toml` for files the
+  core writes (`flight_log.bin`, `events.bin`), the `derived/pads.toml` catalog for the
+  pipeline's `lanes.csr.bin` and `truck_matrix.bin` (so every scenario using one catalog shares
+  one network), 0 for PX4 calibration logs.
+- Readers reject: wrong magic, different `version_major`, a `version_minor` below the one that
+  introduced the arrays they read, `header_bytes` < 32, file shorter than the layout implies,
+  bytes beyond the layout when `version_minor` is the one they read, any NaN or infinity, any
+  value outside the ranges below. A higher `version_minor` is accepted; data starts at
+  `header_bytes`.
 
 ### 9.1 lanes.csr.bin
 
-magic `DDLANES\0`, count_a = n_pads, count_b = n_lanes (directed, = 2 x config lanes).
+magic `DDLANES\0`, version_minor 1, count_a = n_pads, count_b = n_lanes (directed, = 2 x
+undirected lanes).
 
 | Array | Type | Length | Meaning |
 |---|---|---|---|
@@ -1106,6 +1132,8 @@ magic `DDLANES\0`, count_a = n_pads, count_b = n_lanes (directed, = 2 x config l
 | to_pad | u16 | n_lanes | Destination pad, < n_pads, != row pad. |
 | length_m | f32 | n_lanes | > 0, equal for a lane and its reverse. |
 | reverse_lane | u32 | n_lanes | `reverse_lane[reverse_lane[i]]` = i, endpoints swapped. |
+| max_terrain_m | f32 | n_lanes | Added in version_minor 1. Highest terrain elevation along the lane, m (2.6). |
+| ground_risk_per_km2 | f32 | n_lanes | Added in version_minor 1. >= 0, people per km2 (2.6). |
 
 Lanes are sorted by (from_pad, to_pad); `lane_id` is the position.
 
@@ -1119,9 +1147,9 @@ magic `DDTRUCK\0`, version_minor 1, count_a = n_pads, count_b = 0.
 | road_m | f32 | n_pads x n_pads | Row-major road distance in m, same rules. Added in version_minor 1 for the cost baseline (M8). |
 
 SYNTHETIC: `road_m = straight ENU distance * truck.synthetic_detour_factor` and
-`free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`. In phase 2 the core builds this
-matrix in memory from the config; the file form is for the offline pipeline.
-FILE: the pipeline routes over a road network; the output format is identical.
+`free_flow_s = road_m / truck.synthetic_free_flow_speed_mps`, built in memory by the core.
+FILE: the pipeline routes over a road network (A50) and writes this file next to its pad
+catalog; the core reads it for a `network_files` scenario (R17).
 
 ### 9.3 flight_log.bin
 
@@ -1256,12 +1284,44 @@ that:
 - A42 FM judges a parked drone's energy from the soc in its last `DRONE_STATUS`; parked
   charging (A16) is therefore not counted until the drone reports again, which errs on the
   safe side.
-- A43 Phase 2 builds the truck matrix in memory from SYNTHETIC parameters and rejects
-  `truck.matrix_source` = FILE, which needs the offline pipeline.
+- A43 The core builds a SYNTHETIC truck matrix in memory from pad positions; a FILE matrix
+  comes from the pipeline and only with its own pad catalog (R17). Phase 2 rejected FILE.
 - A44 A PC_SILENT report can be a false alarm (lost radio messages). FM therefore treats any
   subsequent message from that PC as proof it is up and, failing that, lifts the suspicion after one
   expected outage (`pad_ops.pc_fault_duration_s`); a PC that is still down is detected again by
   the next drone.
+- A45 Pipeline pads stand at a point inside the footprint of a named OSM site (hospital,
+  warehouse, industrial) chosen by the rules in `pipeline/sites.yaml`. Whether that lot or roof
+  is free, strong enough, or available to the operator is not checked.
+- A46 Airspace exclusion zones are the FAA UAS facility-map cells whose LAANC ceiling is below a
+  placeholder cruise altitude (`pipeline/params.yaml`). Elsewhere in controlled airspace,
+  flight is assumed authorised up to the cell ceiling; uncontrolled airspace is open. Temporary
+  flight restrictions and other no-fly areas are not modelled.
+- A47 Pipeline lanes are straight. Length is the great-circle distance on the sphere of section
+  0, stored as the nearest f32 not below it. Candidate lanes are pad pairs within the flight
+  model's longest feasible lane at a 5 kg payload with no diversion leg; the pipeline then
+  drops any lane the R12 energy guard rejects, worst first, until none fails.
+- A48 Lane terrain and ground risk are sampled at least every `lanes.sample_spacing_m` along
+  the path: terrain from the USGS 1 arc-second DEM, nearest pixel; risk as the mean
+  population density of the samples, with samples on OSM water counting 0.
+- A49 Population density is uniform within a 2020 Census block group: the sum of its blocks'
+  population over its land area. TIGER coordinates (NAD83) are used as WGS84.
+- A50 Truck routing uses free-flow speed from `maxspeed`, or a per-class placeholder, with OSM
+  one-way rules and no turn costs, signals or traffic. Each pad joins the road network at the
+  nearest drivable, non-motorway node of the largest strongly connected component by a straight
+  connector at a placeholder speed. Road distance is that of the fastest path.
+- A51 Raw data are one snapshot (the OSM extract changes daily). `derived/` is committed and
+  its `manifest.json` records each source's sha256, so results stay reproducible; a fresh
+  download gives a slightly different network.
+- A52 Pipeline scenarios size the fleet by one rule: offered drone-hours per hour (each order
+  flown out loaded and back with an empty pod, with its pad service and the charging time for
+  both legs) divided by a placeholder target utilisation, rounded up. Demand runs from each
+  warehouse pad to every pad its drones can reach under R16; flows they cannot reach are
+  logged and left out.
+- A53 A pad that cannot keep up queues shipment requests without limit unless
+  `demand.max_backlog_per_pad` is set; with it, a request that finds the backlog full is turned
+  away (P08), as a shipper would book another carrier. Rejected requests are counted (M9) and
+  are not orders, so they carry no drone or truck time.
 
 ## 11 Amendments
 
@@ -1273,3 +1333,4 @@ that:
 | 1.2.2 | 6.1 assignment triggers and idle class (c); PICKUP on PARKED; 4.5 suspicion recovery with `FM_PAD_RECHECK` (TimerKind appended); D07 wording; A44. | Found by the phase-2 failure-branch tests: a drone asking for work was never a candidate, an order assigned to a drone entering parking stalled, and lost messages could strand a healthy pad. |
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
+| 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
