@@ -1,0 +1,32 @@
+{
+ "end_t_us": 275200000,
+ "state_durations": [
+  {"machine": "pad 0 drone 0", "state": "READY", "enter_t_us": 12296000, "duration_s": 0.056},
+  {"machine": "drone 0", "state": "PARKED", "enter_t_us": 12352000, "duration_s": 0},
+  {"machine": "pad 0 drone 0", "state": "DEPARTING", "enter_t_us": 12352000, "duration_s": 26.748},
+  {"machine": "drone 0", "state": "TAKEOFF", "enter_t_us": 12352000, "duration_s": 26.748},
+  {"machine": "drone 0", "state": "EN_ROUTE", "enter_t_us": 39100000, "duration_s": 146.5},
+  {"machine": "pad 0 drone 0", "state": "CLOSED", "enter_t_us": 39100000, "duration_s": 236.1},
+  {"machine": "drone 0", "state": "HOLDING", "enter_t_us": 185600000, "duration_s": 0},
+  {"machine": "pad 4 drone 0", "state": "APPROACH", "enter_t_us": 185600000, "duration_s": 49.1},
+  {"machine": "drone 0", "state": "APPROACH", "enter_t_us": 185600000, "duration_s": 49.1},
+  {"machine": "drone 0", "state": "ON_PAD", "enter_t_us": 234700000, "duration_s": 0},
+  {"machine": "pad 4 drone 0", "state": "RELEASING", "enter_t_us": 234700000, "duration_s": 5},
+  {"machine": "drone 0", "state": "ON_PAD", "enter_t_us": 234700000, "duration_s": 8},
+  {"machine": "pad 4 drone 0", "state": "VERIFY_RELEASE", "enter_t_us": 239700000, "duration_s": 3},
+  {"machine": "pad 4 drone 0", "state": "WAIT_OUT", "enter_t_us": 242700000, "duration_s": 0},
+  {"machine": "pad 4 drone 0", "state": "HOPPING", "enter_t_us": 242700000, "duration_s": 21.5},
+  {"machine": "drone 0", "state": "HOPPING", "enter_t_us": 242700000, "duration_s": 21.5},
+  {"machine": "drone 0", "state": "ON_PAD", "enter_t_us": 264200000, "duration_s": 0},
+  {"machine": "pad 4 drone 0", "state": "LATCHING", "enter_t_us": 264200000, "duration_s": 8},
+  {"machine": "drone 0", "state": "ON_PAD", "enter_t_us": 264200000, "duration_s": 11},
+  {"machine": "pad 4 drone 0", "state": "VERIFY_LOCK", "enter_t_us": 272200000, "duration_s": 3},
+  {"machine": "pad 4 drone 0", "state": "READY", "enter_t_us": 275200000, "duration_s": 0},
+  {"machine": "drone 0", "state": "ON_PAD", "enter_t_us": 275200000, "duration_s": 0},
+  {"machine": "drone 0", "state": "PARKED", "enter_t_us": 275200000, "duration_s": 0}
+ ],
+ "landings": [
+  {"pad_id": 4, "spot": "IN", "t_us": 234700000, "truth_enu_m": [1936.17, -790.587], "error_cm": 8.97151},
+  {"pad_id": 4, "spot": "OUT", "t_us": 264200000, "truth_enu_m": [1940.08, -790.741], "error_cm": 13.0609}
+ ]
+}

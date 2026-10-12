@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.3.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.4.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -1174,7 +1174,9 @@ traversal, written at `LANE_DONE`.
 | 47 | 1 | u8 | reserved, 0 |
 
 The PX4/ROS 2 harness writes the same format (source = PX4_SITL, time from the sim clock of
-that flight), so calibration reads one format from both worlds.
+that flight), so calibration reads one format from both worlds. For a PX4_SITL record,
+`energy_j` is the energy proxy of A57 integrated over the lane, and `soc_start` and `soc_end`
+are PX4's simulated battery `remaining` (A57).
 
 ### 9.4 events.bin
 
@@ -1198,6 +1200,41 @@ rest zero. Enums are their codes.
 Transition args: u16 transition code (M = 1, P = 2, V = 3, D = 4, times 100, plus the number:
 V06 = 306), u16 pad_id, u16 drone_id, u8 from-state code, u8 to-state code (VisitState for V,
 DroneMode for D, PadMode for M, 255 where not applicable).
+
+### 9.5 flight_samples.bin
+
+PX4 SITL flights only (`px4/`). magic `DDSAMPL\0`, count_a = record_bytes (96), count_b = 0,
+`source_hash` 0. One record per `logging.sample_period_s` of sim time (`px4/config/flight.yaml`),
+in time order, written while the flight runs.
+
+| Offset | Size | Type | Field |
+|---|---|---|---|
+| 0 | 8 | u64 | t_us: sim time (Gazebo clock, PX4 runs in lockstep), strictly increasing |
+| 8 | 12 | f32[3] | pos_ned_m: PX4 local position (EKF2), NED, metres |
+| 20 | 12 | f32[3] | vel_ned_mps: PX4 local velocity, NED |
+| 32 | 16 | f32[4] | q_ned_frd: PX4 attitude, Hamilton w-x-y-z, body FRD to NED |
+| 48 | 16 | f32[4] | motor_radps: rotor speeds PX4 commands (its actuator outputs), rad/s |
+| 64 | 4 | f32 | battery_v: PX4 battery voltage |
+| 68 | 4 | f32 | battery_a: PX4 battery current |
+| 72 | 4 | f32 | battery_remaining: 0..1 |
+| 76 | 12 | f32[3] | truth_enu_m: Gazebo ground-truth position of the vehicle, world ENU (for evaluation only) |
+| 88 | 1 | u8 | drone_mode: DroneMode code of the drone agent |
+| 89 | 1 | u8 | nav_state: PX4 vehicle_status nav_state |
+| 90 | 1 | u8 | arming_state: PX4 vehicle_status arming_state |
+| 91 | 1 | u8 | pods_latched: pods the latch holds (0 or 1) |
+| 92 | 4 | u8[4] | reserved, 0 |
+
+### 9.6 events.jsonl and visits.json
+
+PX4 SITL flights only. `events.jsonl` has one JSON object per line, in the order the logger
+received them: `type` `msg` (a 4.2 message: `t_us` = send time, `name`, `sender`, `seq`, the
+4.2 fields with NONE as null, enums by name; `LANDED` adds `truth_enu_m`), `transition` (a
+3.4 or 4.4 row: `t_us`, `machine` VISIT, DRONE or PAD, `row`, `pad_id`, `drone_id`, `from`,
+`to`) and one closing `run_status` (`COMPLETE` or `FAILED: <reason>`). A visit that exists
+before the run (a drone parked on OUT, 3.3) appears as row INIT from (none) to READY.
+`visits.json` holds `state_durations` (machine instance, state, entry time, seconds in the
+state) and `landings` (pad, spot, touchdown ground truth, `error_cm`: horizontal distance from
+the spot centre). `px4/tools/flightlog.py validate` checks all of 9.3, 9.5 and 9.6 for a run.
 
 ## 10 Assumptions
 
@@ -1322,6 +1359,33 @@ that:
   `demand.max_backlog_per_pad` is set; with it, a request that finds the backlog full is turned
   away (P08), as a shipper would book another carrier. Rejected requests are counted (M9) and
   are not orders, so they carry no drone or truck time.
+- A54 PX4 SITL flights (`px4/`) fly one lane over flat ground: a single ground plane at the
+  hub, no terrain or buildings, no wind. Lanes are flown at the pipeline's placeholder cruise
+  altitude (200 ft), because the core has no altitude (A03).
+- A55 The SITL vehicle is PX4's x500 body made to weigh `drone.empty_mass_kg` plus a
+  `drone.latch_mass_kg` latch, with motor constant and inertia scaled so thrust-to-weight is a
+  placeholder 2.0 at `drone.mtow_kg` and PX4's stock x500 gains fit. A pod hangs in a latch and
+  never collides with the drone: the latch is taken to have a capture funnel, and it closes on a
+  pod whose centre lies within a placeholder radius of the latch.
+- A56 Each spot's fiducial (ArUco) sits beside the spot at a fixed offset, so a pod waiting on
+  OUT never covers it; landing error is measured against the spot centre. The detector treats
+  the target as static and keeps sending its estimate when the marker leaves the view near the
+  ground.
+- A57 SITL has no power model, so flight energy is a proxy: the ideal induced power of each
+  rotor from momentum theory, P = T^1.5 / sqrt(2 rho A) with T = motor constant x commanded
+  speed squared, summed over the rotors and integrated over time. It leaves out profile power and
+  motor and ESC losses. PX4's simulated battery drains with time, not load, so its `remaining` is
+  logged but says nothing about energy.
+- A58 SITL pads have no charger: a latch verified on OUT goes to READY (V32), never CHARGING.
+- A59 The IN and OUT spots of a pad sit a placeholder 4 m apart; the config has `drone.hop_s`
+  but no hop distance.
+- A60 A SITL run is repeatable only in what it injects: its seed sets the start offset and the
+  detector's corner noise. Gazebo and PX4 are not seeded, so two runs with one seed differ.
+- A61 The SITL drone is given pad positions as latitude/longitude (the world positions
+  converted the way Gazebo's NavSat converts them, on the WGS84 ellipsoid) and places them in
+  PX4's local frame with PX4's own projection (a sphere of 6 371 km). Commanding in world ENU
+  instead put the drone 4.9 m east and 1.0 m north of B after the 2 km lane, over the wrong
+  spot: the two frames differ in scale by 0.26% east and 0.12% north at this latitude.
 
 ## 11 Amendments
 
@@ -1334,3 +1398,4 @@ that:
 | 1.2.3 | V11 restarts the landing timer; 3.5 sensor interlock; V17/V37 timer rules; V41 and V42; per-pad visits (2.4); only CREATED orders are assigned and `POD_LATCHED` is authoritative (6.1); A24 retry. | Found by the phase-2 fault sweep (`sim/tests/fault_sweep.rs`): a lost grant let a timeout free a spot just before touchdown and a second drone was granted the same spot; a silent departure blocked a spot forever; a faulted pad lost its visits; a re-sent report left a drone without a watchdog; a stale assignment re-opened a delivered order; a drone without a mission was never revisited. |
 | 1.2.4 | 6.6 orders to an OUT_OF_SERVICE destination fly to an alternate; NEAREST_FEASIBLE ranks alternates by congestion first. | Found by the 200-drone scale run: one pad grounded for the rest of the run blocked every pad's OUT in turn, and IN congestion made drones bounce between two pads until forced landings. |
 | 1.3.0 | Lane `max_terrain_m` and `ground_risk_per_km2` (2.6, 9.1 version_minor 1); `derived/` holds `pads.toml`, `report.json` and `manifest.json` and is committed (8.4); pipeline files carry the hash of `pads.toml` as `source_hash` (9.0); reader minor-version rule (9.0); A45 to A51; `network_files` (8.1, 8.2, 8.3) and R17; truck synthetic keys only for SYNTHETIC; R15 exempts catalog coordinates; A43 updated; M2 door-to-door split with `Order.latch_start_t_ms`, `flight_ms`, `hold_ms` and four `deliveries.csv` columns; `demand.max_backlog_per_pad`, P08 and M9; A52, A53; the `parts_logistics` stub becomes the complete `parts_logistics_pittsburgh` (8.5) | Phase 3 builds the network from public data: lanes need the terrain and ground-risk fields the pipeline brief asks for, and keying the binary files to the pad catalog instead of `scenario.toml` lets scenarios that share a network (such as a 3x demand variant) share its files. The pipeline brief asks for drone door-to-door time split into pod wait, queue, pad service and flight next to the truck time; the CSV had only timestamps. At three times the anchor demand, and at normal demand once a warehouse is out of service, a pad's request backlog grew without limit. |
+| 1.4.0 | 9.5 `flight_samples.bin` and 9.6 `events.jsonl`, `visits.json`; 9.3 meaning of `energy_j` and soc for PX4_SITL records; A54 to A61. | Phase 4 flies one lane in PX4 SITL and logs it for calibration: the brief asks for per-sample state, battery and actuator output, per-visit landing error and state durations, none of which 9.3's one record per lane can hold. |

@@ -13,7 +13,7 @@ recipients of alerts.
 
 ## Status
 
-Phase 3 is done: the network can now be real. A Rust discrete-event core runs the spec (phase
+Phase 4 is done: one lane has been flown for real in PX4 SITL. A Rust discrete-event core runs the spec (phase
 2). It has no fixed time step, flat arrays indexed by ID, seeded streams, and a streamed event
 log. It implements:
 
@@ -29,8 +29,28 @@ An offline Python pipeline (phase 3) builds a Pittsburgh network from public dat
   sampled under each lane;
 - a truck matrix routed over the OSM road network.
 
-The sim loads those files instead of a generated network. There is no PX4/ROS flight yet; that
-is the next phase.
+The sim loads those files instead of a generated network.
+
+In phase 4, ROS 2 nodes fly one Pittsburgh lane in PX4 SITL and Gazebo, headless. The flight
+follows the spec's own handshake:
+
+- a drone agent and two pad controllers exchange the spec's messages under its transition IDs;
+- an ArUco detector feeds PX4's precision land, and a scripted latch joint drops and picks up
+  pods;
+- every flight is logged in the spec's flight-log formats and checked by a validator.
+
+Fifteen visits all completed. Touchdowns landed a mean of 4 cm from the IN spot and 9 cm from
+OUT. The motor commands give an energy proxy that rises with payload as the sim's flight model
+expects (`docs/flight-runs.md`).
+
+Two things only the simulator showed:
+
+- At first the drone hovered over the wrong spot after 2 km. Gazebo's GPS uses the WGS84
+  ellipsoid and PX4's local frame a sphere, so the two disagreed by 5 m over the lane. Pads now
+  reach the drone as latitude and longitude, as they would on a real vehicle.
+- A 0.4 m marker seen from 8 m was too small to decode reliably.
+
+Fitting the sim's flight model to these logs is the next phase.
 
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
@@ -64,6 +84,10 @@ Every number behind those results is a placeholder.
   rejected.
 - `sim/`: the Rust core (`sim run`, `sim dump`) and its tests.
 - `pipeline/`: the offline pipeline (`run.sh`), its rule files and its debug plot.
+- `px4/`: the SITL flight: world and vehicle generators, C++ ROS 2 nodes, `run_flight.sh`, the
+  log reader and validator, and a sample log.
+- `docs/flight-runs.md`: the fifteen SITL visits: times, energy proxy, landing errors, speed
+  factor, memory.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
   `hub_spoke_6`, `mesh_small`, `scale_200` and `parts_logistics_pittsburgh` run; the other
   three presets are still stubs.
@@ -76,10 +100,11 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 ## Layout
 
 ```
-docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md
+docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline)
 sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
 pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/
+px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/, config/, tools/, samples/
 scripts/    verify.sh, check_spec.py, scale_demand.py
 ```

@@ -62,6 +62,30 @@ sim/target/release/sim dump runs/ab_synthetic/seed42_rep0/events.bin | less
 Transition records print as their spec row IDs (`V06`, `D05`, ...), so a run can be read
 against spec section 3 and 4.4 line by line.
 
+## Fly one delivery in PX4 SITL (Phase 4)
+
+Prerequisites, all without root once installed: ROS 2 Humble (apt), PX4 v1.17.0 built for SITL
+in `~/PX4-Autopilot` (`make px4_sitl`), Gazebo Harmonic (installed by PX4's `ubuntu.sh`),
+`ros-humble-ros-gzharmonic`, OpenCV 4.5 with contrib (`libopencv-contrib-dev`), and the
+Micro XRCE-DDS agent in `~/.local`. This is the toolchain of quad-autonomy-sim
+(its `docs/environment.md`); nothing here depends on that repository or changes the PX4 tree.
+
+```
+px4/setup_ws.sh                                   # px4_msgs at the pinned commit + our nodes
+px4/run_flight.sh --payload-kg 5 --seed 1 --out px4/runs/one
+px4/py.sh tools/flightlog.py validate px4/runs/one
+px4/py.sh tools/flightlog.py summary px4/runs/one
+```
+
+`run_flight.sh` is headless: Gazebo server only, PX4 SITL, the bridge and six nodes. One visit
+takes about 4.5 minutes of wall time. `--speed F` runs Gazebo and PX4 at F times real time.
+`tools/run_batch.sh <name>` runs the acceptance set into `px4/runs/<name>/` (git-ignored) and
+writes its summary. `docs/flight-runs.md` has the results.
+
+The run directory holds `flight_log.bin` (spec 9.3), `flight_samples.bin` (9.5),
+`events.jsonl` and `visits.json` (9.6), every process's log, the PX4 ULog under `px4/log/`,
+and `rss.json` (peak resident memory of the whole process tree).
+
 ## Test and verify
 
 ```
@@ -72,6 +96,8 @@ runs everything and stops at the first failure:
 
 - the spec/schema/config cross-checks;
 - the pipeline unit tests;
+- the PX4 phase's offline checks: log reader tests, the flight nodes' C++ unit tests, and the
+  committed sample flight log against the validator (`VERIFY_SKIP_PX4=1` skips them);
 - rustfmt and clippy with warnings as errors;
 - all Rust tests in a debug build, where invariants are checked after every event;
 - release runs of the 200-drone scale case, the Pittsburgh week and Pittsburgh at 3x demand,

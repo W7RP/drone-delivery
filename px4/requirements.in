@@ -1,0 +1,7 @@
+# Offline tools of the PX4 phase (lane selection, world and marker generation, log reader and
+# validator, run summaries). The ROS 2 nodes are C++ and do not use this environment.
+# numpy: log arrays and statistics. opencv-contrib-python-headless: ArUco marker images.
+numpy
+opencv-contrib-python-headless
+# pyyaml: reads the pipeline's params.yaml (cruise altitude placeholder).
+pyyaml
