@@ -47,6 +47,48 @@ impl FlightModel {
     }
 }
 
+/// Simpson intervals for the landing-error integral; ample for a smooth density on [0, R].
+const LANDING_ERROR_STEPS: usize = 2000;
+/// Terms of the I0 series; enough for arguments far beyond a landing error's.
+const BESSEL_I0_TERMS: u32 = 80;
+
+/// Modified Bessel function of the first kind, order 0, by its power series.
+fn bessel_i0(x: f64) -> f64 {
+    let quarter_x2 = x * x / 4.0;
+    let mut term = 1.0;
+    let mut sum = 1.0;
+    for k in 1..BESSEL_I0_TERMS {
+        term *= quarter_x2 / f64::from(k * k);
+        sum += term;
+        if term < sum * f64::EPSILON {
+            break;
+        }
+    }
+    sum
+}
+
+/// Probability that a landing misses a capture radius `radius_m` (A71). The horizontal error
+/// at OUT is a 2-D Gaussian offset `bias_m` from the spot with per-axis spread `sigma_m`, so its
+/// distance from the spot is Rice distributed (Rayleigh when the bias is 0). The density is
+/// integrated over [0, R] by Simpson's rule.
+pub fn landing_miss_probability(bias_m: f64, sigma_m: f64, radius_m: f64) -> f64 {
+    let s2 = sigma_m * sigma_m;
+    let pdf = |r: f64| {
+        r / s2 * (-(r * r + bias_m * bias_m) / (2.0 * s2)).exp() * bessel_i0(r * bias_m / s2)
+    };
+    #[allow(clippy::cast_precision_loss)]
+    let h = radius_m / LANDING_ERROR_STEPS as f64;
+    let mut sum = pdf(0.0) + pdf(radius_m);
+    for i in 1..LANDING_ERROR_STEPS {
+        #[allow(clippy::cast_precision_loss)]
+        let weight = if i % 2 == 1 { 4.0 } else { 2.0 };
+        #[allow(clippy::cast_precision_loss)]
+        let r = h * i as f64;
+        sum += weight * pdf(r);
+    }
+    (1.0 - sum * h / 3.0).clamp(0.0, 1.0)
+}
+
 /// Time and energy of one flight phase.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PhaseEstimate {
@@ -199,6 +241,15 @@ impl EnergyRules {
             + self.charger_energy(net, b, has_charger)
     }
 
+    /// Longest one-way lane `dispatch_ok` accepts from `soc` into a pad with a charger when the
+    /// diversion route is zero (an alternate next to the destination): an upper bound on range.
+    pub fn max_lane_m(&self, soc: f64, payload_kg: f64) -> f64 {
+        let hover = self.model.hover_power_w(payload_kg);
+        let fixed_j = hover * (self.takeoff_s + self.t_contingency_s + self.t_cycle_s);
+        let per_m_j = self.model.segment(1.0, payload_kg).1;
+        ((self.usable_j(soc) - fixed_j) / per_m_j).max(0.0)
+    }
+
     pub fn usable_j(&self, soc: f64) -> f64 {
         (soc - self.reserve_soc) * self.capacity_j
     }
@@ -207,5 +258,25 @@ impl EnergyRules {
         let need = self.route_energy(net, b, q, payload_kg)
             + self.model.hover_power_w(payload_kg) * self.t_cycle_s;
         self.usable_j(soc) >= need
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::landing_miss_probability;
+
+    #[test]
+    fn rayleigh_tail_has_a_closed_form() {
+        // Bias 0: P(r > R) = exp(-R^2 / 2 sigma^2).
+        let (sigma, radius): (f64, f64) = (0.066_448_155_228_970_3, 0.15);
+        let exact = (-radius * radius / (2.0 * sigma * sigma)).exp();
+        assert!((landing_miss_probability(0.0, sigma, radius) - exact).abs() < 1e-9);
+    }
+
+    #[test]
+    fn rice_tail_matches_scipy() {
+        // scipy.stats.rice.sf(0.15, b=nu/sigma, scale=sigma) for the Phase 4 fit.
+        let p = landing_miss_probability(0.080_035_232_046_752_18, 0.034_821_452_725_140_145, 0.15);
+        assert!((p - 0.032_128_801_048_216_03).abs() < 1e-7, "p = {p}");
     }
 }

@@ -12,22 +12,77 @@ use toml::{Table, Value};
 
 use crate::ids::{
     AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName, DiversionPolicyName,
-    DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MatrixSource,
-    NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset, ReturnPolicy,
-    ServiceMode, TimeMs, ms_from_s,
+    DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MAX_OUT_SPOTS,
+    MatrixSource, NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset,
+    ReturnPolicy, ServiceMode, TimeMs, ms_from_s,
 };
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 
-pub const SCHEMA_VERSION: &str = "1.5.0";
-/// Earlier minor versions this core still reads: 1.5.0 only added `flight_profile`.
-const COMPATIBLE_VERSIONS: [&str; 1] = ["1.3.0"];
+pub const SCHEMA_VERSION: &str = "1.6.0";
+/// Earlier minor versions this core still reads. Each later version only added optional keys,
+/// which a file may use only when it declares that version (`VERSIONED_KEYS`).
+const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
+/// Optional keys and the schema version that added them.
+const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
+    ("", "flight_profile", "1.5.0"),
+    ("drone", "airframe_mass_kg", "1.6.0"),
+    ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
+    ("pad_ops", "repair_mean_s", "1.6.0"),
+    ("pad_ops", "repair_spread_s", "1.6.0"),
+    ("pad_ops", "marker_self_check", "1.6.0"),
+    ("handshake", "reorder_window_s", "1.6.0"),
+    ("drone", "latch_capture_radius_m", "1.6.0"),
+    ("drone", "out_landing_error_bias_m", "1.6.0"),
+    ("drone", "out_landing_error_sigma_m", "1.6.0"),
+    ("pad_ops", "out_spots", "1.6.0"),
+    ("pad_ops", "parking_capacity", "1.6.0"),
+    ("demand", "pods_per_origin", "1.6.0"),
+];
+const LATCH_DERIVATION_KEYS: [&str; 3] = [
+    "latch_capture_radius_m",
+    "out_landing_error_bias_m",
+    "out_landing_error_sigma_m",
+];
+
+/// Schema versions are "1.<minor>.0"; compare by minor.
+fn minor(version: &str) -> u32 {
+    version
+        .split('.')
+        .nth(1)
+        .and_then(|m| m.parse().ok())
+        .unwrap_or(0)
+}
+
+/// A key added after the file's declared version is an error, so a file never relies on
+/// behaviour its own version does not have.
+fn check_versioned_keys(root: &Table, version: &str) -> Result<()> {
+    for (section, key, added) in VERSIONED_KEYS {
+        let table = if section.is_empty() {
+            Some(root)
+        } else {
+            root.get(section).and_then(Value::as_table)
+        };
+        let path = if section.is_empty() {
+            key.to_owned()
+        } else {
+            format!("{section}.{key}")
+        };
+        if table.is_some_and(|t| t.contains_key(key)) && minor(version) < minor(added) {
+            return err(format!(
+                "{path}: needs schema_version \"{added}\", the file says \"{version}\""
+            ));
+        }
+    }
+    Ok(())
+}
 const PADS_FILE: &str = "pads.toml";
 const LANES_FILE: &str = "lanes.csr.bin";
 const TRUCK_FILE: &str = "truck_matrix.bin";
 const HOURS_PER_DAY: usize = 24;
 const SECONDS_PER_DAY: f64 = 86_400.0;
 const SECONDS_PER_HOUR: f64 = 3600.0;
+const J_PER_WH: f64 = 3600.0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigError(pub String);
@@ -56,12 +111,18 @@ pub struct PadCfg {
     pub return_policy: ReturnPolicy,
     pub initial_empty_pods: u32,
     pub parking_capacity: u16,
+    /// OUT spots (`pad_ops.out_spots`, 1 to 3, A72).
+    pub out_spots: u16,
 }
 
 impl PadCfg {
-    /// `slots(p)` of spec 6.4: parking capacity, or the OUT spot when it is 0.
+    /// `slots(p)` of spec 6.4: parking capacity, or the OUT spots when it is 0.
     pub fn slots(&self) -> u16 {
-        self.parking_capacity.max(1)
+        if self.parking_capacity > 0 {
+            self.parking_capacity
+        } else {
+            self.out_spots
+        }
     }
 }
 
@@ -97,7 +158,10 @@ pub struct FaultCfg {
 pub struct DroneCfg {
     pub fleet_size: u16,
     pub initial_pads: Vec<PadId>,
+    /// Airframe plus battery. Given directly, or derived from the battery when `mass_coupling`
+    /// is set (spec 8.2, A68).
     pub empty_mass_kg: f64,
+    pub mass_coupling: Option<MassCoupling>,
     pub latch_mass_kg: f64,
     pub mtow_kg: f64,
     pub battery_capacity_j: f64,
@@ -113,7 +177,40 @@ pub struct DroneCfg {
     pub go_around_s: f64,
     pub hop_s: f64,
     pub p_release_fault: f64,
+    /// Given, or derived from the OUT landing error and the latch capture radius (A71).
     pub p_latch_fault: f64,
+    pub latch_derivation: Option<LatchDerivation>,
+}
+
+/// Where a derived `p_latch_fault` came from (A71).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LatchDerivation {
+    pub capture_radius_m: f64,
+    pub out_error_bias_m: f64,
+    pub out_error_sigma_m: f64,
+}
+
+/// Battery mass that follows capacity (A68): empty mass = airframe + capacity / specific energy.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MassCoupling {
+    pub airframe_mass_kg: f64,
+    pub specific_energy_j_per_kg: f64,
+}
+
+impl MassCoupling {
+    pub fn empty_mass_kg(&self, battery_capacity_j: f64) -> f64 {
+        self.airframe_mass_kg + battery_capacity_j / self.specific_energy_j_per_kg
+    }
+}
+
+impl DroneCfg {
+    /// Change the battery, and with it the empty mass when the mass is coupled to it.
+    pub fn set_battery_capacity(&mut self, capacity_j: f64) {
+        self.battery_capacity_j = capacity_j;
+        if let Some(c) = self.mass_coupling {
+            self.empty_mass_kg = c.empty_mass_kg(capacity_j);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -142,6 +239,22 @@ pub struct PadOpsCfg {
     pub out_empty_wait_ms: TimeMs,
     pub pc_fault_rate_per_s: f64,
     pub pc_fault_duration_ms: TimeMs,
+    /// Repair after a release fault (A69); None keeps the pad out of service for the run.
+    pub repair: Option<RepairCfg>,
+    /// The pad checks its own fiducial and reports a marker fault to FM (A35); false: only a
+    /// drone's failed approach reveals it.
+    pub marker_self_check: bool,
+    /// OUT spots at every pad (`pad_ops.out_spots`, default 1, A72).
+    pub out_spots: u16,
+    /// `pad_ops.parking_capacity`: replaces every pad's own parking capacity (A72).
+    pub parking_capacity: Option<u16>,
+}
+
+/// Repair duration, uniform on [mean - spread, mean + spread] seconds (A69).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RepairCfg {
+    pub mean_s: f64,
+    pub spread_s: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -153,6 +266,9 @@ pub struct HandshakeCfg {
     pub max_retries: u8,
     pub hold_retry_ms: TimeMs,
     pub pc_silence_alert_ms: TimeMs,
+    /// How long a radio message that overtook an earlier one on its link is held for it (4.1);
+    /// 0 when `handshake.reorder_window_s` is absent: deliver on arrival.
+    pub reorder_window_ms: TimeMs,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -495,11 +611,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
             "schema_version: \"{version}\", this core reads \"{SCHEMA_VERSION}\" and {COMPATIBLE_VERSIONS:?}"
         ));
     }
-    if top.has("flight_profile") && version != SCHEMA_VERSION {
-        return err(format!(
-            "flight_profile: needs schema_version \"{SCHEMA_VERSION}\", the file says \"{version}\""
-        ));
-    }
+    check_versioned_keys(&root, version)?;
     let meta = top.section("meta")?;
     meta.allow(&["name", "preset", "status", "city", "description"])?;
     let name = meta.string("name")?.to_owned();
@@ -545,9 +657,17 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     let origin_lat_deg = geo.quantity("origin_lat_deg", "deg", Range::Lat)?;
     let origin_lon_deg = geo.quantity("origin_lon_deg", "deg", Range::Lon)?;
 
-    let (pads, lanes, mut network_files) =
+    let (mut pads, lanes, mut network_files) =
         parse_network(&top, origin_lat_deg, origin_lon_deg, seed, scenario_dir)?;
     let names: Vec<String> = pads.iter().map(|p| p.name.clone()).collect();
+    // The pad layout keys (A72) apply before drones are placed on the pads' slots.
+    let pad_ops = parse_pad_ops(&top.section("pad_ops")?)?;
+    for p in &mut pads {
+        p.out_spots = pad_ops.out_spots;
+        if let Some(c) = pad_ops.parking_capacity {
+            p.parking_capacity = c;
+        }
+    }
 
     let mut drone = parse_drone(&top.section("drone")?, &names, &pads)?;
     let flight_profile = if top.has("flight_profile") {
@@ -576,7 +696,6 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         return err("charging.efficiency: must be > 0");
     }
 
-    let pad_ops = parse_pad_ops(&top.section("pad_ops")?)?;
     let handshake = parse_handshake(&top.section("handshake")?)?;
     let policy = parse_policy(&top.section("policy")?)?;
     let demand = top.section("demand")?;
@@ -589,6 +708,16 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     } else {
         None
     };
+    // `demand.pods_per_origin` (A73): every pad that ships starts with this many empty pods.
+    if demand.has("pods_per_origin") {
+        let pods: u32 = narrow(
+            demand.count("pods_per_origin", 0, i64::from(u32::MAX))?,
+            "demand.pods_per_origin",
+        )?;
+        for f in flows.iter().filter(|f| f.rate_per_s > 0.0) {
+            pads[usize::from(f.origin)].initial_empty_pods = pods;
+        }
+    }
     let truck = parse_truck(&top.section("truck")?)?;
     if truck.matrix_source == MatrixSource::File {
         let Some(files) = network_files.as_mut() else {
@@ -704,6 +833,7 @@ fn parse_pads(top: &Section<'_>) -> Result<Vec<PadCfg>> {
                 "pads[].initial_empty_pods",
             )?,
             parking_capacity,
+            out_spots: 1,
         });
     }
     if pads.len() < 2 || pads.len() >= usize::from(PadId::MAX) {
@@ -914,6 +1044,8 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         "fleet_size",
         "initial_pads",
         "empty_mass_kg",
+        "airframe_mass_kg",
+        "battery_specific_energy_wh_per_kg",
         "latch_mass_kg",
         "mtow_kg",
         "battery_capacity_j",
@@ -930,6 +1062,9 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         "hop_s",
         "p_release_fault",
         "p_latch_fault",
+        "latch_capture_radius_m",
+        "out_landing_error_bias_m",
+        "out_landing_error_sigma_m",
     ])?;
     let fleet_size: u16 = narrow(d.count("fleet_size", 1, 65_534)?, "drone.fleet_size")?;
     let initial_pads = if d.has("initial_pads") {
@@ -948,13 +1083,59 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
     } else {
         round_robin_placement(pads, fleet_size)
     };
+    let battery_capacity_j = d.quantity("battery_capacity_j", "J", Range::Pos)?;
+    let coupled = d.has("airframe_mass_kg") || d.has("battery_specific_energy_wh_per_kg");
+    if coupled == d.has("empty_mass_kg") {
+        return err(
+            "drone: give empty_mass_kg, or airframe_mass_kg with battery_specific_energy_wh_per_kg",
+        );
+    }
+    let mass_coupling = if coupled {
+        Some(MassCoupling {
+            airframe_mass_kg: d.quantity("airframe_mass_kg", "kg", Range::Pos)?,
+            specific_energy_j_per_kg: d.quantity(
+                "battery_specific_energy_wh_per_kg",
+                "Wh/kg",
+                Range::Pos,
+            )? * J_PER_WH,
+        })
+    } else {
+        None
+    };
+    let derived = LATCH_DERIVATION_KEYS.iter().filter(|k| d.has(k)).count();
+    let latch_derivation = match (derived, d.has("p_latch_fault")) {
+        (0, true) => None,
+        (3, false) => Some(LatchDerivation {
+            capture_radius_m: d.quantity("latch_capture_radius_m", "m", Range::Pos)?,
+            out_error_bias_m: d.quantity("out_landing_error_bias_m", "m", Range::NonNeg)?,
+            out_error_sigma_m: d.quantity("out_landing_error_sigma_m", "m", Range::Pos)?,
+        }),
+        _ => {
+            return err(
+                "drone: give p_latch_fault, or latch_capture_radius_m with out_landing_error_bias_m and out_landing_error_sigma_m",
+            );
+        }
+    };
+    let p_latch_fault = match latch_derivation {
+        Some(l) => crate::flight::landing_miss_probability(
+            l.out_error_bias_m,
+            l.out_error_sigma_m,
+            l.capture_radius_m,
+        ),
+        None => d.quantity("p_latch_fault", "1", Range::Prob)?,
+    };
+    let empty_mass_kg = match mass_coupling {
+        Some(c) => c.empty_mass_kg(battery_capacity_j),
+        None => d.quantity("empty_mass_kg", "kg", Range::Pos)?,
+    };
     Ok(DroneCfg {
         fleet_size,
         initial_pads,
-        empty_mass_kg: d.quantity("empty_mass_kg", "kg", Range::Pos)?,
+        empty_mass_kg,
+        mass_coupling,
         latch_mass_kg: d.quantity("latch_mass_kg", "kg", Range::NonNeg)?,
         mtow_kg: d.quantity("mtow_kg", "kg", Range::Pos)?,
-        battery_capacity_j: d.quantity("battery_capacity_j", "J", Range::Pos)?,
+        battery_capacity_j,
         initial_soc: d.quantity("initial_soc", "1", Range::Prob)?,
         reserve_soc: d.quantity("reserve_soc", "1", Range::Prob)?,
         charge_target_soc: d.quantity("charge_target_soc", "1", Range::Prob)?,
@@ -967,7 +1148,8 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         go_around_s: d.quantity("go_around_s", "s", Range::Pos)?,
         hop_s: d.quantity("hop_s", "s", Range::Pos)?,
         p_release_fault: d.quantity("p_release_fault", "1", Range::Prob)?,
-        p_latch_fault: d.quantity("p_latch_fault", "1", Range::Prob)?,
+        p_latch_fault,
+        latch_derivation,
     })
 }
 
@@ -1013,9 +1195,44 @@ fn parse_pad_ops(p: &Section<'_>) -> Result<PadOpsCfg> {
         "out_empty_wait_timeout_s",
         "pc_fault_rate_per_h",
         "pc_fault_duration_s",
+        "repair_mean_s",
+        "repair_spread_s",
+        "marker_self_check",
+        "out_spots",
+        "parking_capacity",
     ])?;
     let ms = |key: &str, r: Range| p.quantity(key, "s", r).map(ms_from_s);
+    let repair = match (p.has("repair_mean_s"), p.has("repair_spread_s")) {
+        (false, false) => None,
+        (true, true) => {
+            let mean_s = p.quantity("repair_mean_s", "s", Range::Pos)?;
+            let spread_s = p.quantity("repair_spread_s", "s", Range::NonNeg)?;
+            if spread_s > mean_s {
+                return err("pad_ops.repair_spread_s: must not exceed repair_mean_s");
+            }
+            Some(RepairCfg { mean_s, spread_s })
+        }
+        _ => return err("pad_ops: give repair_mean_s and repair_spread_s together"),
+    };
     Ok(PadOpsCfg {
+        repair,
+        marker_self_check: p.has("marker_self_check") && p.boolean("marker_self_check")?,
+        out_spots: if p.has("out_spots") {
+            narrow(
+                p.count("out_spots", 1, i64::try_from(MAX_OUT_SPOTS).unwrap_or(1))?,
+                "pad_ops.out_spots",
+            )?
+        } else {
+            1
+        },
+        parking_capacity: if p.has("parking_capacity") {
+            Some(narrow(
+                p.count("parking_capacity", 0, i64::from(u16::MAX))?,
+                "pad_ops.parking_capacity",
+            )?)
+        } else {
+            None
+        },
         pod_place_ms: ms("pod_place_s", Range::NonNeg)?,
         pod_remove_ms: ms("pod_remove_s", Range::NonNeg)?,
         release_ms: ms("release_s", Range::Pos)?,
@@ -1051,6 +1268,7 @@ fn parse_handshake(h: &Section<'_>) -> Result<HandshakeCfg> {
         "max_retries",
         "hold_retry_s",
         "pc_silence_alert_s",
+        "reorder_window_s",
     ])?;
     let ms = |key: &str, r: Range| h.quantity(key, "s", r).map(ms_from_s);
     let p_msg_loss = h.quantity("p_msg_loss", "1", Range::Prob)?;
@@ -1065,6 +1283,11 @@ fn parse_handshake(h: &Section<'_>) -> Result<HandshakeCfg> {
         max_retries: narrow(h.count("max_retries", 0, 255)?, "handshake.max_retries")?,
         hold_retry_ms: ms("hold_retry_s", Range::Pos)?,
         pc_silence_alert_ms: ms("pc_silence_alert_s", Range::Pos)?,
+        reorder_window_ms: if h.has("reorder_window_s") {
+            ms("reorder_window_s", Range::NonNeg)?
+        } else {
+            0
+        },
     })
 }
 
@@ -1108,6 +1331,7 @@ fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(T
     d.allow(&[
         "deadline_offset_s",
         "max_backlog_per_pad",
+        "pods_per_origin",
         "flows",
         "rate_per_pad_per_h",
         "hub_weight",

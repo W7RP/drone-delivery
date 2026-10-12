@@ -4,7 +4,7 @@ use crate::event::{TRANSITION_KIND, tcode};
 use crate::output::EVENT_RECORD_BYTES;
 
 /// Event kind names in `events.schema.json` order (index = kind code).
-pub const KIND_NAMES: [&str; 43] = [
+pub const KIND_NAMES: [&str; 44] = [
     "LANDING_REQUEST",
     "LANDING_CANCEL",
     "APPROACH_ABORT",
@@ -48,6 +48,7 @@ pub const KIND_NAMES: [&str; 43] = [
     "FAULT_START",
     "FAULT_END",
     "TIMER",
+    "REPAIR_DONE",
 ];
 
 const STATUS_NAMES: [&str; 5] = ["PROCESSED", "STALE", "DROPPED", "LOST", "DEFERRED"];

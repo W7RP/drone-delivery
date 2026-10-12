@@ -44,7 +44,34 @@ macro_rules! code_enum {
 }
 
 code_enum!(PadMode { Online = "ONLINE", ControllerFault = "CONTROLLER_FAULT", OutOfService = "OUT_OF_SERVICE" });
-code_enum!(Spot { In = "IN", Out = "OUT", Parking = "PARKING" });
+code_enum!(Spot { In = "IN", Out = "OUT", Parking = "PARKING", Out2 = "OUT_2", Out3 = "OUT_3" });
+
+/// Most OUT spots a pad can have (`pad_ops.out_spots`, A72).
+pub const MAX_OUT_SPOTS: usize = 3;
+
+impl Spot {
+    /// The OUT spot with 0-based index `k` (OUT, OUT_2, OUT_3).
+    pub fn out(k: usize) -> Spot {
+        match k {
+            0 => Spot::Out,
+            1 => Spot::Out2,
+            _ => Spot::Out3,
+        }
+    }
+
+    pub fn out_index(self) -> Option<usize> {
+        match self {
+            Spot::Out => Some(0),
+            Spot::Out2 => Some(1),
+            Spot::Out3 => Some(2),
+            Spot::In | Spot::Parking => None,
+        }
+    }
+
+    pub fn is_out(self) -> bool {
+        self.out_index().is_some()
+    }
+}
 code_enum!(VisitState {
     Held = "HELD", Approach = "APPROACH", Releasing = "RELEASING", VerifyRelease = "VERIFY_RELEASE",
     WaitOut = "WAIT_OUT", Hopping = "HOPPING", Latching = "LATCHING", VerifyLock = "VERIFY_LOCK",
@@ -100,6 +127,7 @@ code_enum!(TimerKind {
     DResponseTimeout = "D_RESPONSE_TIMEOUT", DHoldRetry = "D_HOLD_RETRY",
     DPcSilenceAlert = "D_PC_SILENCE_ALERT", DEnergyReserve = "D_ENERGY_RESERVE",
     FmHoldLimit = "FM_HOLD_LIMIT", EndOfRun = "END_OF_RUN", FmPadRecheck = "FM_PAD_RECHECK",
+    ReorderRelease = "REORDER_RELEASE",
 });
 code_enum!(FlightSource { Des = "DES", Px4Sitl = "PX4_SITL" });
 code_enum!(ServiceMode { Auto = "AUTO", Manual = "MANUAL" });

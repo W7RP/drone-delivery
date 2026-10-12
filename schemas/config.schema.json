@@ -13,9 +13,10 @@
     "schema_version": {
       "enum": [
         "1.3.0",
-        "1.5.0"
+        "1.5.0",
+        "1.6.0"
       ],
-      "description": "1.5.0 adds flight_profile; 1.3.0 files stay valid without it."
+      "description": "1.5.0 adds flight_profile, 1.6.0 adds the Phase 6a keys; earlier files stay valid without them."
     },
     "meta": {
       "type": "object",
@@ -244,7 +245,6 @@
       "type": "object",
       "required": [
         "fleet_size",
-        "empty_mass_kg",
         "latch_mass_kg",
         "mtow_kg",
         "battery_capacity_j",
@@ -259,8 +259,7 @@
         "approach_s",
         "go_around_s",
         "hop_s",
-        "p_release_fault",
-        "p_latch_fault"
+        "p_release_fault"
       ],
       "additionalProperties": false,
       "properties": {
@@ -276,6 +275,12 @@
         },
         "empty_mass_kg": {
           "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "airframe_mass_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "battery_specific_energy_wh_per_kg": {
+          "$ref": "common.schema.json#/$defs/q_Wh_per_kg_pos"
         },
         "latch_mass_kg": {
           "$ref": "common.schema.json#/$defs/q_kg_nonneg"
@@ -324,8 +329,50 @@
         },
         "p_latch_fault": {
           "$ref": "common.schema.json#/$defs/q_prob"
+        },
+        "latch_capture_radius_m": {
+          "$ref": "common.schema.json#/$defs/q_m_pos"
+        },
+        "out_landing_error_bias_m": {
+          "$ref": "common.schema.json#/$defs/q_m_nonneg"
+        },
+        "out_landing_error_sigma_m": {
+          "$ref": "common.schema.json#/$defs/q_m_pos"
         }
-      }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "empty_mass_kg"
+              ]
+            },
+            {
+              "required": [
+                "airframe_mass_kg",
+                "battery_specific_energy_wh_per_kg"
+              ]
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "required": [
+                "p_latch_fault"
+              ]
+            },
+            {
+              "required": [
+                "latch_capture_radius_m",
+                "out_landing_error_bias_m",
+                "out_landing_error_sigma_m"
+              ]
+            }
+          ]
+        }
+      ]
     },
     "payload": {
       "type": "object",
@@ -456,7 +503,30 @@
         },
         "pc_fault_duration_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "repair_mean_s": {
+          "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "repair_spread_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "marker_self_check": {
+          "type": "boolean"
+        },
+        "out_spots": {
+          "$ref": "common.schema.json#/$defs/q_out_spots"
+        },
+        "parking_capacity": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
         }
+      },
+      "dependentRequired": {
+        "repair_mean_s": [
+          "repair_spread_s"
+        ],
+        "repair_spread_s": [
+          "repair_mean_s"
+        ]
       }
     },
     "handshake": {
@@ -502,6 +572,9 @@
         },
         "pc_silence_alert_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "reorder_window_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
         }
       }
     },
@@ -609,6 +682,9 @@
         },
         "hub_weight": {
           "$ref": "common.schema.json#/$defs/q_factor"
+        },
+        "pods_per_origin": {
+          "$ref": "common.schema.json#/$defs/q_count_nonneg"
         }
       },
       "oneOf": [

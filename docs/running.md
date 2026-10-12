@@ -103,6 +103,25 @@ and reruns byte-identically. The held-out flights are
 the fit lane. `run_flight.sh --lane-id N` flies any directed lane of the Pittsburgh catalog.
 `docs/calibration.md` has the results.
 
+## Network realism analysis (Phase 6a)
+
+```
+uv run analysis/battery.py          # 1: battery-mass coupling
+uv run analysis/truck_fairness.py   # 2: drone against truck on the same flows
+uv run analysis/repair.py           # 3: rejections with repair after a release fault
+uv run analysis/latch.py            # 6: latch failure from the OUT landing error
+uv run analysis/sweep.py            # 7: charging and pad layout at 1370 Wh (writes the chosen scenario)
+uv run analysis/fleet.py            # 8: pods and fleet at the chosen layout
+sim/target/release/sim battery --config <scenario.toml> --payload-kg 5 --from <pad> --to <pad>
+```
+
+Each script builds the release sim, writes the scenario variants it needs into a temporary
+directory and its results into `analysis/out/`; every script reruns byte-identically. The two
+sweeps take about 10 s each, delete each run's outputs once read, and stop on any run that does
+not finish in 60 s. The numbers are the section numbers of `docs/network-realism.md`, which has
+the results. Steps 4 and 5 are covered by tests (`sim/tests/marker_fault.rs`,
+`sim/tests/reordering.rs`).
+
 ## Test and verify
 
 ```

@@ -89,6 +89,7 @@ pub fn generate(
                 } else {
                     cfg.parking_capacity
                 },
+                out_spots: 1,
             }
         })
         .collect();

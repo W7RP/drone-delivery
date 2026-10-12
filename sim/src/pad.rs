@@ -7,7 +7,7 @@ use crate::ids::{
     NO_ORDER, NO_PAD, NO_POD, OrderKind, OutEmptyPolicy, PadId, PadMode, PodId, ServiceOutcome,
     Spot, TimeMs, TimerKind, VisitOutcome, VisitState, ms_from_s,
 };
-use crate::world::{Placement, Shipment, Visit, World};
+use crate::world::{OutSpot, Placement, Shipment, Visit, World};
 
 impl World {
     fn pad(&self, p: PadId) -> &crate::world::PadSt {
@@ -16,6 +16,23 @@ impl World {
 
     fn pad_mut(&mut self, p: PadId) -> &mut crate::world::PadSt {
         &mut self.pads[usize::from(p)]
+    }
+
+    fn out(&self, p: PadId, k: usize) -> &OutSpot {
+        &self.pads[usize::from(p)].outs[k]
+    }
+
+    fn out_mut(&mut self, p: PadId, k: usize) -> &mut OutSpot {
+        &mut self.pads[usize::from(p)].outs[k]
+    }
+
+    fn n_out(&self, p: PadId) -> usize {
+        self.pads[usize::from(p)].outs.len()
+    }
+
+    /// The OUT spot index of the drone's visit (its granted, landed or hop-target spot).
+    fn visit_out(&self, p: PadId, d: DroneId) -> usize {
+        self.visit(p, d).spot.out_index().unwrap_or(0)
     }
 
     fn visit(&self, p: PadId, d: DroneId) -> &Visit {
@@ -71,8 +88,9 @@ impl World {
             empty_pods: u16::try_from(s.empty_pods).unwrap_or(u16::MAX),
             backlog_len: u16::try_from(s.backlog.len()).unwrap_or(u16::MAX),
             in_drone: s.in_drone,
-            out_drone: s.out_drone,
-            out_pod: s.out_pod,
+            out_drone: s.outs[0].drone,
+            out_pod: s.outs[0].pod,
+            marker_fault: s.marker_fault && self.cfg.pad_ops.marker_self_check,
         };
         self.send(msg);
     }
@@ -80,13 +98,13 @@ impl World {
     fn set_in_drone(&mut self, p: PadId, d: DroneId) {
         self.pad_mut(p).in_drone = d;
         self.metrics
-            .spot_occupied(usize::from(p), true, d != NO_DRONE, self.now);
+            .spot_occupied(usize::from(p), None, d != NO_DRONE, self.now);
     }
 
-    fn set_out_drone(&mut self, p: PadId, d: DroneId) {
-        self.pad_mut(p).out_drone = d;
+    fn set_out_drone(&mut self, p: PadId, k: usize, d: DroneId) {
+        self.out_mut(p, k).drone = d;
         self.metrics
-            .spot_occupied(usize::from(p), false, d != NO_DRONE, self.now);
+            .spot_occupied(usize::from(p), Some(k), d != NO_DRONE, self.now);
     }
 
     fn set_empty_pods(&mut self, p: PadId, n: u32) {
@@ -99,12 +117,28 @@ impl World {
         s.in_drone == NO_DRONE && s.in_reserved == NO_DRONE && s.in_pod == NO_POD
     }
 
-    fn out_drone_free(&self, p: PadId) -> bool {
-        let s = self.pad(p);
-        s.out_drone == NO_DRONE && s.out_reserved == NO_DRONE && !s.out_placing
+    fn out_drone_free(&self, p: PadId, k: usize) -> bool {
+        let o = self.out(p, k);
+        o.drone == NO_DRONE && o.reserved == NO_DRONE && !o.placing
     }
 
-    /// Spec 3.5.
+    /// The OUT spot an empty drone should use: the one holding its pickup pod, else one with
+    /// no pod (lowest index), both drone-free; `sensor` adds the presence interlock.
+    fn out_for(&self, p: PadId, d: DroneId, empty_ok: bool, sensor: bool) -> Option<usize> {
+        let usable = |k: usize| {
+            self.out_drone_free(p, k) && (!sensor || self.spot_sensor_clear(p, Spot::out(k)))
+        };
+        let ks = 0..self.n_out(p);
+        let mine = ks.clone().find(|&k| {
+            let o = self.out(p, k);
+            o.pod != NO_POD && o.pickup_drone == d && usable(k)
+        });
+        mine.or_else(|| {
+            ks.clone()
+                .find(|&k| empty_ok && self.out(p, k).pod == NO_POD && usable(k))
+        })
+    }
+
     /// Spec 3.5, with the presence-sensor interlock: a spot whose sensor shows a drone is
     /// never granted, whatever the PC's records say.
     fn spot_for(&self, p: PadId, d: DroneId, carries_pod: bool) -> Option<Spot> {
@@ -112,12 +146,8 @@ impl World {
         if carries_pod {
             return in_ok.then_some(Spot::In);
         }
-        let s = self.pad(p);
-        let out_ok = self.out_drone_free(p)
-            && (s.out_pod == NO_POD || s.pickup_drone == d)
-            && self.spot_sensor_clear(p, Spot::Out);
-        if out_ok {
-            Some(Spot::Out)
+        if let Some(k) = self.out_for(p, d, true, true) {
+            Some(Spot::out(k))
         } else if in_ok {
             Some(Spot::In)
         } else {
@@ -134,6 +164,13 @@ impl World {
 
     fn charge_needed(&self, p: PadId, soc: f32) -> bool {
         self.pad(p).has_charger && f64::from(soc) < self.cfg.drone.charge_target_soc
+    }
+
+    /// With parked charging and a free parking slot, a drone with nothing to latch charges in
+    /// the parking area instead of holding OUT (A72).
+    fn charges_in_parking(&self, p: PadId) -> bool {
+        let s = self.pad(p);
+        self.cfg.charging.charge_while_parked && s.parked < s.parking_capacity
     }
 
     /// The command the drone should currently hold, for V38 and M02 re-sends.
@@ -161,11 +198,15 @@ impl World {
                 drone,
                 attempt: v.attempt,
             },
-            VisitState::Hopping => Msg::HopCmd { pad, drone },
+            VisitState::Hopping => Msg::HopCmd {
+                pad,
+                drone,
+                out_index: v.hop_out,
+            },
             VisitState::Latching => Msg::LatchCmd {
                 pad,
                 drone,
-                pod: s.out_pod,
+                pod: s.outs[self.visit_out(p, d)].pod,
                 attempt: v.attempt,
             },
             VisitState::Charging => {
@@ -213,10 +254,10 @@ impl World {
                 pod, order, drone, ..
             } => {
                 // P07
-                let s = self.pad_mut(p);
-                if s.out_pod == pod {
-                    s.pickup_drone = drone;
-                    s.pickup_order = order;
+                if let Some(k) = (0..self.n_out(p)).find(|&k| self.out(p, k).pod == pod) {
+                    let o = self.out_mut(p, k);
+                    o.pickup_drone = drone;
+                    o.pickup_order = order;
                     self.log_transition(tcode::p(7), p, drone, NO_STATE, NO_STATE);
                 }
             }
@@ -291,9 +332,9 @@ impl World {
     }
 
     fn grant(&mut self, p: PadId, d: DroneId, spot: Spot, code: u16) {
-        match spot {
-            Spot::In => self.pad_mut(p).in_reserved = d,
-            _ => self.pad_mut(p).out_reserved = d,
+        match spot.out_index() {
+            None => self.pad_mut(p).in_reserved = d,
+            Some(k) => self.out_mut(p, k).reserved = d,
         }
         self.visit_mut(p, d).spot = spot;
         self.visit_to(p, d, code, VisitState::Approach);
@@ -311,8 +352,10 @@ impl World {
         if s.in_reserved == d {
             s.in_reserved = NO_DRONE;
         }
-        if s.out_reserved == d {
-            s.out_reserved = NO_DRONE;
+        for o in &mut s.outs {
+            if o.reserved == d {
+                o.reserved = NO_DRONE;
+            }
         }
     }
 
@@ -370,14 +413,9 @@ impl World {
             {
                 self.pc_land(p, d, spot, pod, soc, None);
             }
-            (
-                VisitState::Hopping,
-                Msg::Landed {
-                    spot: Spot::Out,
-                    soc,
-                    ..
-                },
-            ) => self.pc_hop_landed(p, d, soc, None),
+            (VisitState::Hopping, Msg::Landed { spot, soc, .. }) if spot.is_out() => {
+                self.pc_hop_landed(p, d, soc, None)
+            }
             (VisitState::Releasing, Msg::ReleaseReport { latch_open, .. }) => {
                 self.visit_mut(p, d).latch_open = latch_open;
                 self.visit_to(p, d, tcode::v(15), VisitState::VerifyRelease);
@@ -390,6 +428,8 @@ impl World {
                 let ms = self.cfg.pad_ops.latch_verify_ms;
                 self.pc_timer_arm(p, d, TimerKind::PcVerifyLockDone, ms);
             }
+            (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
+                if mission == MissionKind::Pickup && dest == p && self.hop_to_pickup(p, d) => {}
             (VisitState::Ready, Msg::DepartRequest { mission, .. }) => {
                 self.visit_mut(p, d).depart_mission = mission;
                 if !self.pad(p).depart_queue.contains(&d) {
@@ -404,10 +444,14 @@ impl World {
     /// V42: LANDED from a drone whose visit was closed (its grant timed out just before it
     /// touched down). The sensor confirms it; the PC adopts it so it is never stranded.
     fn pc_adopt_late_landing(&mut self, p: PadId, d: DroneId, spot: Spot, pod: PodId, soc: f32) {
-        let recorded_free = match spot {
-            Spot::In => self.pad(p).in_drone == NO_DRONE && self.pad(p).in_reserved == NO_DRONE,
-            Spot::Out => self.pad(p).out_drone == NO_DRONE && self.pad(p).out_reserved == NO_DRONE,
-            Spot::Parking => false,
+        let recorded_free = match (spot, spot.out_index()) {
+            (Spot::In, _) => {
+                self.pad(p).in_drone == NO_DRONE && self.pad(p).in_reserved == NO_DRONE
+            }
+            (_, Some(k)) if k < self.n_out(p) => {
+                self.out(p, k).drone == NO_DRONE && self.out(p, k).reserved == NO_DRONE
+            }
+            _ => false,
         };
         if !(recorded_free && self.sensor_shows(p, d, spot)) {
             return;
@@ -474,22 +518,23 @@ impl World {
             }
             return;
         }
-        self.set_out_drone(p, d);
-        self.pc_on_out(p, d, soc, [code(8), code(9), code(10)]);
+        let k = spot.out_index().expect("a landing on IN returned above");
+        self.set_out_drone(p, k, d);
+        self.pc_on_out(p, d, k, soc, [code(8), code(9), code(10)]);
     }
 
     /// Common tail of V08-V10 and V24-V26: latch a pickup, else charge, else ready.
-    fn pc_on_out(&mut self, p: PadId, d: DroneId, soc: f32, codes: [u16; 3]) {
-        let s = self.pad(p);
-        if s.out_pod != NO_POD && s.pickup_drone == d {
-            let order = s.pickup_order;
+    fn pc_on_out(&mut self, p: PadId, d: DroneId, k: usize, soc: f32, codes: [u16; 3]) {
+        let o = self.out(p, k);
+        if o.pod != NO_POD && o.pickup_drone == d {
+            let order = o.pickup_order;
             if order != NO_ORDER {
                 self.fm.orders[order as usize].latch_start_t_ms = self.now;
             }
             self.visit_mut(p, d).attempt = 1;
             self.visit_to(p, d, codes[0], VisitState::Latching);
             self.send_latch_cmd(p, d);
-        } else if self.charge_needed(p, soc) {
+        } else if self.charge_needed(p, soc) && !self.charges_in_parking(p) {
             self.start_charging(p, d, codes[1], ServiceOutcome::NoPod);
         } else {
             self.visit_to(p, d, codes[2], VisitState::Ready);
@@ -534,7 +579,7 @@ impl World {
 
     fn send_latch_cmd(&mut self, p: PadId, d: DroneId) {
         let attempt = self.visit(p, d).attempt;
-        let pod = self.pad(p).out_pod;
+        let pod = self.out(p, self.visit_out(p, d)).pod;
         let ms = self.service_ms(
             p,
             self.cfg.pad_ops.manual_latch_ms,
@@ -549,16 +594,42 @@ impl World {
         });
     }
 
-    /// V24 to V26 (or V13-style fallback from the hop timeout).
+    /// V43: a drone on one OUT spot asks to leave for a pickup at this pad while its pod waits
+    /// on another OUT spot. It hops there on the ground instead of taking off and queueing to
+    /// land again (A72). Returns whether the hop was commanded.
+    fn hop_to_pickup(&mut self, p: PadId, d: DroneId) -> bool {
+        // Only an empty drone: one that latched a pod in this visit leaves as a normal departure.
+        let v = self.visit(p, d);
+        if !v.spot.is_out() || v.locked {
+            return false;
+        }
+        let Some(k) = self.out_for(p, d, false, false) else {
+            return false;
+        };
+        self.out_mut(p, k).reserved = d;
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_to(p, d, tcode::v(43), VisitState::Hopping);
+        self.send_hop(p, d);
+        true
+    }
+
+    /// V24 to V26 (or V13-style fallback from the hop timeout): the drone has hopped from IN, or
+    /// from another OUT spot (V43), to its OUT spot.
     fn pc_hop_landed(&mut self, p: PadId, d: DroneId, soc: f32, fallback: Option<u16>) {
         self.free_reservation(p, d);
         self.visit_mut(p, d).soc = soc;
-        self.set_in_drone(p, NO_DRONE);
-        self.drone_left_in(p);
-        self.set_out_drone(p, d);
-        self.visit_mut(p, d).spot = Spot::Out;
+        match self.visit(p, d).spot.out_index() {
+            Some(from) => self.set_out_drone(p, from, NO_DRONE),
+            None => {
+                self.set_in_drone(p, NO_DRONE);
+                self.drone_left_in(p);
+            }
+        }
+        let k = usize::from(self.visit(p, d).hop_out);
+        self.set_out_drone(p, k, d);
+        self.visit_mut(p, d).spot = Spot::out(k);
         let code = |row: u16| fallback.unwrap_or(tcode::v(row));
-        self.pc_on_out(p, d, soc, [code(24), code(25), code(26)]);
+        self.pc_on_out(p, d, k, soc, [code(24), code(25), code(26)]);
     }
 
     /// P04: the removal clock for a delivered pod starts when the drone leaves IN.
@@ -575,13 +646,13 @@ impl World {
 
     fn pc_departed(&mut self, p: PadId, d: DroneId, code: u16) {
         let spot = self.visit(p, d).spot;
-        match spot {
-            Spot::In => {
+        match (spot, spot.out_index()) {
+            (Spot::In, _) => {
                 self.set_in_drone(p, NO_DRONE);
                 self.drone_left_in(p);
             }
-            Spot::Out => self.set_out_drone(p, NO_DRONE),
-            Spot::Parking => self.pad_mut(p).parked -= 1,
+            (_, Some(k)) => self.set_out_drone(p, k, NO_DRONE),
+            _ => self.pad_mut(p).parked -= 1,
         }
         if self.visit(p, d).depart_mission == MissionKind::Park {
             self.pad_mut(p).parked += 1;
@@ -607,10 +678,10 @@ impl World {
                     // V41: the silent drone left; close the departure as V36 would.
                     self.pc_departed(p, d, tcode::v(41));
                 } else {
-                    match spot {
-                        Spot::In => self.set_in_drone(p, NO_DRONE),
-                        Spot::Out => self.set_out_drone(p, NO_DRONE),
-                        Spot::Parking => {}
+                    match (spot, spot.out_index()) {
+                        (Spot::In, _) => self.set_in_drone(p, NO_DRONE),
+                        (_, Some(k)) => self.set_out_drone(p, k, NO_DRONE),
+                        _ => {}
                     }
                     self.free_reservation(p, d);
                     self.visit_close(p, d, tcode::v(41), VisitOutcome::LostContact);
@@ -635,7 +706,7 @@ impl World {
                 }
             }
             (TimerKind::PcResponseTimeout, VisitState::Hopping)
-                if self.sensor_shows(p, d, Spot::Out) =>
+                if self.sensor_shows(p, d, Spot::out(usize::from(self.visit(p, d).hop_out))) =>
             {
                 let soc = self.visit(p, d).soc;
                 self.pc_hop_landed(p, d, soc, None);
@@ -731,7 +802,12 @@ impl World {
     fn send_hop(&mut self, p: PadId, d: DroneId) {
         let ms = ms_from_s(self.cfg.drone.hop_s) + self.cfg.handshake.response_timeout_ms;
         self.pc_timer_arm(p, d, TimerKind::PcResponseTimeout, ms);
-        self.send(Msg::HopCmd { pad: p, drone: d });
+        let out_index = self.visit(p, d).hop_out;
+        self.send(Msg::HopCmd {
+            pad: p,
+            drone: d,
+            out_index,
+        });
     }
 
     fn send_depart_clear(&mut self, p: PadId, d: DroneId) {
@@ -781,6 +857,12 @@ impl World {
             if self.pad(p).mode == PadMode::Online {
                 self.go_out_of_service(p, true);
             }
+            if let Some(r) = self.cfg.pad_ops.repair {
+                // One REPAIR draw per grounding, uniform on mean +- spread (A69).
+                let u = self.rng.repair[usize::from(p)].uniform();
+                let repair_s = r.mean_s - r.spread_s + 2.0 * r.spread_s * u;
+                self.after(ms_from_s(repair_s), Ev::RepairDone { pad: p, drone: d });
+            }
         }
     }
 
@@ -789,9 +871,10 @@ impl World {
         let soc = self.soc_f32(d);
         if locked {
             let pod = self.drones[usize::from(d)].pod;
-            let s = self.pad_mut(p);
-            s.pickup_drone = NO_DRONE;
-            s.pickup_order = NO_ORDER;
+            let k = self.visit_out(p, d);
+            let o = self.out_mut(p, k);
+            o.pickup_drone = NO_DRONE;
+            o.pickup_order = NO_ORDER;
             self.send(Msg::PodLatched {
                 pad: p,
                 pod,
@@ -808,10 +891,11 @@ impl World {
             self.visit_to(p, d, tcode::v(29), VisitState::Latching);
             self.send_latch_cmd(p, d);
         } else {
-            let order = self.pad(p).pickup_order;
-            let s = self.pad_mut(p);
-            s.pickup_drone = NO_DRONE;
-            s.pickup_order = NO_ORDER;
+            let k = self.visit_out(p, d);
+            let order = self.out(p, k).pickup_order;
+            let o = self.out_mut(p, k);
+            o.pickup_drone = NO_DRONE;
+            o.pickup_order = NO_ORDER;
             self.metrics.latch_abort(self.now);
             self.alert(
                 AlertCode::LatchFault,
@@ -830,18 +914,16 @@ impl World {
         }
     }
 
-    /// V21 guard and action. Returns whether the hop was commanded.
+    /// V21 guard and action: hop to the OUT spot with this drone's pickup pod, or, when the
+    /// policy allows an empty hop, to a spot with no pod. Returns whether the hop was commanded.
     fn try_hop(&mut self, p: PadId, d: DroneId) -> bool {
-        let s = self.pad(p);
-        let v = self.visit(p, d);
-        let pickup_ready = s.out_pod != NO_POD && s.pickup_drone == d;
-        let empty_ok = s.out_pod == NO_POD
-            && (self.cfg.pad_ops.out_empty_policy == OutEmptyPolicy::DepartEmpty
-                || v.out_wait_expired);
-        if !(self.out_drone_free(p) && (pickup_ready || empty_ok)) {
+        let empty_ok = self.cfg.pad_ops.out_empty_policy == OutEmptyPolicy::DepartEmpty
+            || self.visit(p, d).out_wait_expired;
+        let Some(k) = self.out_for(p, d, empty_ok, false) else {
             return false;
-        }
-        self.pad_mut(p).out_reserved = d;
+        };
+        self.out_mut(p, k).reserved = d;
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
         self.visit_to(p, d, tcode::v(21), VisitState::Hopping);
         self.send_hop(p, d);
         true
@@ -912,23 +994,44 @@ impl World {
             deadline,
         });
         self.log_transition(tcode::p(1), p, NO_DRONE, NO_STATE, NO_STATE);
-        let out_drone = self.pad(p).out_drone;
-        if out_drone != NO_DRONE
-            && self.visit(p, out_drone).is_open_at(p)
-            && self.visit(p, out_drone).state == VisitState::Ready
-            && self.pad(p).pickup_drone != out_drone
-        {
+        // V39: only when no OUT spot could take the placement and a drone parked on one could
+        // make room.
+        let n = self.n_out(p);
+        if (0..n).any(|k| self.out_drone_free(p, k) && self.out(p, k).pod == NO_POD) {
+            return;
+        }
+        let parked = (0..n).find(|&k| {
+            let od = self.out(p, k).drone;
+            od != NO_DRONE
+                && self.visit(p, od).is_open_at(p)
+                && self.visit(p, od).state == VisitState::Ready
+                && self.out(p, k).pickup_drone != od
+        });
+        if let Some(k) = parked {
+            let out_drone = self.out(p, k).drone;
             let s = self.visit(p, out_drone).state.code();
             self.log_transition(tcode::v(39), p, out_drone, s, s);
             self.send(Msg::ShipmentPending { pad: p, out_drone });
         }
     }
 
+    /// P02 on every OUT spot that can take a pod, lowest index first.
     fn try_placement(&mut self, p: PadId) {
-        let s = self.pad(p);
-        if s.mode != PadMode::Online || !self.out_drone_free(p) || s.out_pod != NO_POD {
-            return;
+        while self.pad(p).mode == PadMode::Online {
+            let Some(k) = (0..self.n_out(p))
+                .find(|&k| self.out_drone_free(p, k) && self.out(p, k).pod == NO_POD)
+            else {
+                return;
+            };
+            if !self.place_on(p, k) {
+                return;
+            }
         }
+    }
+
+    /// Start placing the next pod (backlog, else a return) on OUT spot `k`; false if none.
+    fn place_on(&mut self, p: PadId, k: usize) -> bool {
+        let s = self.pad(p);
         let placement = if !s.backlog.is_empty() && s.empty_pods > 0 {
             let ship = self
                 .pad_mut(p)
@@ -957,14 +1060,14 @@ impl World {
                 deadline: crate::ids::NO_TIME,
             }
         } else {
-            return;
+            return false;
         };
-        let s = self.pad_mut(p);
-        s.inventory.retain(|&x| x != placement.pod);
-        s.out_placing = true;
-        s.placing = placement;
-        s.pickup_drone = NO_DRONE;
-        s.pickup_order = NO_ORDER;
+        self.pad_mut(p).inventory.retain(|&x| x != placement.pod);
+        let o = self.out_mut(p, k);
+        o.placing = true;
+        o.placement = placement;
+        o.pickup_drone = NO_DRONE;
+        o.pickup_order = NO_ORDER;
         self.log_transition(tcode::p(2), p, NO_DRONE, NO_STATE, NO_STATE);
         let ms = self.cfg.pad_ops.pod_place_ms;
         self.after(
@@ -975,6 +1078,7 @@ impl World {
             },
         );
         self.pad_status(p);
+        true
     }
 
     fn lowest_unreserved_pod(&self, p: PadId) -> Option<PodId> {
@@ -987,11 +1091,13 @@ impl World {
     }
 
     pub(crate) fn pc_pod_place_done(&mut self, p: PadId, pod: PodId) {
-        let s = self.pad_mut(p);
-        let pl = s.placing;
-        debug_assert_eq!(pl.pod, pod);
-        s.out_placing = false;
-        s.out_pod = pod;
+        let k = (0..self.n_out(p))
+            .find(|&k| self.out(p, k).placing && self.out(p, k).placement.pod == pod)
+            .expect("a placement in progress for this pod");
+        let o = self.out_mut(p, k);
+        let pl = o.placement;
+        o.placing = false;
+        o.pod = pod;
         self.log_transition(tcode::p(3), p, NO_DRONE, NO_STATE, NO_STATE);
         #[allow(clippy::cast_possible_truncation)]
         let payload_kg = self.pod_mass_kg[pod as usize];
@@ -1003,6 +1109,7 @@ impl World {
             requested: pl.requested,
             deadline: pl.deadline,
             payload_kg,
+            out_index: u8::try_from(k).expect("at most 3 OUT spots"),
         });
     }
 
@@ -1095,12 +1202,15 @@ impl World {
                 }
                 self.set_mode(p, tcode::m(1), PadMode::ControllerFault);
             }
-            FaultKind::OutOfService => match mode {
-                PadMode::Online => self.go_out_of_service(p, false),
-                PadMode::ControllerFault => self.pad_mut(p).oos_pending = true,
-                PadMode::OutOfService => {}
-            },
-            FaultKind::MarkerNotDetected => self.pad_mut(p).marker_fault = true,
+            FaultKind::OutOfService => {
+                self.pad_mut(p).oos_window = true;
+                match mode {
+                    PadMode::Online => self.go_out_of_service(p, false),
+                    PadMode::ControllerFault => self.pad_mut(p).oos_pending = true,
+                    PadMode::OutOfService => {}
+                }
+            }
+            FaultKind::MarkerNotDetected => self.set_marker_fault(p, true),
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = true,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = true,
         }
@@ -1116,16 +1226,55 @@ impl World {
             }
             FaultKind::OutOfService => {
                 self.pad_mut(p).oos_pending = false;
+                self.pad_mut(p).oos_window = false;
                 if self.pad(p).mode == PadMode::OutOfService && !self.pad(p).permanent_oos {
                     self.set_mode(p, tcode::m(4), PadMode::Online);
                     self.pad_status(p);
                     self.pad_tick(p);
                 }
             }
-            FaultKind::MarkerNotDetected => self.pad_mut(p).marker_fault = false,
+            FaultKind::MarkerNotDetected => self.set_marker_fault(p, false),
             FaultKind::ReleaseFault => self.pad_mut(p).release_fault = false,
             FaultKind::LatchFault => self.pad_mut(p).latch_fault = false,
         }
+    }
+
+    /// A pad that checks its own fiducial reports a marker fault as it starts and ends (A35). A
+    /// PC in CONTROLLER_FAULT is silent; its recovery status (M02) carries the flag instead.
+    fn set_marker_fault(&mut self, p: PadId, faulted: bool) {
+        self.pad_mut(p).marker_fault = faulted;
+        if self.cfg.pad_ops.marker_self_check && self.pad(p).mode != PadMode::ControllerFault {
+            self.pad_status(p);
+        }
+    }
+
+    /// REPAIR_DONE (A69): the technician takes the stuck pod off the grounded drone into the
+    /// pad's inventory (P09), the pad comes back (M06) unless a scheduled out-of-service window is
+    /// still open, and the drone, empty on IN, reports its landing again (D25), which the PC
+    /// adopts as V42.
+    pub(crate) fn repair_done(&mut self, p: PadId, d: DroneId) {
+        let pod = self.drones[usize::from(d)].pod;
+        if pod != NO_POD {
+            let dr = &mut self.drones[usize::from(d)];
+            dr.pod = NO_POD;
+            dr.payload_kg = 0.0;
+            self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_empty_mass_kg);
+            self.pad_mut(p).inventory.push(pod);
+            let n = self.pad(p).empty_pods + 1;
+            self.set_empty_pods(p, n);
+            self.log_transition(tcode::p(9), p, d, NO_STATE, NO_STATE);
+            self.send(Msg::PodRemoved { pad: p, pod });
+        }
+        // Only the PC's record goes: the drone never left IN, so its occupancy metric stays set
+        // and the presence sensor keeps IN from being granted until the drone is adopted.
+        self.pad_mut(p).in_drone = NO_DRONE;
+        self.pad_mut(p).permanent_oos = false;
+        if self.pad(p).mode == PadMode::OutOfService && !self.pad(p).oos_window {
+            self.set_mode(p, tcode::m(6), PadMode::Online);
+            self.pad_status(p);
+        }
+        self.drone_repaired(d, p);
+        self.pad_tick(p);
     }
 
     /// M02: held events in order, re-send each open visit's command, then status and guards.

@@ -72,7 +72,8 @@
         "LATCH_DONE",
         "FAULT_START",
         "FAULT_END",
-        "TIMER"
+        "TIMER",
+        "REPAIR_DONE"
       ],
       "x-type": "u16",
       "x-unit": "-"
@@ -811,6 +812,25 @@
           "msg"
         ]
       }
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "REPAIR_DONE"
+        },
+        "class": {
+          "const": "STATE_CHANGE"
+        },
+        "payload": {
+          "$ref": "#/$defs/REPAIR_DONE"
+        }
+      },
+      "required": [],
+      "not": {
+        "required": [
+          "msg"
+        ]
+      }
     }
   ],
   "$defs": {
@@ -1145,7 +1165,8 @@
       "additionalProperties": false,
       "required": [
         "pad_id",
-        "drone_id"
+        "drone_id",
+        "out_index"
       ],
       "properties": {
         "pad_id": {
@@ -1153,6 +1174,13 @@
         },
         "drone_id": {
           "$ref": "common.schema.json#/$defs/drone_id"
+        },
+        "out_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "x-type": "u8",
+          "x-unit": "-"
         }
       },
       "x-class": "MESSAGE",
@@ -1442,7 +1470,8 @@
         "dest_pad",
         "requested_t_ms",
         "deadline_t_ms",
-        "payload_kg"
+        "payload_kg",
+        "out_index"
       ],
       "properties": {
         "pad_id": {
@@ -1467,6 +1496,13 @@
         },
         "payload_kg": {
           "$ref": "common.schema.json#/$defs/mass_kg"
+        },
+        "out_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "x-type": "u8",
+          "x-unit": "-"
         }
       },
       "x-class": "MESSAGE",
@@ -1548,7 +1584,8 @@
         "backlog_len",
         "in_drone",
         "out_drone",
-        "out_pod"
+        "out_pod",
+        "marker_fault"
       ],
       "properties": {
         "pad_id": {
@@ -1573,6 +1610,9 @@
         },
         "out_pod": {
           "$ref": "common.schema.json#/$defs/pod_id"
+        },
+        "marker_fault": {
+          "$ref": "common.schema.json#/$defs/flag"
         }
       },
       "x-class": "MESSAGE",
@@ -1902,6 +1942,23 @@
         }
       },
       "x-class": "TIMER"
+    },
+    "REPAIR_DONE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pad_id",
+        "drone_id"
+      ],
+      "properties": {
+        "pad_id": {
+          "$ref": "common.schema.json#/$defs/pad_id"
+        },
+        "drone_id": {
+          "$ref": "common.schema.json#/$defs/drone_id"
+        }
+      },
+      "x-class": "STATE_CHANGE"
     }
   }
 }

@@ -78,6 +78,8 @@ pub enum Msg {
     HopCmd {
         pad: PadId,
         drone: DroneId,
+        /// 0-based OUT spot to hop to (A72); 0 at a pad with one OUT spot.
+        out_index: u8,
     },
     LatchCmd {
         pad: PadId,
@@ -145,6 +147,8 @@ pub enum Msg {
         requested: TimeMs,
         deadline: TimeMs,
         payload_kg: f32,
+        /// 0-based OUT spot the pod was placed on (A72).
+        out_index: u8,
     },
     PodLatched {
         pad: PadId,
@@ -168,6 +172,8 @@ pub enum Msg {
         in_drone: DroneId,
         out_drone: DroneId,
         out_pod: PodId,
+        /// The pad's fiducial is known to be unreadable (A35, `pad_ops.marker_self_check`).
+        marker_fault: bool,
     },
     ShipmentPending {
         pad: PadId,
@@ -350,7 +356,12 @@ impl Msg {
                 drone,
                 attempt,
             } => a.u16(pad).u16(drone).u8(attempt),
-            Msg::HopCmd { pad, drone } | Msg::DepartClear { pad, drone } => a.u16(pad).u16(drone),
+            Msg::HopCmd {
+                pad,
+                drone,
+                out_index,
+            } => a.u16(pad).u16(drone).u8(out_index),
+            Msg::DepartClear { pad, drone } => a.u16(pad).u16(drone),
             Msg::LatchCmd {
                 pad,
                 drone,
@@ -441,6 +452,7 @@ impl Msg {
                 requested,
                 deadline,
                 payload_kg,
+                out_index,
             } => a
                 .u16(pad)
                 .u32(pod)
@@ -448,7 +460,8 @@ impl Msg {
                 .u16(dest)
                 .u64(requested)
                 .u64(deadline)
-                .f32(payload_kg),
+                .f32(payload_kg)
+                .u8(out_index),
             Msg::PodLatched { pad, pod, drone } | Msg::PodDelivered { pad, pod, drone } => {
                 a.u16(pad).u32(pod).u16(drone)
             }
@@ -461,6 +474,7 @@ impl Msg {
                 in_drone,
                 out_drone,
                 out_pod,
+                marker_fault,
             } => a
                 .u16(pad)
                 .u8(mode.code())
@@ -468,7 +482,8 @@ impl Msg {
                 .u16(backlog_len)
                 .u16(in_drone)
                 .u16(out_drone)
-                .u32(out_pod),
+                .u32(out_pod)
+                .flag(marker_fault),
             Msg::ShipmentPending { pad, out_drone } => a.u16(pad).u16(out_drone),
             Msg::PickupAssigned {
                 pad,
@@ -483,8 +498,11 @@ impl Msg {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Ev {
+    /// `seq` is the sender's `msg_seq`; `link_seq` numbers the messages of one direction of one
+    /// D <-> PC radio link (4.1), 0 on FM links. Both stay the same on a re-send.
     Message {
         seq: u32,
+        link_seq: u32,
         sent: TimeMs,
         msg: Msg,
     },
@@ -541,6 +559,11 @@ pub enum Ev {
         kind: FaultKind,
         pad: PadId,
     },
+    /// A technician has repaired a pad grounded by a release fault, and its drone (A69).
+    RepairDone {
+        pad: PadId,
+        drone: DroneId,
+    },
     Timer {
         timer: TimerKind,
         owner_kind: EntityKind,
@@ -555,7 +578,9 @@ impl Ev {
         match self {
             Ev::Message { .. } => EventClass::Message,
             Ev::ShipmentRequest { .. } => EventClass::Arrival,
-            Ev::FaultStart { .. } | Ev::FaultEnd { .. } => EventClass::StateChange,
+            Ev::FaultStart { .. } | Ev::FaultEnd { .. } | Ev::RepairDone { .. } => {
+                EventClass::StateChange
+            }
             Ev::Timer { .. } => EventClass::Timer,
             _ => EventClass::Completion,
         }
@@ -577,6 +602,7 @@ impl Ev {
             Ev::FaultStart { .. } => 40,
             Ev::FaultEnd { .. } => 41,
             Ev::Timer { .. } => 42,
+            Ev::RepairDone { .. } => 43,
         }
     }
 
@@ -609,6 +635,9 @@ impl Ev {
             }
             Ev::FaultStart { kind, pad, .. } | Ev::FaultEnd { kind, pad } => {
                 a.u8(kind.code()).u16(pad);
+            }
+            Ev::RepairDone { pad, drone } => {
+                a.u16(pad).u16(drone);
             }
             Ev::Timer {
                 timer,

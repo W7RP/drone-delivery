@@ -8,8 +8,9 @@
 #     invariants run after every event). Includes loading the committed Pittsburgh network files.
 #  5. Release budget runs (spec A39: 60 s wall, 200 MB peak RSS each): the 200-drone 7-day scale
 #     case; the 7-day Pittsburgh scenario with each flight profile (fitted, placeholder, and fitted
-#     with the 1370 Wh battery); and the placeholder Pittsburgh at three times its demand, which
-#     must turn requests away at the backlog cap instead of queueing them without limit.
+#     with the 1370 Wh battery), and at 1370 Wh with the Phase 6a pad layout and repair keys;
+#     and the placeholder Pittsburgh at three times its demand, which must turn requests away at
+#     the backlog cap instead of queueing them without limit.
 #     Skip with VERIFY_SKIP_SCALE=1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -66,6 +67,8 @@ if [ "${VERIFY_SKIP_SCALE:-0}" != "1" ]; then
     "$out/pittsburgh_placeholder"
   budget_run pittsburgh_battery_1370wh configs/parts_logistics_pittsburgh_battery_1370wh/scenario.toml \
     "$out/pittsburgh_battery_1370wh"
+  budget_run pittsburgh_1370wh_layout configs/parts_logistics_pittsburgh_1370wh_layout/scenario.toml \
+    "$out/pittsburgh_1370wh_layout"
   triple="$(python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh_placeholder/scenario.toml 3 "$out/x3")"
   budget_run pittsburgh_3x "$triple" "$out/pittsburgh_3x"
   python3 - "$out/pittsburgh_3x/metrics.json" <<'PY'

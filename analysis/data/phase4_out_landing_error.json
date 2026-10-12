@@ -1,0 +1,22 @@
+{
+ "source": "px4/runs/accept/summary.json (Phase 4 acceptance runs, docs/flight-runs.md): horizontal distance from the vehicle's ground-truth touchdown to the OUT spot centre",
+ "capture_radius_m": 0.15,
+ "capture_radius_source": "px4/config/flight.yaml pads.latch_capture_radius_m (placeholder, spec A55)",
+ "out_landing_error_cm": {
+  "payload_0": 2.94,
+  "payload_10": 9.09,
+  "payload_2": 9.86,
+  "payload_5": 6.48,
+  "repeat_1": 13.06,
+  "repeat_10": 10.26,
+  "repeat_2": 12.36,
+  "repeat_3": 4.8,
+  "repeat_4": 13.49,
+  "repeat_5": 5.91,
+  "repeat_6": 13.56,
+  "repeat_7": 5.02,
+  "repeat_8": 8.2,
+  "repeat_9": 7.84,
+  "speed2_seed1": 9.37
+ }
+}

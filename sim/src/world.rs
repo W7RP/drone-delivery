@@ -40,6 +40,9 @@ pub fn narrow_f32(v: f64) -> f32 {
     v as f32
 }
 
+/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3), for the per-spot occupancy check.
+#[cfg(debug_assertions)]
+const SPOT_CODES: usize = 5;
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
 /// Initial backlog capacity per pad when `demand.max_backlog_per_pad` is absent; it grows as needed.
@@ -67,6 +70,9 @@ pub struct PadSt {
     /// End time of the active PC fault; a FAULT_END at another time is ignored (A37).
     pub fault_end: TimeMs,
     pub oos_pending: bool,
+    /// A scheduled OUT_OF_SERVICE window is open; a repair does not end it (A69).
+    pub oos_window: bool,
+    /// A drone grounded on IN keeps the pad out of service until it is repaired.
     pub permanent_oos: bool,
     pub has_charger: bool,
     pub service_mode: ServiceMode,
@@ -75,13 +81,8 @@ pub struct PadSt {
     pub in_reserved: DroneId,
     pub in_pod: PodId,
     pub in_pod_removal_scheduled: bool,
-    pub out_drone: DroneId,
-    pub out_reserved: DroneId,
-    pub out_pod: PodId,
-    pub out_placing: bool,
-    pub placing: Placement,
-    pub pickup_drone: DroneId,
-    pub pickup_order: OrderId,
+    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3.
+    pub outs: Vec<OutSpot>,
     /// Empty pods physically in inventory, reserved or not.
     pub inventory: Vec<PodId>,
     /// Unreserved count (`PadState.empty_pods`).
@@ -97,6 +98,39 @@ pub struct PadSt {
     pub latch_fault: bool,
     pub deferred: Vec<Entry>,
     pub msg_seq: u32,
+}
+
+/// One OUT spot: the drone on it or granted it, the pod on it or being placed, and the drone
+/// assigned to pick that pod up.
+#[derive(Clone, Copy, Debug)]
+pub struct OutSpot {
+    pub drone: DroneId,
+    pub reserved: DroneId,
+    pub pod: PodId,
+    pub placing: bool,
+    pub placement: Placement,
+    pub pickup_drone: DroneId,
+    pub pickup_order: OrderId,
+}
+
+impl OutSpot {
+    fn empty() -> OutSpot {
+        OutSpot {
+            drone: NO_DRONE,
+            reserved: NO_DRONE,
+            pod: NO_POD,
+            placing: false,
+            placement: Placement {
+                pod: NO_POD,
+                kind: OrderKind::Shipment,
+                dest: NO_PAD,
+                requested: 0,
+                deadline: 0,
+            },
+            pickup_drone: NO_DRONE,
+            pickup_order: NO_ORDER,
+        }
+    }
 }
 
 /// The PC's record of one drone's pass through its pad, indexed by `visit_index(pad, drone)`.
@@ -121,6 +155,8 @@ pub struct Visit {
     pub locked: bool,
     pub service_sent: bool,
     pub held_since: TimeMs,
+    /// OUT spot a hop is going to (V21), 0-based.
+    pub hop_out: u8,
 }
 
 impl Visit {
@@ -145,6 +181,7 @@ impl Visit {
             locked: false,
             service_sent: false,
             held_since: 0,
+            hop_out: 0,
         }
     }
 
@@ -186,7 +223,7 @@ pub struct DroneSt {
     pub park_since: TimeMs,
     pub last_hold_report: Option<HoldReason>,
     pub msg_seq: u32,
-    pub last_msg: Option<(Msg, u32)>,
+    pub last_msg: Option<(Msg, u32, u32)>,
     pub awaiting: Await,
     pub retries: u8,
     pub silence_since: TimeMs,
@@ -202,6 +239,8 @@ pub struct DroneSt {
     pub last_report_quiet_ms: TimeMs,
     pub service_done: bool,
     pub approach_spot: Spot,
+    /// OUT spot the last HOP_CMD named.
+    pub hop_out: u8,
     pub cmd_attempt: u8,
     /// Pad and time of the last physical departure, for the PC-occupancy invariant.
     pub left_pad: PadId,
@@ -229,6 +268,17 @@ impl DroneSt {
     }
 }
 
+/// Spec 4.1 reordering on the D <-> PC radio link: per-link sequence numbers, the next one
+/// each receiver expects, and the messages it holds while an earlier one is outstanding.
+/// Link index: drone -> pad `d * n_pads + p`, pad -> drone `n_pads * n_drones + p * n_drones + d`.
+pub struct Links {
+    pub last_sent: Vec<u32>,
+    pub expected: Vec<u32>,
+    pub held: Vec<(usize, u32, Entry)>,
+    /// Fault injection: (sender, message kind code, extra latency) for the next such message.
+    pub injected: Vec<((EntityKind, u16), u16, TimeMs)>,
+}
+
 pub struct World {
     pub cfg: Config,
     pub net: Network,
@@ -248,6 +298,7 @@ pub struct World {
     pub pod_mass_kg: Vec<f32>,
     /// PC-side return reservation per pod (P06), NO_PAD when unreserved.
     pub pc_return_dest: Vec<PadId>,
+    pub links: Links,
     pub ended: bool,
     #[cfg(debug_assertions)]
     scratch: Vec<u8>,
@@ -266,6 +317,7 @@ impl World {
             cfg.hist_max_ms,
             n_pads,
             n_drones,
+            usize::from(cfg.pad_ops.out_spots),
         );
         let total_pods = cfg.total_pods() as usize;
         let mut pads = Vec::with_capacity(n_pads);
@@ -282,6 +334,7 @@ impl World {
                 mode_since: 0,
                 fault_end: NO_TIME,
                 oos_pending: false,
+                oos_window: false,
                 permanent_oos: false,
                 has_charger: cfg.has_charger(pad),
                 service_mode: p.service_mode,
@@ -290,19 +343,7 @@ impl World {
                 in_reserved: NO_DRONE,
                 in_pod: NO_POD,
                 in_pod_removal_scheduled: false,
-                out_drone: NO_DRONE,
-                out_reserved: NO_DRONE,
-                out_pod: NO_POD,
-                out_placing: false,
-                placing: Placement {
-                    pod: NO_POD,
-                    kind: OrderKind::Shipment,
-                    dest: NO_PAD,
-                    requested: 0,
-                    deadline: 0,
-                },
-                pickup_drone: NO_DRONE,
-                pickup_order: NO_ORDER,
+                outs: vec![OutSpot::empty(); usize::from(p.out_spots)],
                 inventory: inv,
                 empty_pods: p.initial_empty_pods,
                 // A capped backlog never grows past its cap, so it never reallocates.
@@ -362,6 +403,7 @@ impl World {
                 last_report_quiet_ms: 0,
                 service_done: false,
                 approach_spot: Spot::In,
+                hop_out: 0,
                 cmd_attempt: 0,
                 left_pad: NO_PAD,
                 left_pad_at: 0,
@@ -373,6 +415,12 @@ impl World {
         let mut world = World {
             pod_mass_kg: vec![narrow_f32(cfg.pod_empty_mass_kg); total_pods],
             pc_return_dest: vec![NO_PAD; total_pods],
+            links: Links {
+                last_sent: vec![0; 2 * n_pads * n_drones],
+                expected: vec![1; 2 * n_pads * n_drones],
+                held: Vec::new(),
+                injected: Vec::new(),
+            },
             energy,
             replication,
             now: 0,
@@ -387,7 +435,7 @@ impl World {
             out,
             ended: false,
             #[cfg(debug_assertions)]
-            scratch: vec![0; total_pods.max(n_pads * 3)],
+            scratch: vec![0; total_pods.max(n_pads * SPOT_CODES)],
             net,
             cfg,
         };
@@ -411,13 +459,19 @@ impl World {
                 drone.spot = Some(Spot::Parking);
                 self.pads[p].parked += 1;
             } else {
-                drone.spot = Some(Spot::Out);
-                self.pads[p].out_drone = id;
-                self.metrics.spot_occupied(p, false, true, 0);
+                // Without parking, drones start on the pad's OUT spots, one each (R4).
+                let k = self.pads[p]
+                    .outs
+                    .iter()
+                    .position(|o| o.drone == NO_DRONE)
+                    .expect("R4: no more drones than OUT spots");
+                drone.spot = Some(Spot::out(k));
+                self.pads[p].outs[k].drone = id;
+                self.metrics.spot_occupied(p, Some(k), true, 0);
                 let mut v = Visit::closed();
                 v.pad = pad;
                 v.state = VisitState::Ready;
-                v.spot = Spot::Out;
+                v.spot = Spot::out(k);
                 v.outcome = VisitOutcome::Open;
                 v.soc = self.drones[d].soc;
                 let i = self.visit_index(pad, id);
@@ -549,20 +603,64 @@ impl World {
         *slot
     }
 
-    /// Send a new message (fresh `msg_seq`); returns the seq so the sender can re-send it.
-    pub fn send(&mut self, msg: Msg) -> u32 {
+    /// Send a new message (fresh `msg_seq`, and on the radio link a fresh `link_seq`); returns
+    /// both so the sender can re-send it unchanged.
+    pub fn send(&mut self, msg: Msg) -> (u32, u32) {
         let seq = self.next_seq(msg.sender());
-        self.send_with_seq(msg, seq);
-        seq
+        let link_seq = match self.link_of(&msg) {
+            Some(link) => {
+                self.links.last_sent[link] += 1;
+                self.links.last_sent[link]
+            }
+            None => 0,
+        };
+        self.send_with_seq(msg, seq, link_seq);
+        (seq, link_seq)
+    }
+
+    /// The radio link a message travels on (spec 4.1), None for FM links.
+    fn link_of(&self, msg: &Msg) -> Option<usize> {
+        let (n_pads, n_drones) = (self.pads.len(), self.drones.len());
+        match (msg.sender(), msg.receiver()) {
+            ((EntityKind::Drone, d), Receiver::Pad(p)) => {
+                Some(usize::from(d) * n_pads + usize::from(p))
+            }
+            ((EntityKind::Pad, p), Receiver::Drone(d)) => {
+                Some(n_pads * n_drones + usize::from(p) * n_drones + usize::from(d))
+            }
+            _ => None,
+        }
+    }
+
+    /// Fault injection for tests: the next `kind` message from `sender` arrives `extra_ms` late,
+    /// so a message sent after it on the same link can overtake it (spec 4.1 reordering).
+    pub fn inject_message_delay(&mut self, sender: (EntityKind, u16), kind: u16, extra_ms: TimeMs) {
+        self.links.injected.push((sender, kind, extra_ms));
+    }
+
+    fn injected_delay(&mut self, msg: &Msg) -> TimeMs {
+        if self.links.injected.is_empty() {
+            return 0;
+        }
+        let key = (msg.sender(), msg.kind_code());
+        match self
+            .links
+            .injected
+            .iter()
+            .position(|&(s, k, _)| (s, k) == key)
+        {
+            Some(i) => self.links.injected.remove(i).2,
+            None => 0,
+        }
     }
 
     /// Spec 4.1: latency per link, loss only on the D <-> PC radio link.
-    pub fn send_with_seq(&mut self, msg: Msg, seq: u32) {
+    pub fn send_with_seq(&mut self, msg: Msg, seq: u32, link_seq: u32) {
         let latency = if msg.is_radio() {
             self.cfg.handshake.local_latency_ms
         } else {
             self.cfg.handshake.fm_latency_ms
-        };
+        } + self.injected_delay(&msg);
         if msg.is_radio() {
             let (kind, id) = msg.sender();
             let stream = match kind {
@@ -572,6 +670,7 @@ impl World {
             if stream.bernoulli(self.cfg.handshake.p_msg_loss) {
                 let ev = Ev::Message {
                     seq,
+                    link_seq,
                     sent: self.now,
                     msg,
                 };
@@ -583,6 +682,7 @@ impl World {
             latency,
             Ev::Message {
                 seq,
+                link_seq,
                 sent: self.now,
                 msg,
             },
@@ -712,6 +812,14 @@ impl World {
         else {
             return true;
         };
+        if timer == TimerKind::ReorderRelease {
+            let link = self.held_link(owner_kind, owner_id, subject);
+            return self
+                .links
+                .held
+                .iter()
+                .any(|&(l, s, _)| l == link && s == generation);
+        }
         match owner_kind {
             EntityKind::Pad => {
                 let v = &self.visits[self.visit_index(owner_id, subject)];
@@ -737,11 +845,17 @@ impl World {
 
     pub(crate) fn dispatch(&mut self, entry: Entry) {
         let ev = entry.ev;
-        if let Ev::Message { msg, .. } = ev {
+        if let Ev::Message { msg, link_seq, .. } = ev {
             if let Receiver::Pad(p) = msg.receiver()
                 && self.pad_is_faulted(p)
             {
                 self.log_event(self.now, &ev, LogStatus::Dropped);
+                return;
+            }
+            if self.cfg.handshake.reorder_window_ms > 0
+                && let Some(link) = self.link_of(&msg)
+            {
+                self.receive_in_order(link, link_seq, entry);
                 return;
             }
         } else if let Some(p) = Self::pad_target(&ev)
@@ -755,6 +869,96 @@ impl World {
             self.log_event(self.now, &ev, LogStatus::Stale);
             return;
         }
+        self.process(ev);
+    }
+
+    /// Spec 4.1 reordering: a message ahead of a gap on its link is held for
+    /// `handshake.reorder_window_s`; the one it overtook releases it, or the window ends and the
+    /// gap is taken as a lost message. A link sequence below the expected one is a re-send or a
+    /// late copy and goes straight through (receivers treat duplicates as such).
+    fn receive_in_order(&mut self, link: usize, link_seq: u32, entry: Entry) {
+        let expected = self.links.expected[link];
+        if link_seq > expected {
+            self.log_event(self.now, &entry.ev, LogStatus::Deferred);
+            self.links.held.push((link, link_seq, entry));
+            let Ev::Message { msg, .. } = entry.ev else {
+                unreachable!("only messages are held")
+            };
+            let (receiver_kind, receiver_id) = match msg.receiver() {
+                Receiver::Pad(p) => (EntityKind::Pad, p),
+                Receiver::Drone(d) => (EntityKind::Drone, d),
+                Receiver::FleetManager => unreachable!("FM links are not reordered"),
+            };
+            let window = self.cfg.handshake.reorder_window_ms;
+            self.timer(
+                window,
+                TimerKind::ReorderRelease,
+                receiver_kind,
+                receiver_id,
+                msg.sender().1,
+                link_seq,
+            );
+            return;
+        }
+        if link_seq == expected {
+            self.links.expected[link] = expected + 1;
+        }
+        self.process(entry.ev);
+        self.release_in_order(link);
+    }
+
+    /// Process held messages on `link` that are now due: every one at or below the expected
+    /// sequence, lowest first.
+    fn release_in_order(&mut self, link: usize) {
+        loop {
+            let due = self
+                .links
+                .held
+                .iter()
+                .enumerate()
+                .filter(|&(_, &(l, s, _))| l == link && s <= self.links.expected[link])
+                .min_by_key(|&(_, &(_, s, _))| s)
+                .map(|(i, _)| i);
+            let Some(i) = due else { break };
+            let (_, s, entry) = self.links.held.remove(i);
+            if s == self.links.expected[link] {
+                self.links.expected[link] = s + 1;
+            }
+            let receiver_faulted = matches!(
+                entry.ev,
+                Ev::Message { msg, .. }
+                    if matches!(msg.receiver(), Receiver::Pad(p) if self.pad_is_faulted(p))
+            );
+            if receiver_faulted {
+                self.log_event(self.now, &entry.ev, LogStatus::Dropped);
+            } else {
+                self.process(entry.ev);
+            }
+        }
+    }
+
+    fn held_link(&self, receiver_kind: EntityKind, receiver: u16, sender: u16) -> usize {
+        let (n_pads, n_drones) = (self.pads.len(), self.drones.len());
+        match receiver_kind {
+            EntityKind::Pad => usize::from(sender) * n_pads + usize::from(receiver),
+            _ => n_pads * n_drones + usize::from(sender) * n_drones + usize::from(receiver),
+        }
+    }
+
+    /// The reorder window of a held message ran out: the gap before it is a lost message.
+    fn reorder_window_ended(
+        &mut self,
+        receiver_kind: EntityKind,
+        receiver: u16,
+        sender: u16,
+        seq: u32,
+    ) {
+        let link = self.held_link(receiver_kind, receiver, sender);
+        self.links.expected[link] = self.links.expected[link].max(seq);
+        self.release_in_order(link);
+    }
+
+    fn process(&mut self, ev: Ev) {
         self.log_event(self.now, &ev, LogStatus::Processed);
         match ev {
             Ev::Message { sent, msg, .. } => match msg.receiver() {
@@ -785,6 +989,14 @@ impl World {
             }
             Ev::FaultStart { kind, pad, random } => self.fault_start(kind, pad, random),
             Ev::FaultEnd { kind, pad } => self.fault_end(kind, pad),
+            Ev::RepairDone { pad, drone } => self.repair_done(pad, drone),
+            Ev::Timer {
+                timer: TimerKind::ReorderRelease,
+                owner_kind,
+                owner_id,
+                subject,
+                generation,
+            } => self.reorder_window_ended(owner_kind, owner_id, subject, generation),
             Ev::Timer {
                 timer,
                 owner_kind,
@@ -858,9 +1070,11 @@ impl World {
                 mark(pod, "inventory");
             }
             mark(pad.in_pod, "IN");
-            mark(pad.out_pod, "OUT");
-            if pad.out_placing {
-                mark(pad.placing.pod, "placing");
+            for o in &pad.outs {
+                mark(o.pod, "OUT");
+                if o.placing {
+                    mark(o.placement.pod, "placing");
+                }
             }
         }
         for d in &self.drones {
@@ -883,7 +1097,7 @@ impl World {
 
         let n_pads = self.pads.len();
         let occ = &mut self.scratch;
-        occ[..n_pads * 3].fill(0);
+        occ[..n_pads * SPOT_CODES].fill(0);
         for (i, d) in self.drones.iter().enumerate() {
             assert!(
                 d.soc.is_finite() && d.soc >= 0.0,
@@ -892,19 +1106,23 @@ impl World {
                 self.now
             );
             if let (Some(spot), true) = (d.spot, d.pad != NO_PAD) {
-                let slot = usize::from(d.pad) * 3 + usize::from(spot.code());
+                let slot = usize::from(d.pad) * SPOT_CODES + usize::from(spot.code());
                 occ[slot] += 1;
             }
         }
         for p in 0..n_pads {
+            let at = |spot: Spot| occ[p * SPOT_CODES + usize::from(spot.code())];
             assert!(
-                occ[p * 3] <= 1 && occ[p * 3 + 1] <= 1,
+                Spot::ALL
+                    .iter()
+                    .filter(|&&s| s != Spot::Parking)
+                    .all(|&s| at(s) <= 1),
                 "two drones on one spot at pad {p}, t={}",
                 self.now
             );
             let cap = self.pads[p].parking_capacity;
             assert!(
-                u16::from(occ[p * 3 + 2]) <= cap,
+                u16::from(at(Spot::Parking)) <= cap,
                 "parking over capacity at pad {p}, t={}",
                 self.now
             );
@@ -919,7 +1137,7 @@ impl World {
             if pad.mode == PadMode::ControllerFault {
                 continue;
             }
-            for d in [pad.in_drone, pad.out_drone] {
+            for d in std::iter::once(pad.in_drone).chain(pad.outs.iter().map(|o| o.drone)) {
                 if d == NO_DRONE {
                     continue;
                 }
@@ -960,7 +1178,7 @@ impl World {
                     let on_pad = self
                         .pads
                         .iter()
-                        .any(|p| p.out_pod == pod || p.in_pod == pod);
+                        .any(|p| p.in_pod == pod || p.outs.iter().any(|o| o.pod == pod));
                     assert!(
                         on_drone || on_pad,
                         "open order {} lost its pod {pod}",

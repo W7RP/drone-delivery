@@ -47,8 +47,8 @@ impl World {
 
     /// Send to a PC and remember the message for D16 re-sends.
     fn drone_send_pc(&mut self, d: DroneId, msg: Msg) {
-        let seq = self.send(msg);
-        self.dr_mut(d).last_msg = Some((msg, seq));
+        let (seq, link_seq) = self.send(msg);
+        self.dr_mut(d).last_msg = Some((msg, seq, link_seq));
     }
 
     fn status(&mut self, d: DroneId) {
@@ -253,22 +253,47 @@ impl World {
                     self.after(ms, Ev::ReleaseDone { drone: d, pad });
                 }
             }
-            Msg::HopCmd { pad, .. } if mode == DroneMode::OnPad => {
+            Msg::HopCmd { pad, out_index, .. }
+                if matches!(mode, DroneMode::OnPad | DroneMode::Parked) =>
+            {
                 self.disarm_response(d);
                 match self.dr(d).spot {
-                    Some(Spot::In) => {
+                    Some(Spot::In) if mode == DroneMode::OnPad => {
+                        self.dr_mut(d).hop_out = out_index;
                         self.drone_to(d, tcode::d(15), DroneMode::Hopping);
                         self.after(
                             ms_from_s(self.cfg.drone.hop_s),
                             Ev::HopDone { drone: d, pad },
                         );
                     }
-                    Some(Spot::Out) => self.resend_report(d),
+                    // V43: from one OUT spot to the one holding its pickup pod. The hop ends in a
+                    // new landing, so the latch bookkeeping starts afresh as after an approach.
+                    Some(s)
+                        if s.is_out()
+                            && s.out_index() != Some(usize::from(out_index))
+                            && self.dr(d).pod == NO_POD =>
+                    {
+                        // A drone parked on its OUT spot (D18) hops too; it collects any parked
+                        // charge first, as on any departure from parking (A16).
+                        self.apply_parked_charge(d);
+                        let dr = self.dr_mut(d);
+                        dr.hop_out = out_index;
+                        dr.service_done = false;
+                        dr.busy = false;
+                        dr.done_latch_attempt = 0;
+                        dr.last_report = None;
+                        self.drone_to(d, tcode::d(15), DroneMode::Hopping);
+                        self.after(
+                            ms_from_s(self.cfg.drone.hop_s),
+                            Ev::HopDone { drone: d, pad },
+                        );
+                    }
+                    Some(s) if s.is_out() => self.resend_report(d),
                     _ => {}
                 }
             }
             Msg::LatchCmd { pad, attempt, .. }
-                if mode == DroneMode::OnPad && self.dr(d).spot == Some(Spot::Out) =>
+                if mode == DroneMode::OnPad && self.dr(d).spot.is_some_and(Spot::is_out) =>
             {
                 self.disarm_response(d);
                 if attempt <= self.dr(d).done_latch_attempt {
@@ -418,7 +443,7 @@ impl World {
                     return;
                 }
                 if self.pads[usize::from(dr.pad)].parking_capacity == 0 {
-                    if dr.spot == Some(Spot::Out) && dr.mode == DroneMode::OnPad {
+                    if dr.spot.is_some_and(Spot::is_out) && dr.mode == DroneMode::OnPad {
                         self.dr_mut(d).park_since = self.now;
                         self.drone_to(d, tcode::d(18), DroneMode::Parked);
                         self.status(d);
@@ -483,9 +508,10 @@ impl World {
             }
             Ev::HopDone { drone, pad } => {
                 self.hover(drone, self.cfg.drone.hop_s);
-                self.dr_mut(drone).spot = Some(Spot::Out);
+                let spot = Spot::out(usize::from(self.dr(drone).hop_out));
+                self.dr_mut(drone).spot = Some(spot);
                 self.drone_to(drone, tcode::d(15), DroneMode::OnPad);
-                self.landed(drone, pad, Spot::Out);
+                self.landed(drone, pad, spot);
             }
             Ev::ReleaseDone { drone, pad } => self.release_done(drone, pad),
             Ev::LatchDone { drone, pad } => self.latch_done(drone, pad),
@@ -683,7 +709,8 @@ impl World {
             1.0 - self.cfg.drone.p_latch_fault
         };
         let locked = self.rng.latch[usize::from(d)].bernoulli(p_ok);
-        let out_pod = self.pads[usize::from(pad)].out_pod;
+        let k = self.dr(d).spot.and_then(Spot::out_index).unwrap_or(0);
+        let out_pod = self.pads[usize::from(pad)].outs[k].pod;
         let mass = if out_pod == NO_POD {
             0.0
         } else {
@@ -695,7 +722,7 @@ impl World {
         if locked && out_pod != NO_POD {
             dr.pod = out_pod;
             dr.payload_kg = mass;
-            self.pads[usize::from(pad)].out_pod = NO_POD;
+            self.pads[usize::from(pad)].outs[k].pod = NO_POD;
         }
         let msg = Msg::LatchReport {
             drone: d,
@@ -783,9 +810,28 @@ impl World {
     }
 
     fn resend_last(&mut self, d: DroneId) {
-        if let Some((msg, seq)) = self.dr(d).last_msg {
-            self.send_with_seq(msg, seq);
+        if let Some((msg, seq, link_seq)) = self.dr(d).last_msg {
+            self.send_with_seq(msg, seq, link_seq);
         }
+    }
+
+    /// D25: back in service after a repair (A69), empty and still on IN. The drone reports its
+    /// landing again so the PC adopts it (V42) and the ground watchdog runs as after any landing.
+    pub(crate) fn drone_repaired(&mut self, d: DroneId, pad: PadId) {
+        let dr = self.dr_mut(d);
+        dr.busy = false;
+        dr.service_done = false;
+        dr.done_release_attempt = 0;
+        dr.done_latch_attempt = 0;
+        dr.last_report = None;
+        dr.order = NO_ORDER;
+        dr.pickup_order = NO_ORDER;
+        dr.mission = MissionKind::None;
+        dr.go_arounds = 0;
+        dr.hold_cycles = 0;
+        self.drone_to(d, tcode::d(25), DroneMode::OnPad);
+        self.landed(d, pad, Spot::In);
+        self.status(d);
     }
 
     /// D14: reserve reached while holding; land off the network, pod lost.

@@ -1,0 +1,105 @@
+{
+ "scenario": "parts_logistics_pittsburgh_placeholder",
+ "repair_mean_s": 7200.0,
+ "repair_spread_s": 3600.0,
+ "without_repair": {
+  "seed_42": {
+   "requests": 1373,
+   "rejected": 187,
+   "rejected_fraction": 0.13619810633648943,
+   "drone_mean_s": 1286.6855351257575,
+   "deliveries_per_h": 6.904191616766467
+  },
+  "seeds_1_to_5": {
+   "rejected_fraction_mean": 0.0,
+   "rejected_fraction_std": 0.0,
+   "per_seed": {
+    "1": {
+     "requests": 1362,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1315.5169822437447,
+     "deliveries_per_h": 7.431137724550898
+    },
+    "2": {
+     "requests": 1317,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1082.9589492307673,
+     "deliveries_per_h": 7.820359281437126
+    },
+    "3": {
+     "requests": 1308,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1151.5729409937899,
+     "deliveries_per_h": 7.730538922155689
+    },
+    "4": {
+     "requests": 1320,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1238.3149479326185,
+     "deliveries_per_h": 7.826347305389222
+    },
+    "5": {
+     "requests": 1382,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1208.0728517975058,
+     "deliveries_per_h": 8.173652694610778
+    }
+   }
+  }
+ },
+ "with_repair": {
+  "seed_42": {
+   "requests": 1373,
+   "rejected": 0,
+   "rejected_fraction": 0.0,
+   "drone_mean_s": 1300.0675169867052,
+   "deliveries_per_h": 8.107784431137725
+  },
+  "seeds_1_to_5": {
+   "rejected_fraction_mean": 0.0,
+   "rejected_fraction_std": 0.0,
+   "per_seed": {
+    "1": {
+     "requests": 1362,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1219.5175732342022,
+     "deliveries_per_h": 8.065868263473053
+    },
+    "2": {
+     "requests": 1317,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1082.9589492307673,
+     "deliveries_per_h": 7.820359281437126
+    },
+    "3": {
+     "requests": 1308,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1151.5729409937899,
+     "deliveries_per_h": 7.730538922155689
+    },
+    "4": {
+     "requests": 1320,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1238.3149479326185,
+     "deliveries_per_h": 7.826347305389222
+    },
+    "5": {
+     "requests": 1382,
+     "rejected": 0,
+     "rejected_fraction": 0.0,
+     "drone_mean_s": 1208.0728517975058,
+     "deliveries_per_h": 8.173652694610778
+    }
+   }
+  }
+ }
+}

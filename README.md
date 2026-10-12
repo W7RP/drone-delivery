@@ -63,6 +63,20 @@ Phase 3 lane back, but then each recharge holds the OUT spot long enough that th
 slower than the truck door to door. The Pittsburgh scenario selects its flight profile in its
 config; the placeholder profile and every result built on it are kept.
 
+Phase 6a adds realism and then attacks that bottleneck (`docs/network-realism.md`):
+
+- **Battery mass:** once a bigger battery also weighs more, no battery serves the longest
+  Pittsburgh lane with a 5 kg pod, and MTOW caps it at 1180 Wh.
+- **Repair:** pads grounded by a release fault are repaired, which removes the 13.6% of requests
+  Phase 3 turned away.
+- **Fault visibility and messaging:** pads can report an unreadable marker, swapped radio
+  messages are put back in order, and latch failures follow the measured landing error.
+- **Layout:** pads can have up to three OUT spots and charging parking. At 1370 Wh, two OUT
+  spots and 6 kW chargers take door-to-door from 9710 s to 735 s, now 3.1 times faster than the
+  truck.
+- **Opt-in:** every new behaviour is set by optional config keys, so existing scenarios and
+  their results are unchanged.
+
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
 written back as an amendment. For example, a re-sent landing grant that did not restart its
@@ -99,6 +113,8 @@ Every number behind those results is a placeholder.
   log reader and validator, and a sample log.
 - `docs/flight-runs.md`: the fifteen SITL visits: times, energy proxy, landing errors, speed
   factor, memory.
+- `docs/network-realism.md`: battery mass, truck fairness, repair, marker faults, message
+  reordering, latch failures, and the charging, layout, pod and fleet sweeps (`analysis/`).
 - `docs/calibration.md`: the flight model fitted to the SITL logs, held-out flights, and what
   the fit changes for range, lanes, battery and the Pittsburgh week.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
@@ -115,7 +131,7 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 
 ```
 docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md,
-            calibration.md, media/ (calibration plots)
+            calibration.md, network-realism.md, media/ (calibration plots)
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline);
             flight_profiles/ (the fitted profile)
@@ -124,4 +140,5 @@ pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/param
             calib/ (flight model calibration)
 px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/, config/, tools/, samples/
 scripts/    verify.sh, check_spec.py, scale_demand.py
+analysis/   Phase 6a analysis scripts (uv run) and their results in out/
 ```

@@ -155,7 +155,8 @@ pub struct Metrics {
     truck_cost_sum: f64,
     truck_cost_n: u64,
     spot_in: Vec<Interval>,
-    spot_out: Vec<Interval>,
+    /// Per pad, one interval per OUT spot (A72).
+    spot_out: Vec<Vec<Interval>>,
     placement_wait: Histogram,
     pickup_wait: Histogram,
     landing_hold: Histogram,
@@ -188,6 +189,7 @@ impl Metrics {
         max_ms: TimeMs,
         n_pads: usize,
         n_drones: usize,
+        out_spots: usize,
     ) -> Self {
         let h = || Histogram::new(bin_ms, max_ms);
         Self {
@@ -205,7 +207,7 @@ impl Metrics {
             truck_cost_sum: 0.0,
             truck_cost_n: 0,
             spot_in: vec![Interval::default(); n_pads],
-            spot_out: vec![Interval::default(); n_pads],
+            spot_out: vec![vec![Interval::default(); out_spots]; n_pads],
             placement_wait: h(),
             pickup_wait: h(),
             landing_hold: h(),
@@ -228,12 +230,12 @@ impl Metrics {
         t >= self.window.0 && t <= self.window.1
     }
 
-    pub fn spot_occupied(&mut self, pad: usize, in_spot: bool, occupied: bool, t: TimeMs) {
+    /// IN when `out` is None, else the OUT spot with that index.
+    pub fn spot_occupied(&mut self, pad: usize, out: Option<usize>, occupied: bool, t: TimeMs) {
         let w = self.window;
-        if in_spot {
-            self.spot_in[pad].set(occupied, t, w)
-        } else {
-            self.spot_out[pad].set(occupied, t, w)
+        match out {
+            None => self.spot_in[pad].set(occupied, t, w),
+            Some(k) => self.spot_out[pad][k].set(occupied, t, w),
         }
     }
 
@@ -346,7 +348,7 @@ impl Metrics {
         for i in self
             .spot_in
             .iter_mut()
-            .chain(self.spot_out.iter_mut())
+            .chain(self.spot_out.iter_mut().flatten())
             .chain(self.pod_available.iter_mut())
         {
             i.close(w);
@@ -382,6 +384,12 @@ impl Metrics {
             .map(|e| e / cost.battery_capacity_j)
             .collect();
         let per_spot = |v: &[Interval]| -> Vec<f64> { v.iter().map(|i| i.fraction(w)).collect() };
+        // A pad's OUT utilisation is the mean over its OUT spots (one spot: that spot's).
+        let per_pad_out: Vec<f64> = self
+            .spot_out
+            .iter()
+            .map(|outs| outs.iter().map(|i| i.fraction(w)).sum::<f64>() / outs.len() as f64)
+            .collect();
         json!({
             "window_s": [s_from_ms(w.0), s_from_ms(w.1)],
             "deliveries_per_h": deliveries / window_h,
@@ -391,7 +399,7 @@ impl Metrics {
             "door_to_door_split_s": self.split_summary(),
             "speedup": match (mean_truck, mean_drone) { (Some(t), Some(d)) => ratio(t, d), _ => None },
             "saving_s": ratio(self.saving_sum_s, self.saving_n as f64),
-            "spot_utilization": { "in": per_spot(&self.spot_in), "out": per_spot(&self.spot_out) },
+            "spot_utilization": { "in": per_spot(&self.spot_in), "out": per_pad_out },
             "queue_time_s": {
                 "placement_wait": self.placement_wait.summary(),
                 "pickup_wait": self.pickup_wait.summary(),

@@ -1,0 +1,975 @@
+{
+ "base": "parts_logistics_pittsburgh_battery_1370wh",
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "cost_cu": {
+  "pad_base": 100.0,
+  "per_spot": 20.0,
+  "per_charger_kw": 10.0,
+  "per_parking_slot": 15.0
+ },
+ "n_pads": 9,
+ "before": {
+  "door_to_door_s": {
+   "mean": 9710.0149476824,
+   "std": 1370.0146609358753
+  },
+  "pod_wait_s": {
+   "mean": 8658.477476979257,
+   "std": 1347.876066557744
+  },
+  "truck_s": {
+   "mean": 2273.871818182194,
+   "std": 13.663580087997087
+  },
+  "rejected_fraction": {
+   "mean": 0.07954945429220062,
+   "std": 0.05393849243164269
+  }
+ },
+ "before_with_repair": {
+  "door_to_door_s": {
+   "mean": 9983.789179557196,
+   "std": 1550.299374752993
+  },
+  "pod_wait_s": {
+   "mean": 8933.038307381188,
+   "std": 1526.1880214721766
+  },
+  "truck_s": {
+   "mean": 2272.127578906628,
+   "std": 11.187957538212203
+  },
+  "rejected_fraction": {
+   "mean": 0.06603990950512278,
+   "std": 0.0300734520350761
+  }
+ },
+ "points": [
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 1395.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 1710.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 3352.2488113129743,
+    "std": 3297.5174197484525
+   },
+   "pod_wait_s": {
+    "mean": 2156.6532763879263,
+    "std": 3031.9150826051596
+   },
+   "truck_s": {
+    "mean": 2233.125131653983,
+    "std": 47.23322760158313
+   },
+   "rejected_fraction": {
+    "mean": 0.14274847490600556,
+    "std": 0.23519124139957426
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 2025.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 999.3227775618714,
+    "std": 34.27746146972506
+   },
+   "pod_wait_s": {
+    "mean": 107.17191401677289,
+    "std": 4.466088996747776
+   },
+   "truck_s": {
+    "mean": 2270.0929751044378,
+    "std": 13.815007230153622
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 1665.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 1980.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 2295.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 1935.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 4148.9532468386105,
+    "std": 1403.7138423996362
+   },
+   "pod_wait_s": {
+    "mean": 3058.1920294183687,
+    "std": 1347.685411165023
+   },
+   "truck_s": {
+    "mean": 2270.955274810095,
+    "std": 12.2301195062537
+   },
+   "rejected_fraction": {
+    "mean": 0.0010334166557031967,
+    "std": 0.0014320296804727576
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 2250.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 2330.087192330434,
+    "std": 444.9021418370595
+   },
+   "pod_wait_s": {
+    "mean": 899.3895594695707,
+    "std": 300.5889256097917
+   },
+   "truck_s": {
+    "mean": 2271.0476154388098,
+    "std": 11.84464177671839
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 2565.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1713.5785724395846,
+    "std": 516.2997032371993
+   },
+   "pod_wait_s": {
+    "mean": 344.6498713608113,
+    "std": 272.9397886868842
+   },
+   "truck_s": {
+    "mean": 2271.4010905038053,
+    "std": 12.472251975619539
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 2205.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1734.4191984897102,
+    "std": 196.7884555603087
+   },
+   "pod_wait_s": {
+    "mean": 795.1294644798538,
+    "std": 171.73688069057235
+   },
+   "truck_s": {
+    "mean": 2270.813132665738,
+    "std": 11.370853836896549
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 2520.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1168.3997999871976,
+    "std": 131.90305259988926
+   },
+   "pod_wait_s": {
+    "mean": 174.72435914508443,
+    "std": 70.5083027593392
+   },
+   "truck_s": {
+    "mean": 2270.4518673965513,
+    "std": 11.956750864090463
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 2835.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1092.5554435852023,
+    "std": 51.48295729728617
+   },
+   "pod_wait_s": {
+    "mean": 93.79728935216056,
+    "std": 9.50397604211281
+   },
+   "truck_s": {
+    "mean": 2272.4564542614403,
+    "std": 14.213766128261259
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 1530.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 1980.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 857.9686837983129,
+    "std": 43.2002768880318
+   },
+   "pod_wait_s": {
+    "mean": 118.89807889611814,
+    "std": 30.642030371829257
+   },
+   "truck_s": {
+    "mean": 2271.400688575509,
+    "std": 12.672127069712648
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 2430.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 769.4462562019913,
+    "std": 14.58837686321401
+   },
+   "pod_wait_s": {
+    "mean": 69.94732928324412,
+    "std": 2.4885769567904426
+   },
+   "truck_s": {
+    "mean": 2272.1554536776675,
+    "std": 13.518180820301579
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 1935.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 2385.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 2835.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 2340.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1029.0455823720993,
+    "std": 43.04290166408923
+   },
+   "pod_wait_s": {
+    "mean": 259.7332906624916,
+    "std": 29.503711979704548
+   },
+   "truck_s": {
+    "mean": 2271.244685884315,
+    "std": 12.490190785142092
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 2790.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 921.7107534028883,
+    "std": 10.998403614615205
+   },
+   "pod_wait_s": {
+    "mean": 95.67250349606903,
+    "std": 7.079260098141262
+   },
+   "truck_s": {
+    "mean": 2271.029125947778,
+    "std": 12.275814399247976
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 3240.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 918.8187182418776,
+    "std": 42.41921302496342
+   },
+   "pod_wait_s": {
+    "mean": 69.89321824102042,
+    "std": 6.007786635127583
+   },
+   "truck_s": {
+    "mean": 2272.0656751422384,
+    "std": 12.826462037542013
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 2745.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 930.2527780868547,
+    "std": 32.65866076442866
+   },
+   "pod_wait_s": {
+    "mean": 203.27975068869713,
+    "std": 23.86730382358019
+   },
+   "truck_s": {
+    "mean": 2271.309354364172,
+    "std": 11.666744577039646
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 3195.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 854.2933883914544,
+    "std": 44.38499627380533
+   },
+   "pod_wait_s": {
+    "mean": 83.32199453158738,
+    "std": 17.537315134021643
+   },
+   "truck_s": {
+    "mean": 2271.2208395243206,
+    "std": 12.982688849658077
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 3645.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 841.6484270203504,
+    "std": 16.54564045320032
+   },
+   "pod_wait_s": {
+    "mean": 65.24385891836405,
+    "std": 4.165101954768322
+   },
+   "truck_s": {
+    "mean": 2271.480023178735,
+    "std": 13.556564821920677
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 1800.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 2520.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 735.3508322394948,
+    "std": 17.072761628074336
+   },
+   "pod_wait_s": {
+    "mean": 82.48173634584508,
+    "std": 3.2381115972110797
+   },
+   "truck_s": {
+    "mean": 2270.82272957334,
+    "std": 13.780796448081398
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 3240.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 708.2077171754187,
+    "std": 15.40538554617953
+   },
+   "pod_wait_s": {
+    "mean": 68.73535475451555,
+    "std": 9.178668114961685
+   },
+   "truck_s": {
+    "mean": 2271.7539974808633,
+    "std": 13.082417694666637
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 2475.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 3195.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 3915.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 3150.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 835.0548091165699,
+    "std": 36.36039860875219
+   },
+   "pod_wait_s": {
+    "mean": 152.62958578974695,
+    "std": 28.54013172748852
+   },
+   "truck_s": {
+    "mean": 2272.796620289464,
+    "std": 12.967038523425714
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 3870.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 791.0359795044955,
+    "std": 21.676175873617897
+   },
+   "pod_wait_s": {
+    "mean": 74.14770885041541,
+    "std": 6.777679638789366
+   },
+   "truck_s": {
+    "mean": 2272.0714962457214,
+    "std": 12.574857514515474
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 4590.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 797.9818935096235,
+    "std": 30.60912197011607
+   },
+   "pod_wait_s": {
+    "mean": 72.93180619589789,
+    "std": 25.2096134364147
+   },
+   "truck_s": {
+    "mean": 2272.3394499470182,
+    "std": 13.666805144851553
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 3825.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 787.0369086466877,
+    "std": 16.230216094053247
+   },
+   "pod_wait_s": {
+    "mean": 128.74678617206894,
+    "std": 8.069718608300185
+   },
+   "truck_s": {
+    "mean": 2271.6299292603944,
+    "std": 13.033639921119716
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 4545.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 755.9673053113963,
+    "std": 14.71900176767148
+   },
+   "pod_wait_s": {
+    "mean": 69.12134249561146,
+    "std": 3.017753383433188
+   },
+   "truck_s": {
+    "mean": 2271.5057031317665,
+    "std": 13.355537211473344
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 5265.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 756.7708636840307,
+    "std": 15.55100439751871
+   },
+   "pod_wait_s": {
+    "mean": 61.05318885879568,
+    "std": 0.5585733911852968
+   },
+   "truck_s": {
+    "mean": 2272.411888892616,
+    "std": 13.839604744826524
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 2340.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 3600.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 717.8061697277199,
+    "std": 36.703309533598215
+   },
+   "pod_wait_s": {
+    "mean": 88.29874143547863,
+    "std": 27.0147397903612
+   },
+   "truck_s": {
+    "mean": 2271.9029168901534,
+    "std": 13.782440753137266
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 4860.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 683.224935413203,
+    "std": 12.960126637830896
+   },
+   "pod_wait_s": {
+    "mean": 63.93701346937731,
+    "std": 0.48850884141957757
+   },
+   "truck_s": {
+    "mean": 2272.145340611797,
+    "std": 13.314524179543385
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 3555.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 4815.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 6075.0,
+   "feasible": false,
+   "infeasible": "drone.initial_pads: R4 one pad per drone is required (or not enough slots for round-robin)"
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 4770.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 778.4462034896494,
+    "std": 28.642931189505344
+   },
+   "pod_wait_s": {
+    "mean": 126.28810922554892,
+    "std": 20.83146392412063
+   },
+   "truck_s": {
+    "mean": 2272.461935922719,
+    "std": 13.411584972821965
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 6030.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 750.8040153602942,
+    "std": 18.540413530478475
+   },
+   "pod_wait_s": {
+    "mean": 70.19672210494528,
+    "std": 7.521901856688737
+   },
+   "truck_s": {
+    "mean": 2271.6661882900803,
+    "std": 12.77637915572969
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 7290.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 749.9793918181235,
+    "std": 15.245406436087478
+   },
+   "pod_wait_s": {
+    "mean": 61.43846703683407,
+    "std": 1.4575040918889273
+   },
+   "truck_s": {
+    "mean": 2271.7293887174374,
+    "std": 13.005090250810248
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 5985.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 739.0492028555882,
+    "std": 11.019573846534167
+   },
+   "pod_wait_s": {
+    "mean": 105.87974193800233,
+    "std": 4.432706002126487
+   },
+   "truck_s": {
+    "mean": 2271.981361060768,
+    "std": 13.382620210703768
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 7245.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 735.8530274418907,
+    "std": 20.21604052543248
+   },
+   "pod_wait_s": {
+    "mean": 72.91691508765743,
+    "std": 14.630738311755303
+   },
+   "truck_s": {
+    "mean": 2271.6471415585715,
+    "std": 12.964523094387532
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 8505.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 746.445828474866,
+    "std": 29.404367412226424
+   },
+   "pod_wait_s": {
+    "mean": 69.81108136770578,
+    "std": 19.88053471635156
+   },
+   "truck_s": {
+    "mean": 2273.053331261531,
+    "std": 13.12051717396458
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  }
+ ],
+ "pareto": [
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 2
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 2
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 3
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 2
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 3
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 3
+  }
+ ],
+ "best_door_to_door_s": 683.224935413203,
+ "chosen": {
+  "power_w": 6000.0,
+  "parking": 0,
+  "out_spots": 2,
+  "cost_cu": 2520.0,
+  "feasible": true,
+  "door_to_door_s": {
+   "mean": 735.3508322394948,
+   "std": 17.072761628074336
+  },
+  "pod_wait_s": {
+   "mean": 82.48173634584508,
+   "std": 3.2381115972110797
+  },
+  "truck_s": {
+   "mean": 2270.82272957334,
+   "std": 13.780796448081398
+  },
+  "rejected_fraction": {
+   "mean": 0.0,
+   "std": 0.0
+  }
+ }
+}

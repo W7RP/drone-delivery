@@ -124,7 +124,9 @@
       "enum": [
         "IN",
         "OUT",
-        "PARKING"
+        "PARKING",
+        "OUT_2",
+        "OUT_3"
       ]
     },
     "VisitState": {
@@ -272,7 +274,8 @@
         "D_ENERGY_RESERVE",
         "FM_HOLD_LIMIT",
         "END_OF_RUN",
-        "FM_PAD_RECHECK"
+        "FM_PAD_RECHECK",
+        "REORDER_RELEASE"
       ]
     },
     "FlightSource": {
@@ -473,6 +476,17 @@
         }
       }
     },
+    "q_Wh_per_kg_pos": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "Wh/kg"
+        },
+        "value": {
+          "exclusiveMinimum": 0
+        }
+      }
+    },
     "q_lat_deg": {
       "$ref": "#/$defs/quantity",
       "properties": {
@@ -556,6 +570,19 @@
         }
       }
     },
+    "q_out_spots": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "count"
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
     "q_seed": {
       "$ref": "#/$defs/quantity",
       "properties": {
@@ -577,6 +604,17 @@
         },
         "value": {
           "exclusiveMinimum": 0
+        }
+      }
+    },
+    "q_m_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "m"
+        },
+        "value": {
+          "minimum": 0
         }
       }
     },
