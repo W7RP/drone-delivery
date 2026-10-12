@@ -20,6 +20,7 @@
 #include <deque>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -64,6 +65,7 @@ struct PadGeo
   std::uint16_t id;
   LatLon center, in, out;
   std::uint16_t in_marker, out_marker;
+  double ground_alt_m;  // the pad's ground above the EKF origin (m); 0 on a flat world
 };
 
 class DroneAgent : public rclcpp::Node
@@ -84,10 +86,17 @@ public:
     const auto outs = declare_parameter<std::vector<double>>("pad_out_latlon_deg");
     const auto in_markers = declare_parameter<std::vector<int64_t>>("pad_in_marker");
     const auto out_markers = declare_parameter<std::vector<int64_t>>("pad_out_marker");
+    // Terrain worlds (Phase 8): each pad's ground height above pad A's, where the EKF origin is.
+    const auto ground = declare_parameter<std::vector<double>>("pad_ground_alt_m",
+        std::vector<double>(ids.size(), 0.0));
+    if (ground.size() != ids.size()) {
+      throw std::invalid_argument("pad_ground_alt_m needs one height per pad");
+    }
     for (std::size_t i = 0; i < ids.size(); ++i) {
       pads_.push_back({static_cast<std::uint16_t>(ids[i]), {centers[2 * i], centers[2 * i + 1]},
           {ins[2 * i], ins[2 * i + 1]}, {outs[2 * i], outs[2 * i + 1]},
-          static_cast<std::uint16_t>(in_markers[i]), static_cast<std::uint16_t>(out_markers[i])});
+          static_cast<std::uint16_t>(in_markers[i]), static_cast<std::uint16_t>(out_markers[i]),
+          ground[i]});
     }
     pad_ = static_cast<std::uint16_t>(declare_parameter<int>("start_pad"));
     pod_ = static_cast<std::uint32_t>(declare_parameter<int>("start_pod"));
@@ -143,8 +152,9 @@ private:
     throw std::out_of_range("unknown pad id " + std::to_string(id));
   }
 
-  // A pad location at a height above ground, in PX4 local NED. Heights are above the EKF
-  // origin, which is on the ground at the start (the world is flat, A54).
+  // A pad location at a height in PX4 local NED. Heights are above the EKF origin, which is on
+  // the ground at the start; a pad's own ground is ground_alt_m above it (0 on the flat world,
+  // A54). Cruise height is one constant above the origin.
   [[nodiscard]] Vec3 ned(const LatLon & p, double alt) const
   {
     const Vec3 d = px4_.local(p.lat, p.lon);
@@ -231,7 +241,7 @@ private:
     go(Mode::kApproach, "D04");
     const PadGeo & p = pad(dest_);
     const Vec3 spot = ned(m.spot == kSpotIn ? p.in : p.out, cruise_alt_);
-    const Vec3 above{spot[0], spot[1], -approach_alt_};
+    const Vec3 above{spot[0], spot[1], -(approach_alt_ + p.ground_alt_m)};
     begin_landing({{Leg::Kind::kLine, spot, 2.0}, {Leg::Kind::kVertical, above},
         {Leg::Kind::kHold, above}},
       m.spot == kSpotIn ? p.in_marker : p.out_marker);
@@ -258,9 +268,13 @@ private:
     if (!is_for_me(m) || m.pad_id != pad_ || mode_ != Mode::kOnPad) {return;}
     go(Mode::kHopping, "D15");
     const PadGeo & p = pad(pad_);
+    // Hop height above where the drone stands on IN, not above the EKF origin: after a long
+    // visit the baro height has drifted by up to a metre or so (A96), which put the hop low
+    // enough over terrain that the OUT marker left the camera's view.
     const Vec3 here = px4_.position();
-    const Vec3 out = ned(p.out, hop_alt_);
-    begin_landing({{Leg::Kind::kEngage, {here[0], here[1], -hop_alt_}},
+    const Vec3 out_xy = ned(p.out, 0.0);
+    const Vec3 out{out_xy[0], out_xy[1], here[2] - hop_alt_};
+    begin_landing({{Leg::Kind::kEngage, {here[0], here[1], out[2]}},
         {Leg::Kind::kLine, out, hop_speed_}, {Leg::Kind::kHold, out}}, p.out_marker);
     grant_spot_ = kSpotOut;
   }

@@ -26,6 +26,12 @@ import yaml
 
 PX4 = Path(__file__).resolve().parents[1]
 GRAVITY = 9.80665
+# ISA as PX4's VehicleAirData converts pressure to altitude (sea level 101325 Pa, 288.15 K,
+# lapse -6.5 K/km, gas constant 287.1 J/(kg K)); Gazebo's air pressure sensor uses the same.
+ISA_SEA_LEVEL_PA = 101325.0
+ISA_SEA_LEVEL_K = 288.15
+ISA_LAPSE_KPM = -0.0065
+AIR_GAS_CONSTANT = 287.1
 # PX4 Tools/simulation/gz/models/x500 and x500_base (v1.17.0).
 X500_BODY_KG = 2.0
 X500_ROTOR_KG = 0.016076923076923075
@@ -355,6 +361,29 @@ def write(path: Path, text: str) -> None:
 """)
 
 
+def qnh_hpa(elevation_m: float) -> float:
+    """Sea-level pressure (hPa) at which ISA pressure at `elevation_m` equals ISA sea-level
+    pressure."""
+    return ISA_SEA_LEVEL_PA * (1 + ISA_LAPSE_KPM * elevation_m / ISA_SEA_LEVEL_K) ** (
+        GRAVITY / (ISA_LAPSE_KPM * AIR_GAS_CONSTANT)) / 100.0
+
+
+def write_world_params(run: Path, elevation_m: float) -> None:
+    """<run>/world.params: PX4 parameters the world needs (lib/sitl.sh applies them after
+    params/). A terrain world (Phase 8) sits at its real elevation. Gazebo's NavSat adds it to
+    the GPS altitude, but its air pressure sensor reads ISA pressure at world z alone (it
+    ignores <reference_altitude>), and PX4's baro-to-GNSS auto-calibration then shifted the
+    baro by the elevation after the EKF origin was set: the EKF height jumped by 222 m at
+    arming and the vehicle never took off. A QNH that reads Gazebo's sea-level pressure as the
+    world's elevation puts baro, GPS and the EKF origin at the same altitude from boot. Its
+    altitude scale differs from Gazebo's by lapse * elevation / T0 (0.5% at 222 m)."""
+    path = run / "world.params"
+    if elevation_m == 0.0:
+        path.unlink(missing_ok=True)
+        return
+    path.write_text(f"SENS_BARO_QNH {qnh_hpa(elevation_m):.3f}\n")
+
+
 def run_file(run: Path, name: str) -> Path:
     """A run flown on its own lane keeps lane.json and scene.json in its directory; otherwise
     the default lane's files in px4/config apply."""
@@ -382,16 +411,20 @@ def main() -> int:
     if args.wind:
         # Gazebo's WindEffects pushes only on links that ask for it (A94).
         sdf = sdf.replace("<inertial>", "<enable_wind>true</enable_wind><inertial>")
+    scene = json.loads(run_file(args.out, "scene.json").read_text())
+    write_world_params(args.out, scene.get("elevation_m", 0.0))
     write(args.out / "models" / name / "model.sdf", sdf)
     for pod in pods:
         write(args.out / "models" / pod / "model.sdf", pod_sdf(pod, pod_kg, cfg))
-    scene = json.loads(run_file(args.out, "scene.json").read_text())
-    slab = scene["slab_top_m"]
+    # A terrain world (Phase 8) gives each pad's ground height; the flat world is at 0 (A54).
+    ground = scene.get("pad_ground_z_m", {"A": 0.0, "B": 0.0})
+    slab_a = ground["A"] + scene["slab_top_m"]
+    slab_b = ground["B"] + scene["slab_top_m"]
     a_out = scene["spots"]["A_OUT"]["enu_m"]
     b_out = scene["spots"]["B_OUT"]["enu_m"]
     sz = cfg["vehicle"]["pod"]["size_m"][2]
     base_height, skid_bottom = (-VTOL_SKID_BOTTOM_Z, VTOL_SKID_BOTTOM_Z) if vtol else (BASE_HEIGHT_M, SKID_BOTTOM_Z)
-    carry_z = slab + base_height + skid_bottom + cfg["vehicle"]["pod"]["carry_clearance_m"] + sz / 2
+    carry_z = slab_a + base_height + skid_bottom + cfg["vehicle"]["pod"]["carry_clearance_m"] + sz / 2
     # Spawn poses (x, y, z, yaw) for lib/sitl.sh: the drone on A's OUT facing east (along the
     # spots), pod 1 in the latch, pod 2 waiting on B's OUT.
     s = vtol_scale(lane) if vtol else thrust_scale(lane, cfg)
@@ -411,9 +444,9 @@ def main() -> int:
             "latch_kg": latch, "pod_kg": pod_kg,
             "payload_kg": args.payload_kg,
             "pods": pods, "skid_bottom_z": skid_bottom, "base_height_m": base_height,
-            "spawn": {name: [*a_out, slab, 0.0],
+            "spawn": {name: [*a_out, slab_a, 0.0],
                       "dd_pod_1": [*a_out, carry_z, 0.0],
-                      "dd_pod_2": [*b_out, slab + sz / 2, 0.0]}}
+                      "dd_pod_2": [*b_out, slab_b + sz / 2, 0.0]}}
     (args.out / "vehicle.json").write_text(json.dumps(info, indent=1) + "\n")
     print(json.dumps(info))
     return 0

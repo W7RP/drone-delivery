@@ -13,7 +13,7 @@ recipients of alerts.
 
 ## Status
 
-Phase 7 is done: a VTOL is flown in PX4 SITL, fitted, and run over three years of weather. A Rust discrete-event core runs the spec (phase
+Phase 8 is done: one VTOL delivery visit is flown in PX4 SITL over real Pittsburgh terrain and buildings and cut into a clip with a HUD from the logs. Phase 7 flew, fitted and ran a VTOL over three years of weather. A Rust discrete-event core runs the spec (phase
 2). It has no fixed time step, flat arrays indexed by ID, seeded streams, and a streamed event
 log. It implements:
 
@@ -113,6 +113,25 @@ Phase 7 first makes the results honest about unfinished orders, then flies a VTO
 - **Wind:** in a SITL crosswind the OUT landing is the weak point: at 8 m/s both visits
   missed the latch's capture radius.
 
+Phase 8 renders one delivery for a clip (`docs/hero-clip.md`), Gazebo only:
+
+- **Lane and world:** the lane is picked by rule: drone-delivered in the VTOL demo, crossing
+  water, with the worst road detour. That is lane 5, 11.1 km from the Strip District hub to
+  Josh Steel over the Monongahela. A corridor world is generated from the cached DEM and OSM
+  data (terrain, rivers, roads, 1635 buildings), byte-identical on rerun.
+- **Flight:** the Phase 7 VTOL flies the full visit over that world at 1x, cruising 190 m above
+  the hub to clear the ridge. Two fixes were needed: the barometer read the world's elevation
+  only after the EKF origin was set, and baro drift lowered the hop at B, so the hop is now
+  measured from the landed position. The path keeps at least 62 m from terrain and 56 m from
+  buildings.
+- **Clip:** an 82 s cut from three render cameras on massless models, by rules on the event
+  log. A HUD shows the states, handshake messages, sim time, height and battery, plus the
+  demo's drone-versus-truck figures for the lane (18.2 against 41.3 min). A test checks every
+  HUD change against the logs within one frame.
+- **Terrain:** over flat ground the fitted flight model predicts the 11.1 km visit within 1% in
+  time and energy proxy. Over terrain it is 11% short in time and 25% in energy, because the
+  core has no altitude and so misses the climb and descent.
+
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
 written back as an amendment. For example, a re-sent landing grant that did not restart its
@@ -157,6 +176,8 @@ Every number behind those results is a placeholder.
   the fit changes for range, lanes, battery and the Pittsburgh week.
 - `docs/vtol.md`: the VTOL airframe, its calibration flights and fit, held-out flights, the
   wind check, its network, layout and fleet, and the year compared with the multirotor.
+- `docs/hero-clip.md`: the hero clip: render check, lane rule, corridor world, the flight over
+  terrain, cameras, edit and HUD, and terrain against flat.
 - `docs/merge-plan.md`: how to merge the phase branches into `main`.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
   `hub_spoke_6`, `mesh_small`, `scale_200` and the `parts_logistics_pittsburgh` variants
@@ -172,15 +193,17 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 
 ```
 docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md,
-            calibration.md, network-realism.md, weather-traffic.md, vtol.md, merge-plan.md,
-            media/ (calibration plots)
+            calibration.md, network-realism.md, weather-traffic.md, vtol.md, hero-clip.md,
+            merge-plan.md, media/ (calibration plots, clip stills)
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline);
             flight_profiles/ (the fitted profiles); weather/ (the hourly series)
 sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
 pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/;
-            calib/ (flight model calibration)
-px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/, config/, tools/, samples/
-scripts/    verify.sh, check_spec.py, scale_demand.py
+            calib/ (flight model calibration); hero/ (Phase 8 lane, world, panel, checks)
+px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/ (worlds, systems/), config/,
+            tools/, tests/, samples/
+scripts/    verify.sh, check_spec.py, scale_demand.py, hero_clip.sh
+video/      the rendered clip (git-ignored)
 analysis/   Phase 6a and 6b analysis scripts (uv run) and their results in out/
 ```

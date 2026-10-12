@@ -121,8 +121,13 @@ def main() -> int:
     f, d, cam = cfg["flight"], cfg["detector"], cfg["vehicle"]["camera"]
     spots = scene["spots"]
     lat0, lon0 = lane["from_pad"]["lat_deg"], lane["from_pad"]["lon_deg"]
+    # A terrain world (Phase 8) sets its origin elevation and each pad's ground height in
+    # scene.json; the flat world has neither (A54).
+    origin_elevation_m = scene.get("elevation_m", cfg["world"]["elevation_m"])
+    ground = scene.get("pad_ground_z_m", {"A": 0.0, "B": 0.0})
+
     def latlon(enu):
-        return enu_to_latlon(enu[0], enu[1], lat0, lon0, cfg["world"]["elevation_m"])
+        return enu_to_latlon(enu[0], enu[1], lat0, lon0, origin_elevation_m)
     common = {"use_sim_time": True}
     legs = {"accel_mps2": f["accel_mps2"], "arrive_radius_m": f["arrive_radius_m"],
             "settle_speed_mps": f["settle_speed_mps"], "engage_timeout_s": f["engage_timeout_s"]}
@@ -153,7 +158,7 @@ def main() -> int:
     pad_center = [c for name, _ in pads
                   for c in ((spots[f"{name}_IN"]["enu_m"][0] + spots[f"{name}_OUT"]["enu_m"][0]) / 2,
                             (spots[f"{name}_IN"]["enu_m"][1] + spots[f"{name}_OUT"]["enu_m"][1]) / 2)]
-    pod_rest_max_z = scene["slab_top_m"] + cfg["vehicle"]["pod"]["size_m"][2] / 2 + POD_REST_MARGIN_M
+    pod_rest_above_ground = scene["slab_top_m"] + cfg["vehicle"]["pod"]["size_m"][2] / 2 + POD_REST_MARGIN_M
     params["drone_agent"] = {"ros__parameters": {
         **common, **legs,
         "drone_id": DRONE_ID,
@@ -163,6 +168,7 @@ def main() -> int:
         "pad_out_latlon_deg": [c for name, _ in pads for c in latlon(spots[f"{name}_OUT"]["enu_m"])],
         "pad_in_marker": [spots[f"{name}_IN"]["marker_id"] for name, _ in pads],
         "pad_out_marker": [spots[f"{name}_OUT"]["marker_id"] for name, _ in pads],
+        "pad_ground_alt_m": [float(ground[name] - ground["A"]) for name, _ in pads],
         "start_pad": pads[0][1],
         "start_pod": 1,
         "start_order": ORDER_ID,
@@ -188,7 +194,8 @@ def main() -> int:
             "out_enu_m": spots[f"{name}_OUT"]["enu_m"],
             "spot_sensor_radius_m": cfg["pads"]["slab_side_m"] / 2,
             "in_pod_sensor_radius_m": cfg["pads"]["in_pod_sensor_radius_m"],
-            "pod_rest_max_z_m": pod_rest_max_z,
+            "pod_rest_max_z_m": ground[name] + pod_rest_above_ground,
+            "ground_z_m": float(ground[name]),
             "latch_capture_radius_m": cfg["pads"]["latch_capture_radius_m"],
             "release_verify_s": lane["pad_ops"]["release_verify_s"],
             "latch_verify_s": lane["pad_ops"]["latch_verify_s"],

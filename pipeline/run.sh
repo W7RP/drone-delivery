@@ -33,6 +33,13 @@ if [[ "${1:-}" == "calib" ]]; then
   (cd "$HERE/../sim" && cargo build --quiet --release)
   exec "$VENV/bin/python" -I calib/run.py "$@"
 fi
+if [[ "${1:-}" == "hero" ]]; then
+  # Phase 8 hero clip (pipeline/hero): lane choice and corridor world, offline from the cache.
+  shift
+  [[ -d "$HOME/.cargo/bin" ]] && PATH="$HOME/.cargo/bin:$PATH"
+  (cd "$HERE/../sim" && cargo build --quiet --release)
+  exec "$VENV/bin/python" -m hero "$@"
+fi
 if [[ "${1:-}" == "test" ]]; then
   exec "$VENV/bin/python" -m unittest discover -s tests -t . "${@:2}"
 fi

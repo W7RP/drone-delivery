@@ -160,6 +160,24 @@ committed tables (`pipeline/calib/vtol_phases.json`, `out/vtol_heldout.json`,
 `out/vtol_wind.json`) when they are gone. `--wind-mps W --wind-from-deg D --gust-frac G` adds
 Gazebo wind (spec A94). `docs/vtol.md` has the results.
 
+## Hero clip (Phase 8)
+
+```
+scripts/hero_clip.sh                      # lane, world, panel, camera flight, checks, clip, HUD test
+pipeline/run.sh hero world                # the corridor world alone, into px4/sim/hero (git-ignored)
+px4/tools/run_batch.sh hero_check heroterrain_1 heroterrain_2 heroflat_1 heroflat_2
+pipeline/run.sh hero terrain-check        # the flat-versus-terrain table from that batch
+px4/py.sh tests/test_hero_hud.py <run>    # the HUD against the run's logs and the demo's CSV
+```
+
+`scripts/hero_clip.sh` is offline: it reads the pipeline cache, not the network. It flies the
+visit at 1x with three render cameras, so it needs a GPU-backed headless Gazebo
+(`px4/tools/render_check.sh` checks that) and about 25 minutes of wall time. It writes the clip
+to `video/hero_clip.mp4`, which is git-ignored. The camera streams go to `<run>/video` as H.264;
+`px4/tools/frame_recorder.py` encodes them as they render, and no raw frames are stored. The
+chase camera needs this repo's Gazebo system, built by `px4/tools/build_gz_systems.sh`, which
+the script runs. `docs/hero-clip.md` has the results.
+
 ## Test and verify
 
 ```

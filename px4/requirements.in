@@ -5,3 +5,7 @@ numpy
 opencv-contrib-python-headless
 # pyyaml: reads the pipeline's params.yaml (cruise altitude placeholder).
 pyyaml
+# imageio-ffmpeg: a static ffmpeg binary (no system ffmpeg here) to encode the Phase 8 camera
+# streams and the clip. pillow: draws the clip's HUD and cards.
+imageio-ffmpeg
+pillow

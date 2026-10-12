@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.9.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.9.1. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -1580,7 +1580,8 @@ that:
   are not orders, so they carry no drone or truck time.
 - A54 PX4 SITL flights (`px4/`) fly one lane over flat ground: a single ground plane at the
   hub, no terrain or buildings, no wind. Lanes are flown at the pipeline's placeholder cruise
-  altitude (200 ft), because the core has no altitude (A03).
+  altitude (200 ft), because the core has no altitude (A03). Phase 8's clip flights over
+  terrain are the exception (A95).
 - A55 The SITL vehicle is PX4's x500 body made to weigh `drone.empty_mass_kg` plus a
   `drone.latch_mass_kg` latch, with motor constant and inertia scaled so thrust-to-weight is a
   placeholder 2.0 at `drone.mtow_kg` and PX4's stock x500 gains fit. A pod hangs in a latch and
@@ -1777,6 +1778,46 @@ that:
   gust fraction x wind on the magnitude, drawn every physics step. Gazebo's airspeed sensor
   ignores the wind, so PX4's airspeed is ground speed along the body axis. The check informs
   the limitations only; nothing is calibrated from it.
+- A95 Phase 8's clip flight (docs/hero-clip.md) flies one lane over a world built from the
+  pipeline's DEM and OSM data.
+  - *Datum.* World z is DEM elevation (NAVD88) minus pad A's.
+  - *Pads.* Each pad stands on a flat apron at its DEM elevation.
+  - *Heights.* The approach height is measured from the pad's own ground, the hop height from
+    where the drone stands on IN (the baro height drifts by about a metre over a long visit).
+    The cruise altitude is one constant: the lane's `max_terrain_m` plus the airspace cruise
+    height.
+  - *Collision.* The terrain, water, roads and buildings are visual only; the drone collides
+    with the aprons and spot slabs alone.
+  - *Landing speed.* Without a rangefinder, PX4 slows its landing by height above home (pad A),
+    not above the pad it lands on.
+  - *Clearance.* Margins to terrain and buildings along the path are placeholders (30 m),
+    checked, not enforced. The sim's flight model still has no altitude (A03): it leaves out
+    the climb to and descent from the cruise altitude and the energy they take.
+- A96 On a terrain world Gazebo's GPS altitude includes the world's elevation and its air
+  pressure sensor does not (it ignores `reference_altitude`). PX4 is given a per-run QNH (PX4
+  parameter SENS_BARO_QNH) at which Gazebo's sea-level pressure reads as the world's elevation,
+  so baro, GPS, EKF origin and home agree from boot. Without it PX4's baro-to-GNSS calibration
+  moved the baro by the elevation after the EKF origin was set. The baro's altitude scale then
+  differs from Gazebo's by lapse x elevation / T0 (0.5% at 222 m).
+- A97 The clip is cut by rules on the event log. Handshake exchanges, transitions, touchdowns,
+  release and latch play at 1x. The climb, cruise, descent, hop flight and latch waits are
+  compressed to set lengths and labelled "x N", because the visit's 190 s outside the cruise
+  cannot fit a 60 to 90 s clip at 1x.
+  - *HUD sources.* The HUD shows only logged values: states, messages with their send times,
+    PX4's battery % (time-based, A57) and height above the terrain mesh.
+  - *Panel.* The drone-versus-truck panel is the demo scenario's own deliveries.csv: the
+    median drone-delivered order's door-to-door split, and the median truck time over the same
+    orders.
+  - *Cameras.* Each camera is a static, massless model. A Gazebo system poses the chase
+    camera from the drone's pose every sim step. Placement is a placeholder.
+- A98 Corridor world content, all placeholders unless stated:
+  - *Buildings:* height from OSM `height`, else `building:levels` x 3 m, else 8 m. A footprint
+    touching a pad's 15 m clear circle is left out, since pads are ground slabs.
+  - *Water:* slabs at the median DEM elevation inside each OSM polygon, because 3DEP is
+    hydro-flattened.
+  - *Roads:* 6 to 14 m strips by class. Bridges span linearly between their ends; tunnels are
+    left out.
+  - *Terrain:* a 30 m grid tinted by elevation band.
 
 ## 11 Amendments
 
@@ -1795,3 +1836,4 @@ that:
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
 | 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. Traffic: 2.11, `truck_matrix.bin` version_minor 2 with road-class and bridge/tunnel fractions (9.2; minor-1 files still load), `[traffic]` keys, R22, TRAFFIC stream (5.4); A84 to A87. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck; and road traffic for the truck, which the brief asks to model by road class from the pipeline's own routes, with no live data. |
 | 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. `traffic.start_unix_s` and R23, US Eastern local time for traffic; A90. `flight_samples.bin` version_minor 1 with `pusher_radps` (9.5) and `vtol` events (9.6); A91, A92. Spot value OUT_4 and `pad_ops.out_spots` up to 4 (A72). VTOL flight-profile keys (8.7), the transition phase in `sim flight-model`, energy guards with transitions; A93. SITL wind check; A94. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; cold, though checked per route, stopped every route through stranded drones and blocked OUT spots; traffic peaks moved an hour with daylight saving (A87); and the VTOL layout sweep goes to four OUT spots. |
+| 1.9.1 | A54 exception and A95 to A98 (terrain world, baro datum, clip edit, world content). No schema change; configs stay at schema 1.9.0. | Phase 8 renders one VTOL visit over real Pittsburgh terrain and buildings for a clip. The flat-world assumptions do not hold there, and the clip's cut and HUD needed rules of their own. |
