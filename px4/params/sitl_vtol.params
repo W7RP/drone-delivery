@@ -1,0 +1,12 @@
+# Added to sitl.params for the VTOL (AIRFRAME=vtol, PX4 4004; Phase 7, spec A91). Placeholders.
+# Fixed-wing airspeeds for the scaled standard VTOL: stall about 6.8 m/s at 14.6 kg, cruise at
+# the scenario's 15 m/s, a minimum with margin over stall.
+FW_AIRSPD_STALL 7.0
+FW_AIRSPD_MIN 10.0
+FW_AIRSPD_TRIM 15.0
+FW_AIRSPD_MAX 22.0
+# Transition: leave multirotor mode at this airspeed, and give the transitions time.
+VT_ARSP_TRANS 12.0
+VT_TRANS_TIMEOUT 30.0
+VT_B_TRANS_DUR 8.0
+# The disarm timer applies after any landing; offboard stays as in sitl.params.

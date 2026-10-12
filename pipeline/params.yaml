@@ -55,6 +55,29 @@ scenarios:
     description: "The anchor preset with the fitted flight profile and a 1370 Wh battery, enough for its longest legal lane at 5 kg, seven days."
     drone:
       battery_capacity_j: { value: 4932000.0, unit: "J", assumption: true }
+  # Phase 7: the VTOL profile fitted to PX4 SITL (docs/vtol.md), with the battery the longest
+  # legal lane (hub to Edgar Thomson, 12.9 km) needs at 5 kg with its mass coupled (A68): 619.4 Wh
+  # from pipeline/calib/out/vtol_consequences.json, rounded up to 620 Wh. Every Phase 6a fix on:
+  # repair, yield on request, the derived latch fault, the marker self-check, the reorder window.
+  - name: parts_logistics_pittsburgh_vtol
+    flight_profile: px4_sitl_vtol_proxy
+    description: "The anchor preset flown by the VTOL profile fitted to PX4 SITL with a coupled 620 Wh battery and every Phase 6a fix: Strip District warehouses to the hospitals and the Mon Valley plants its lanes reach, seven days."
+    schema_version: "1.9.0"
+    drone:
+      battery_capacity_j: { value: 2232000.0, unit: "J", assumption: true }
+    coupling:
+      airframe_mass_kg: { value: 4.5, unit: "kg", assumption: true }
+      battery_specific_energy_wh_per_kg: { value: 200.0, unit: "Wh/kg", assumption: true }
+    remove: [drone.p_latch_fault]
+    set:
+      drone.latch_capture_radius_m: { value: 0.15, unit: "m", assumption: true }
+      drone.out_landing_error_bias_m: { value: 0.08003523204675218, unit: "m", assumption: true }
+      drone.out_landing_error_sigma_m: { value: 0.034821452725140145, unit: "m", assumption: true }
+      pad_ops.repair_mean_s: { value: 7200.0, unit: "s", assumption: true }
+      pad_ops.repair_spread_s: { value: 3600.0, unit: "s", assumption: true }
+      pad_ops.marker_self_check: true
+      handshake.reorder_window_s: { value: 1.0, unit: "s", assumption: true }
+      policy.yield_on_request: true
 
 weather:
   # Hourly series (ddpipe/weather.py, spec 9.7): the primary station unless more than

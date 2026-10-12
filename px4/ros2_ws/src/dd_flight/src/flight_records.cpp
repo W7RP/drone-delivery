@@ -67,6 +67,7 @@ std::array<std::uint8_t, kSampleRecordBytes> pack(const SampleRecord & r)
   put(b, 89, r.nav_state);
   put(b, 90, r.arming_state);
   put(b, 91, r.pods_latched);
+  put(b, 92, r.pusher_radps);
   return b;
 }
 

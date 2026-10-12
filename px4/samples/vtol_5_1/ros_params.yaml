@@ -1,0 +1,161 @@
+marker_detector:
+  ros__parameters:
+    use_sim_time: true
+    marker_side_m: 0.8
+    marker_offset_enu_m:
+    - 0.0
+    - 1.0
+    camera_mount_flu_m:
+    - 0.25
+    - 0.0
+    - -0.15
+    camera_hfov_rad: 1.2
+    corner_noise_px: 0.3
+    window: 10
+    min_detections: 3
+    seed: 1
+    mavlink_host: 127.0.0.1
+    mavlink_port: 14580
+precland_check:
+  ros__parameters:
+    use_sim_time: true
+    accel_mps2: 2.0
+    arrive_radius_m: 1.0
+    settle_speed_mps: 0.5
+    engage_timeout_s: 30.0
+    spot_enu_m:
+    - -2.0
+    - 0.0
+    spot_latlon_deg:
+    - 40.45388929999759
+    - -79.98500147773923
+    marker_id: 1
+    approach_alt_m: 6.0
+    min_detections: 3
+drone_agent:
+  ros__parameters:
+    use_sim_time: true
+    accel_mps2: 2.0
+    arrive_radius_m: 1.0
+    settle_speed_mps: 0.5
+    engage_timeout_s: 30.0
+    drone_id: 0
+    pad_ids:
+    - 0
+    - 4
+    pad_center_latlon_deg:
+    - 40.45388929999999
+    - -79.9849779
+    - 40.446766632894274
+    - -79.96213121075388
+    pad_in_latlon_deg:
+    - 40.45388929999759
+    - -79.98500147773923
+    - 40.44676663755106
+    - -79.96215478600087
+    pad_out_latlon_deg:
+    - 40.45388929999759
+    - -79.98495432226078
+    - 40.44676662823268
+    - -79.96210763550691
+    pad_in_marker:
+    - 1
+    - 3
+    pad_out_marker:
+    - 2
+    - 4
+    start_pad: 0
+    start_pod: 1
+    start_order: 0
+    cruise_speed_mps: 15.0
+    cruise_alt_m: 60.96
+    approach_alt_m: 6.0
+    hop_alt_m: 2.5
+    hop_speed_mps: 1.5
+    release_s: 5.0
+    latch_s: 8.0
+    latch_capture_radius_m: 0.15
+    min_detections: 3
+    target_timeout_s: 30.0
+    airframe: vtol
+    back_transition_m: 150.0
+    transition_timeout_s: 40.0
+pad_a:
+  ros__parameters:
+    use_sim_time: true
+    pad_id: 0
+    in_enu_m:
+    - -2.0
+    - 0.0
+    out_enu_m:
+    - 2.0
+    - 0.0
+    spot_sensor_radius_m: 0.8
+    in_pod_sensor_radius_m: 0.5
+    pod_rest_max_z_m: 0.08
+    latch_capture_radius_m: 0.15
+    release_verify_s: 3.0
+    latch_verify_s: 3.0
+    out_pod: -1
+    parked_drone_on_out: 0
+pad_b:
+  ros__parameters:
+    use_sim_time: true
+    pad_id: 4
+    in_enu_m:
+    - 1936.1927873790214
+    - -790.6737648912814
+    out_enu_m:
+    - 1940.1927873790214
+    - -790.6737648912814
+    spot_sensor_radius_m: 0.8
+    in_pod_sensor_radius_m: 0.5
+    pod_rest_max_z_m: 0.08
+    latch_capture_radius_m: 0.15
+    release_verify_s: 3.0
+    latch_verify_s: 3.0
+    out_pod: 2
+    parked_drone_on_out: -1
+fleet_manager:
+  ros__parameters:
+    use_sim_time: true
+    drone_id: 0
+    dest_pad: 4
+    order_id: 0
+    pickup_pod: 2
+    pickup_order_id: 1
+flight_logger:
+  ros__parameters:
+    use_sim_time: true
+    run_dir: /home/jdarr/projects/drone-delivery/px4/runs/vtol_cal/vtol_5_1
+    lane_id: 3
+    order_id: 0
+    payload_kg: 5.0
+    drone_id: 0
+    from_pad: 0
+    to_pad: 4
+    motor_constant: 6.368159203980099e-05
+    rotor_radius_m: 0.17843989469818822
+    pusher_motor_constant: 2.7219359203980096e-05
+    pusher_radius_m: 0.10706393681891291
+    air_density_kgpm3: 1.225
+    sample_period_s: 0.05
+    spot_pad_ids:
+    - 0
+    - 0
+    - 4
+    - 4
+    spot_codes:
+    - 0
+    - 1
+    - 0
+    - 1
+    spot_enu_m:
+    - -2.0
+    - 0.0
+    - 2.0
+    - 0.0
+    - 1936.1927873790214
+    - -790.6737648912814
+    - 1940.1927873790214
+    - -790.6737648912814

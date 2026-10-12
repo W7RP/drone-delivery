@@ -62,4 +62,15 @@ double induced_power_w(
   return std::pow(thrust_n, 1.5) / std::sqrt(2.0 * air_density_kgpm3 * disk_m2);
 }
 
+double propeller_power_w(
+  double omega_radps, double motor_constant, double air_density_kgpm3, double rotor_radius_m,
+  double axial_speed_mps)
+{
+  const double thrust_n = motor_constant * omega_radps * omega_radps;
+  const double disk_m2 = std::numbers::pi * rotor_radius_m * rotor_radius_m;
+  const double v = std::max(axial_speed_mps, 0.0);
+  const double vi = -0.5 * v + std::sqrt(0.25 * v * v + thrust_n / (2.0 * air_density_kgpm3 * disk_m2));
+  return thrust_n * (v + vi);
+}
+
 }  // namespace dd_flight

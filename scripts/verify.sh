@@ -11,9 +11,12 @@
 #     case; the 7-day Pittsburgh scenario with each flight profile (fitted, placeholder, and fitted
 #     with the 1370 Wh battery), at 1370 Wh with the Phase 6a pad layout and repair keys, and
 #     the coupled 900 Wh layout of Phase 6b, and the Phase 6b demo with weather and traffic;
-#     and the placeholder Pittsburgh at three times its demand, which must turn requests away at
-#     the backlog cap instead of queueing them without limit.
-#     Skip with VERIFY_SKIP_SCALE=1.
+#     the Phase 7 VTOL scenario, its layout and its demo (every 1.9.0 key on), whose order
+#     outcomes must account for every request; and the placeholder Pittsburgh at three times its
+#     demand, which must turn requests away at the backlog cap instead of queueing them without
+#     limit. Skip with VERIFY_SKIP_SCALE=1.
+#  6. The Phase 7 VTOL fit reruns from its committed table to byte-identical parameters
+#     (pipeline/run.sh calib vtol_fit, then git diff). Skip with VERIFY_SKIP_SCALE=1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -d "$HOME/.cargo/bin" ] && PATH="$HOME/.cargo/bin:$PATH"
@@ -75,6 +78,21 @@ if [ "${VERIFY_SKIP_SCALE:-0}" != "1" ]; then
     "$out/pittsburgh_900wh_layout"
   budget_run pittsburgh_demo configs/parts_logistics_pittsburgh_demo/scenario.toml \
     "$out/pittsburgh_demo"
+  budget_run pittsburgh_vtol configs/parts_logistics_pittsburgh_vtol/scenario.toml "$out/pittsburgh_vtol"
+  budget_run pittsburgh_vtol_layout configs/parts_logistics_pittsburgh_vtol_layout/scenario.toml \
+    "$out/pittsburgh_vtol_layout"
+  budget_run pittsburgh_vtol_demo configs/parts_logistics_pittsburgh_vtol_demo/scenario.toml \
+    "$out/pittsburgh_vtol_demo"
+  python3 - "$out/pittsburgh_vtol_demo/metrics.json" <<'PY'
+import json, sys
+o = json.load(open(sys.argv[1]))["order_outcomes"]
+classes = ["delivered_drone", "delivered_truck", "rejected_cap", "blocked_weather", "blocked_energy",
+           "in_flight", "waiting", "diverted_or_failed"]
+total = sum(o[c] for c in classes)
+print(f"pittsburgh_vtol_demo: {total} of {o['requests']} requests in an outcome class, "
+      f"completion {o['completion_rate']:.1%}")
+sys.exit(0 if total == o["requests"] else "FAIL: order outcomes do not account for every request")
+PY
   triple="$(python3 scripts/scale_demand.py configs/parts_logistics_pittsburgh_placeholder/scenario.toml 3 "$out/x3")"
   budget_run pittsburgh_3x "$triple" "$out/pittsburgh_3x"
   python3 - "$out/pittsburgh_3x/metrics.json" <<'PY'
@@ -84,5 +102,10 @@ rejected, requests = m["requests_rejected"], m["shipment_requests_in_window"]
 print(f"pittsburgh_3x: {rejected} of {requests} requests rejected at the backlog cap")
 sys.exit(0 if rejected > 0 else "FAIL: 3x demand should overflow the backlog cap")
 PY
+
+  echo "== VTOL fit reruns identically"
+  pipeline/run.sh calib vtol_fit > /dev/null
+  git diff --exit-code --stat -- pipeline/calib/vtol_fitted_params.json pipeline/calib/out/vtol_fit.json \
+    || { echo "FAIL: the VTOL fit changed on rerun"; exit 1; }
 fi
 echo "verify: all checks passed"

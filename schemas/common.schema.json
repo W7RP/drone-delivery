@@ -126,7 +126,8 @@
         "OUT",
         "PARKING",
         "OUT_2",
-        "OUT_3"
+        "OUT_3",
+        "OUT_4"
       ]
     },
     "VisitState": {
@@ -323,6 +324,12 @@
         "TRUCK_FALLBACK"
       ]
     },
+    "Airframe": {
+      "enum": [
+        "MULTIROTOR",
+        "VTOL"
+      ]
+    },
     "FaultKind": {
       "enum": [
         "MARKER_NOT_DETECTED",
@@ -474,6 +481,17 @@
         }
       }
     },
+    "q_W_nonneg": {
+      "$ref": "#/$defs/quantity",
+      "properties": {
+        "unit": {
+          "const": "W"
+        },
+        "value": {
+          "minimum": 0
+        }
+      }
+    },
     "q_J_pos": {
       "$ref": "#/$defs/quantity",
       "properties": {
@@ -588,7 +606,7 @@
         "value": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 3
+          "maximum": 4
         }
       }
     },

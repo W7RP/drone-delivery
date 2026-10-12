@@ -143,6 +143,7 @@ fn flight_model(args: &[String]) -> ExitCode {
         "lane_m": lane_m,
         "payload_kg": payload_kg,
         "takeoff": phase(v.takeoff),
+        "transition": phase(v.transition),
         "cruise": phase(v.cruise),
         "approach": phase(v.approach),
         "hop": phase(v.hop),
@@ -250,8 +251,9 @@ fn battery(args: &[String]) -> ExitCode {
     let d = &cfg.drone;
     let usable_fraction = d.charge_target_soc - d.reserve_soc;
     // Iterate C <- C + shortfall(C), with shortfall = need / usable fraction - C. The shortfall
-    // is convex in C (power grows as mass^1.5), so the steps shrink while it falls; once a step
-    // grows again the shortfall is rising and no battery closes it.
+    // is convex in C (power grows as mass^1.5), so the steps shrink in size while the iteration
+    // closes, from either side (a battery larger than needed shrinks with negative steps); once
+    // a step grows in size again no battery closes it.
     let shortfall_j = |c: f64| lane_need_j(&cfg, &net, (a, b), payload_kg, c) / usable_fraction - c;
     let mut capacity_j = d.battery_capacity_j;
     let mut closest = (capacity_j, shortfall_j(capacity_j));
@@ -269,7 +271,7 @@ fn battery(args: &[String]) -> ExitCode {
             converged = true;
             break;
         }
-        if step > previous_step {
+        if step.abs() > previous_step.abs() {
             break;
         }
         previous_step = step;

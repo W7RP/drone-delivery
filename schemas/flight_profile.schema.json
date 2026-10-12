@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://drone-delivery.invalid/schemas/flight_profile.schema.json",
   "title": "drone-delivery flight profile (configs/flight_profiles/<name>.toml)",
-  "description": "Flight-model values a scenario can select (spec 8.7). Every value is a quantity; units are fixed per key as in config.schema.json.",
+  "description": "Flight-model values a scenario can select (spec 8.7). Every value is a quantity; units are fixed per key as in config.schema.json. A VTOL profile adds airframe, mtow_kg, transition_s with transition_power_ref_w, and cruise_mass_exponent (A93).",
   "type": "object",
   "required": [
     "name",
@@ -52,7 +52,30 @@
         },
         "hop_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "airframe": {
+          "$ref": "common.schema.json#/$defs/Airframe"
+        },
+        "mtow_kg": {
+          "$ref": "common.schema.json#/$defs/q_kg_pos"
+        },
+        "transition_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
+        },
+        "transition_power_ref_w": {
+          "$ref": "common.schema.json#/$defs/q_W_nonneg"
+        },
+        "cruise_mass_exponent": {
+          "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
         }
+      },
+      "dependentRequired": {
+        "transition_s": [
+          "transition_power_ref_w"
+        ],
+        "transition_power_ref_w": [
+          "transition_s"
+        ]
       }
     }
   }

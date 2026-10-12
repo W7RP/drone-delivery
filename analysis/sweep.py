@@ -32,7 +32,11 @@ Phase 6b adds `--base 900`: the same grid on the coupled 900 Wh network (fitted 
 4.5 kg airframe at 200 Wh/kg, spec A68) with the yield fix on (A74) at every point; it writes
 sweep_900wh.json/.md and configs/parts_logistics_pittsburgh_900wh_layout.
 
-Run: uv run analysis/sweep.py [--base 1370|900]"""
+Phase 7 adds `--base vtol`: the VTOL network (parts_logistics_pittsburgh_vtol, fitted VTOL
+profile, coupled 620 Wh, every 6a fix already on), parking 0 to 2 and 1 to 4 OUT spots (OUT_4
+needs schema 1.9.0); it writes sweep_vtol.json/.md and configs/parts_logistics_pittsburgh_vtol_layout.
+
+Run: uv run analysis/sweep.py [--base 1370|900|vtol]"""
 
 import argparse
 import csv
@@ -65,6 +69,11 @@ class Base:
     # Keys every sweep point and the "with repair" reference also get.
     extra: dict = field(default_factory=dict)
     coupled: bool = False
+    parking_grid: tuple = (0, 1, 2, 3)
+    out_grid: tuple = (1, 2, 3)
+    # The base scenario already repairs (and yields, and couples its battery): the chosen
+    # layout file then only gains the layout keys.
+    has_repair: bool = False
 
 
 BASES = {
@@ -80,10 +89,11 @@ BASES = {
                     "policy.yield_on_request": True,
                 },
                 coupled=True),
+    "vtol": Base("parts_logistics_pittsburgh_vtol", "parts_logistics_pittsburgh_vtol_layout",
+                 "VTOL", "sweep_vtol", "1.9.0", extra={"schema_version": "1.9.0"},
+                 parking_grid=(0, 1, 2), out_grid=(1, 2, 3, 4), has_repair=True),
 }
 POWERS_W = [1500.0, 3000.0, 6000.0, 12000.0]
-PARKING = [0, 1, 2, 3]
-OUT_SPOTS = [1, 2, 3]
 SEEDS = [1, 2, 3, 4, 5]
 WITHIN = 0.10
 # A 7-day run takes well under a second; a run this long is stuck.
@@ -223,11 +233,12 @@ def write_chosen(base: Base, point: dict) -> Path:
         f'out_spots = {{ value = {point["out_spots"]}, unit = "count", assumption = true }}\n'
         f'parking_capacity = {{ value = {point["parking"]}, unit = "count", assumption = true }}\n'
     )
-    layout += (
-        "# Repair after a release fault (spec A69), as in the sweep.\n"
-        f'repair_mean_s = {{ value = {REPAIR_MEAN_S}, unit = "s", assumption = true }}\n'
-        f'repair_spread_s = {{ value = {REPAIR_SPREAD_S}, unit = "s", assumption = true }}\n'
-    )
+    if not base.has_repair:
+        layout += (
+            "# Repair after a release fault (spec A69), as in the sweep.\n"
+            f'repair_mean_s = {{ value = {REPAIR_MEAN_S}, unit = "s", assumption = true }}\n'
+            f'repair_spread_s = {{ value = {REPAIR_SPREAD_S}, unit = "s", assumption = true }}\n'
+        )
     text, n = re.subn(r"^(pc_fault_duration_s = .*\n)", r"\1" + layout.replace("\\", "\\\\"), text, count=1, flags=re.MULTILINE)
     assert n == 1
     if base.coupled:
@@ -261,7 +272,7 @@ def main() -> None:
         before = [run_one(CONFIGS / base.scenario / "scenario.toml", s, root / f"base_{s}", window) for s in SEEDS]
         repaired = variant(base.scenario, root, "base_repair", {**REPAIR, **base.extra})
         before_repair = [run_one(repaired, s, root / f"base_repair_{s}", window) for s in SEEDS]
-        for power_w, parking, out_spots in product(POWERS_W, PARKING, OUT_SPOTS):
+        for power_w, parking, out_spots in product(POWERS_W, base.parking_grid, base.out_grid):
             name = f"p{int(power_w)}_k{parking}_o{out_spots}"
             path = variant(base.scenario, root, name, edits(base, power_w, parking, out_spots))
             runs = [run_one(path, s, root / f"{name}_{s}", window) for s in SEEDS]

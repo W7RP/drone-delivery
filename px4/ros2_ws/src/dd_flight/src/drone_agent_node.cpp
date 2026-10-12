@@ -1,6 +1,10 @@
 // Drone agent: the drone side of the spec handshake (docs/spec.md 4.4) for the normal delivery
 // visit, flying the vehicle through PX4 offboard and precision land.
 //
+// VTOL (airframe vtol, Phase 7): the lane is flown as a fixed wing between a transition after
+// the climb and a back-transition back_transition_m before the destination's holding fix; the
+// spec rows are the same.
+//
 // Rows implemented: D19 (mission -> DEPART_REQUEST), D01 (DEPART_CLEAR -> TAKEOFF), D02
 // (top of climb -> EN_ROUTE, DEPARTED), D03 (holding fix reached -> HOLDING, LANDING_REQUEST),
 // D04 (LANDING_GRANT -> APPROACH), D05 (touchdown with the marker detected -> ON_PAD, LANDED),
@@ -69,8 +73,9 @@ public:
   : Node("drone_agent"), bus_(*this, "DRONE"), px4_(*this),
     maneuver_(px4_, {declare_parameter<double>("accel_mps2"),
         declare_parameter<double>("arrive_radius_m"), declare_parameter<double>("settle_speed_mps"),
-        declare_parameter<double>("engage_timeout_s")}),
-    truth_(*this, {"dd_quad", "dd_pod_1", "dd_pod_2"})
+        declare_parameter<double>("engage_timeout_s"),
+        declare_parameter<double>("transition_timeout_s", 40.0)}),
+    truth_(*this, {"drone", "dd_pod_1", "dd_pod_2"})
   {
     id_ = static_cast<std::uint16_t>(declare_parameter<int>("drone_id"));
     const auto ids = declare_parameter<std::vector<int64_t>>("pad_ids");
@@ -97,6 +102,8 @@ public:
     capture_m_ = declare_parameter<double>("latch_capture_radius_m");
     min_detections_ = static_cast<std::uint32_t>(declare_parameter<int>("min_detections"));
     target_timeout_s_ = declare_parameter<double>("target_timeout_s");
+    vtol_ = declare_parameter<std::string>("airframe", "quad") == "vtol";
+    back_transition_m_ = declare_parameter<double>("back_transition_m", 0.0);
 
     bus_.on("MISSION_ASSIGN", [this](const Handshake & m) {on_mission(m);});
     bus_.on("DEPART_CLEAR", [this](const Handshake & m) {on_depart_clear(m);});
@@ -287,7 +294,7 @@ private:
     const double dt = last_step_.nanoseconds() == 0 ? 0.0 : (t - last_step_).seconds();
     last_step_ = t;
     if (!started_) {
-      if (px4_.ready() && truth_.has("dd_quad")) {
+      if (px4_.ready() && truth_.has("drone")) {
         started_ = true;
         yaw_ = px4_.heading();
         drone_status("PARKED");
@@ -317,7 +324,7 @@ private:
     if (latch_due_ && t >= *latch_due_) {
       latch_due_.reset();
       const std::string pod = "dd_pod_" + std::to_string(latch_pod_);
-      const Vec3 me = truth_.enu("dd_quad");
+      const Vec3 me = truth_.enu("drone");
       const bool locked = truth_.horizontal_distance(pod, me[0], me[1]) <= capture_m_;
       if (locked) {
         latch_pubs_[pod + "/attach"]->publish(std_msgs::msg::Empty());
@@ -342,7 +349,12 @@ private:
       pad_ = kNoId16;
       drone_status("EN_ROUTE");
       const Vec3 fix = ned(pad(dest_).center, cruise_alt_);
-      maneuver_.start({{Leg::Kind::kLine, fix, cruise_speed_}, {Leg::Kind::kHold, fix}}, yaw_);
+      std::deque<Leg> lane{{Leg::Kind::kLine, fix, cruise_speed_}, {Leg::Kind::kHold, fix}};
+      if (vtol_) {
+        // Fixed-wing cruise, back to multicopter before the fix, then the rest of the way.
+        lane.push_front({Leg::Kind::kFixedWing, fix, cruise_speed_, back_transition_m_});
+      }
+      maneuver_.start(std::move(lane), yaw_);
     } else if (mode_ == Mode::kEnRoute && maneuver_.leg() == Leg::Kind::kHold) {
       // D03: at the holding fix of dest_pad.
       go(Mode::kHolding, "D03");
@@ -412,7 +424,8 @@ private:
   std::uint32_t detections_ = 0, min_detections_{};
   double cruise_speed_{}, cruise_alt_{}, approach_alt_{}, hop_alt_{}, hop_speed_{};
   double release_s_{}, latch_s_{}, capture_m_{}, target_timeout_s_{}, yaw_ = 0.0;
-  bool started_ = false;
+  bool started_ = false, vtol_ = false;
+  double back_transition_m_ = 0.0;
   std::optional<rclcpp::Time> release_due_, latch_due_;
   rclcpp::Time last_step_{0, 0, RCL_ROS_TIME}, wait_since_{0, 0, RCL_ROS_TIME};
   std::map<std::string, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> latch_pubs_;

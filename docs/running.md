@@ -138,6 +138,28 @@ the cached downloads. The numbers are the section numbers of `docs/weather-traff
 has the results; steps 0, 1 and 3 to 6 are covered by `sim/tests/run_guards.rs`,
 `yield_fix.rs`, `weather.rs`, `traffic.rs` and the pipeline tests.
 
+## VTOL and completion-aware results (Phase 7)
+
+```
+uv run analysis/completion.py                 # 6b weeks with order outcomes, timeout, energy guard
+px4/tools/run_batch.sh vtol_cal vtol_0_1 vtol_0_2 vtol_2_1 vtol_2_2 vtol_5_1 vtol_5_2 vtol1x_5_1
+px4/tools/run_batch.sh vtol_held vtolheld_4_1 vtolheld_4_2 vtolheld_45_1 vtolheld_45_2
+px4/tools/run_batch.sh vtol_wind vtolwind_0_1 vtolwind_0_2 vtolwind_5_1 vtolwind_5_2 vtolwind_8_1 vtolwind_8_2
+pipeline/run.sh calib vtol                    # phases, fit, profile, battery and range, held out, wind, plots
+uv run analysis/sweep.py --base vtol          # layout sweep (writes the VTOL layout scenario)
+uv run analysis/fleet.py --base vtol          # pods and fleet at that layout
+uv run analysis/vtol_year.py                  # both demos over 156 weeks, about 10 s
+px4/run_flight.sh --airframe vtol --payload-kg 5 --lane 4 --seed 1 --out <dir>
+```
+
+The flights take 2 to 8 minutes of wall time each at 2x and about 700 MB of RAM. The batch
+names are listed at the top of `px4/tools/run_batch.sh`. `run.json` records the px4/ revision
+that flew a run, and the calibration steps refuse batches from mixed or uncommitted versions.
+Do not edit px4/ while a batch flies. The raw logs are not kept: `calib vtol` reruns from the
+committed tables (`pipeline/calib/vtol_phases.json`, `out/vtol_heldout.json`,
+`out/vtol_wind.json`) when they are gone. `--wind-mps W --wind-from-deg D --gust-frac G` adds
+Gazebo wind (spec A94). `docs/vtol.md` has the results.
+
 ## Test and verify
 
 ```

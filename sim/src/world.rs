@@ -41,9 +41,9 @@ pub fn narrow_f32(v: f64) -> f32 {
     v as f32
 }
 
-/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3), for the per-spot occupancy check.
+/// Spot codes (IN, OUT, PARKING, OUT_2, OUT_3, OUT_4), for the per-spot occupancy check.
 #[cfg(debug_assertions)]
-const SPOT_CODES: usize = 5;
+const SPOT_CODES: usize = 6;
 /// Queue capacity reserved up front: a few pending events per entity is the steady state.
 const QUEUE_SLOTS_PER_ENTITY: usize = 16;
 /// Initial backlog capacity per pad when `demand.max_backlog_per_pad` is absent; it grows as needed.
@@ -82,7 +82,7 @@ pub struct PadSt {
     pub in_reserved: DroneId,
     pub in_pod: PodId,
     pub in_pod_removal_scheduled: bool,
-    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3.
+    /// The OUT spots, `pad_ops.out_spots` of them (A72); index k is spot OUT, OUT_2, OUT_3, OUT_4.
     pub outs: Vec<OutSpot>,
     /// Empty pods physically in inventory, reserved or not.
     pub inventory: Vec<PodId>,
@@ -347,6 +347,9 @@ pub struct World {
     pub ended: bool,
     /// The current weather hour (2.10); None without `[weather]`.
     pub weather: Option<WeatherNow>,
+    /// Per route `a * n + b`: since when a fully charged drone cannot fly it (A89), NO_TIME
+    /// while it can or when the energy fallback is off.
+    pub route_blocked_since: Vec<TimeMs>,
     #[cfg(debug_assertions)]
     scratch: Vec<u8>,
 }
@@ -359,8 +362,7 @@ impl World {
         let rng = Streams::new(master, cfg.flows.len(), n_pads, n_drones);
         let mut energy = EnergyRules::from_config(&cfg);
         let weather = cfg.weather.as_ref().map(|w| {
-            let curve = CruiseCurve::new(energy.model, w.air_density_kgpm3, w.rotor_disc_area_m2)
-                .expect("R20 checked at load");
+            let curve = CruiseCurve::for_config(&cfg, w).expect("R20 checked at load");
             let latch = cfg.drone.latch_derivation.expect("R19 checked at load");
             WeatherNow::at(w, curve, latch, 0, None)
         });
@@ -494,6 +496,7 @@ impl World {
             out,
             ended: false,
             weather,
+            route_blocked_since: vec![NO_TIME; n_pads * n_pads],
             #[cfg(debug_assertions)]
             scratch: vec![0; total_pods.max(n_pads * SPOT_CODES)],
             net,
@@ -587,9 +590,56 @@ impl World {
         if let Some(w) = self.weather {
             self.schedule_next_weather_hour();
             if !w.flyable {
-                self.schedule_truck_fallback(0);
+                self.schedule_truck_fallback(0, 0);
+            }
+            if self.refresh_route_blocks() {
+                self.schedule_truck_fallback(0, 0);
             }
         }
+    }
+
+    /// TRUCK_FALLBACK on energy (A89): note which routes a fully charged drone cannot fly this
+    /// hour and since when. True if a route became blocked now.
+    fn refresh_route_blocks(&mut self) -> bool {
+        let on = self
+            .cfg
+            .weather
+            .as_ref()
+            .is_some_and(|w| w.energy_route_guard);
+        if !on {
+            return false;
+        }
+        let n = self.pads.len();
+        let mut started = false;
+        for k in 0..n * n {
+            let (a, b) = (k / n, k % n);
+            if a == b {
+                continue;
+            }
+            let blocked = self.route_energy_blocked(
+                PadId::try_from(a).expect("pad count fits u16"),
+                PadId::try_from(b).expect("pad count fits u16"),
+            );
+            let since = &mut self.route_blocked_since[k];
+            if !blocked {
+                *since = NO_TIME;
+            } else if *since == NO_TIME {
+                *since = self.now;
+                started = true;
+            }
+        }
+        started
+    }
+
+    /// Since when route a -> b has been blocked for TRUCK_FALLBACK: by weather (every route,
+    /// A83), or, with `weather.energy_route_guard`, by energy (A89). None if it is not.
+    pub(crate) fn route_blocked_from(&self, a: PadId, b: PadId) -> Option<TimeMs> {
+        let now = self.weather?;
+        if now.blocked_since.is_some() {
+            return now.blocked_since;
+        }
+        let since = self.route_blocked_since[usize::from(a) * self.pads.len() + usize::from(b)];
+        (since != NO_TIME).then_some(since)
     }
 
     fn schedule_next_weather_hour(&mut self) {
@@ -601,17 +651,14 @@ impl World {
         }
     }
 
-    /// TRUCK_FALLBACK (A83): look again once an order requested at `requested` has been
-    /// blocked for the timeout.
-    pub(crate) fn schedule_truck_fallback(&mut self, requested: TimeMs) {
+    /// TRUCK_FALLBACK (A83): look again once an order requested at `requested`, on a route
+    /// blocked since `from`, has been blocked for the timeout.
+    pub(crate) fn schedule_truck_fallback(&mut self, requested: TimeMs, from: TimeMs) {
         let w = self.cfg.weather.as_ref().expect("weather configured");
         if w.hold_policy != crate::ids::WeatherHoldPolicy::TruckFallback {
             return;
         }
-        let Some(since) = self.weather.and_then(|n| n.blocked_since) else {
-            return;
-        };
-        let due = requested.max(since) + w.truck_fallback_timeout_ms;
+        let due = requested.max(from) + w.truck_fallback_timeout_ms;
         self.timer(
             due.saturating_sub(self.now),
             TimerKind::FmWeatherFallback,
@@ -637,10 +684,12 @@ impl World {
         self.energy.capacity_j = self.cfg.drone.battery_capacity_j * now.capacity_factor;
         self.weather = Some(now);
         self.schedule_next_weather_hour();
-        if now.blocked_since == Some(self.now) {
-            self.schedule_truck_fallback(self.now);
+        let energy_block_began = self.refresh_route_blocks();
+        if now.blocked_since == Some(self.now) || energy_block_began {
+            self.schedule_truck_fallback(self.now, self.now);
         }
-        if now.landing_ok && !prev.landing_ok {
+        // A89: a route the new hour lets through may have shipments waiting to be placed.
+        if (now.landing_ok && !prev.landing_ok) || self.energy_route_guard() {
             for p in 0..self.pads.len() {
                 self.pad_tick(PadId::try_from(p).expect("validated pad count"));
             }
@@ -928,6 +977,9 @@ impl World {
         summary["source_hash"] = Value::from(format!("{:016x}", self.cfg.source_hash));
         summary["fleet_size"] = Value::from(d.fleet_size);
         summary["pads"] = Value::from(self.pads.len());
+        if self.cfg.order_outcomes {
+            summary["order_outcomes"] = self.order_outcomes();
+        }
         if let Some(w) = self.weather {
             summary["weather"] = self
                 .metrics
@@ -1157,8 +1209,8 @@ impl World {
                 self.pc_shipment_request(pad, dest, deadline);
                 self.pad_tick(pad);
                 self.schedule_next_shipment(flow);
-                if self.flights_blocked() {
-                    self.schedule_truck_fallback(self.now);
+                if let Some(from) = self.route_blocked_from(pad, dest) {
+                    self.schedule_truck_fallback(self.now, from);
                 }
             }
             Ev::PodPlaceDone { pad, pod } => {

@@ -13,7 +13,7 @@ recipients of alerts.
 
 ## Status
 
-Phase 4 is done: one lane has been flown for real in PX4 SITL. A Rust discrete-event core runs the spec (phase
+Phase 7 is done: a VTOL is flown in PX4 SITL, fitted, and run over three years of weather. A Rust discrete-event core runs the spec (phase
 2). It has no fixed time step, flat arrays indexed by ID, seeded streams, and a streamed event
 log. It implements:
 
@@ -93,6 +93,26 @@ Phase 6b moves the demo to the coupled 900 Wh airframe and adds weather and traf
   derates the marginal battery below the energy guard, and hours over the limits stop
   dispatch. The wind limits matter most, then the cold derate.
 
+Phase 7 first makes the results honest about unfinished orders, then flies a VTOL
+(`docs/weather-traffic.md` sections 8 to 10, `docs/vtol.md`):
+
+- **Completion:** every request now ends in one outcome class. The 6b ratios of the windiest
+  and coldest weeks rested on 40% and 18% of requests; most of the rest were turned away at the
+  backlog cap.
+- **Energy route guard:** a cold or windy hour now blocks only the routes it makes infeasible,
+  and the truck fallback takes those orders. With it, the multirotor demo completes 98 to 99%
+  of those two weeks.
+- **VTOL:** PX4's standard VTOL scaled to 16 kg flies the delivery visit in SITL. A profile
+  fitted to six flights predicts four held-out flights (1.2 and 12.9 km) within 1.0% in time
+  and 1.5% in energy proxy. A coupled 620 Wh battery reaches 14.7 km with 5 kg, which brings
+  back Edgar Thomson and Josh Steel; Clairton is in the network but still out of range.
+- **Year:** with a truck fallback the VTOL demo's median week is about as fast as the truck
+  (ratio 0.98, p10 to p90 0.63 to 1.36, 98.5% completed). The multirotor's is faster (0.42) but
+  its worst tenth of weeks are over six times slower. The VTOL battery has no margin for wind
+  or cold on the Mon Valley routes, so most of their orders go by truck.
+- **Wind:** in a SITL crosswind the OUT landing is the weak point: at 8 m/s both visits
+  missed the latch's capture radius.
+
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
 written back as an amendment. For example, a re-sent landing grant that did not restart its
@@ -135,10 +155,13 @@ Every number behind those results is a placeholder.
   weather series, weather and traffic in the sim, the demo scenario, and the year of weather.
 - `docs/calibration.md`: the flight model fitted to the SITL logs, held-out flights, and what
   the fit changes for range, lanes, battery and the Pittsburgh week.
+- `docs/vtol.md`: the VTOL airframe, its calibration flights and fit, held-out flights, the
+  wind check, its network, layout and fleet, and the year compared with the multirotor.
+- `docs/merge-plan.md`: how to merge the phase branches into `main`.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
   `hub_spoke_6`, `mesh_small`, `scale_200` and the `parts_logistics_pittsburgh` variants
   (fitted profile, placeholder profile, fitted with a 1370 Wh battery, the 1370 Wh and 900 Wh
-  layouts, and the Phase 6b demo) run; the other three presets are still stubs.
+  layouts, the Phase 6b demo, and the VTOL network, layout and demo of Phase 7) run; the other three presets are still stubs.
 
 ## Running it
 
@@ -149,10 +172,11 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 
 ```
 docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md,
-            calibration.md, network-realism.md, weather-traffic.md, media/ (calibration plots)
+            calibration.md, network-realism.md, weather-traffic.md, vtol.md, merge-plan.md,
+            media/ (calibration plots)
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline);
-            flight_profiles/ (the fitted profile); weather/ (the hourly series)
+            flight_profiles/ (the fitted profiles); weather/ (the hourly series)
 sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
 pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/;
             calib/ (flight model calibration)

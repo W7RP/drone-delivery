@@ -25,10 +25,10 @@ def busy_s_per_order(cfg: dict, model: energy.FlightModel, route_m: float) -> fl
     verifications, and the charging time that puts back the energy of both legs."""
     d, ops, ch = cfg["drone"], cfg["pad_ops"], cfg["charging"]
     hover_s = q(d["takeoff_s"], "s") + q(d["approach_s"], "s")
-    leg_s = hover_s + route_m / q(d["cruise_speed_mps"], "m/s")
+    leg_s = hover_s + model.transition_s + route_m / q(d["cruise_speed_mps"], "m/s")
     service_s = sum(q(ops[k], "s") for k in ("latch_s", "latch_verify_s", "release_s",
                                              "release_verify_s")) + q(d["hop_s"], "s")
-    energy_j = sum(model.hover_w(m) * hover_s + model.cruise_j_per_m(m) * route_m
+    energy_j = sum(model.hover_w(m) * hover_s + model.cruise_j_per_m(m) * route_m + model.transition_j(m)
                    for m in (q(cfg["payload"]["pod_gross_mass_kg"], "kg"),
                              q(cfg["payload"]["pod_empty_mass_kg"], "kg")))
     charge_s = energy_j / (q(ch["power_w"], "W") * q(ch["efficiency"], "1"))

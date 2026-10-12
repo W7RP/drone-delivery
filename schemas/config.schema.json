@@ -16,9 +16,10 @@
         "1.5.0",
         "1.6.0",
         "1.7.0",
-        "1.8.0"
+        "1.8.0",
+        "1.9.0"
       ],
-      "description": "1.5.0 adds flight_profile, 1.6.0 the Phase 6a keys, 1.7.0 the run guards and yield on request, 1.8.0 weather; earlier files stay valid without them."
+      "description": "1.5.0 adds flight_profile, 1.6.0 the Phase 6a keys, 1.7.0 the run guards and yield on request, 1.8.0 weather and traffic, 1.9.0 the Phase 7 keys; earlier files stay valid without them."
     },
     "meta": {
       "type": "object",
@@ -817,6 +818,9 @@
         },
         "hist_max_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "order_outcomes": {
+          "type": "boolean"
         }
       }
     },
@@ -1003,6 +1007,9 @@
         },
         "truck_fallback_timeout_s": {
           "$ref": "common.schema.json#/$defs/q_s_pos"
+        },
+        "energy_route_guard": {
+          "type": "boolean"
         }
       }
     },
@@ -1067,6 +1074,9 @@
         },
         "incident_delay_sigma": {
           "$ref": "common.schema.json#/$defs/q_ratio_nonneg"
+        },
+        "start_unix_s": {
+          "$ref": "common.schema.json#/$defs/q_s_nonneg"
         }
       }
     }

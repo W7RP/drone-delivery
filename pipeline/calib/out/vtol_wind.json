@@ -1,0 +1,179 @@
+{
+ "script_git": "3ad599cedf98",
+ "capture_radius_cm": 15.0,
+ "levels": [
+  {
+   "wind_mps": 0,
+   "runs": 2,
+   "completed": 2,
+   "landings": 4,
+   "in_error_cm_max": 12.0,
+   "out_error_cm_max": 7.5,
+   "out_beyond_capture": 0,
+   "crab_deg_mean": 3.92,
+   "cruise_ground_speed_mps_mean": 15.13,
+   "approach_tilt_deg_mean": 0.53
+  },
+  {
+   "wind_mps": 5,
+   "runs": 2,
+   "completed": 1,
+   "landings": 4,
+   "in_error_cm_max": 5.7,
+   "out_error_cm_max": 25.9,
+   "out_beyond_capture": 1,
+   "crab_deg_mean": -17.46,
+   "cruise_ground_speed_mps_mean": 15.71,
+   "approach_tilt_deg_mean": 1.7
+  },
+  {
+   "wind_mps": 8,
+   "runs": 2,
+   "completed": 0,
+   "landings": 4,
+   "in_error_cm_max": 29.0,
+   "out_error_cm_max": 42.3,
+   "out_beyond_capture": 2,
+   "crab_deg_mean": -23.59,
+   "cruise_ground_speed_mps_mean": 16.27,
+   "approach_tilt_deg_mean": 1.94
+  }
+ ],
+ "runs": [
+  {
+   "run": "vtolwind_0_1",
+   "wind_mps": 0,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 1,
+   "script_git": "3ad599cedf98",
+   "status": "COMPLETE",
+   "validation": "pass",
+   "landings_cm": {
+    "IN": 12.0,
+    "OUT": 6.5
+   },
+   "latched": true,
+   "crab_deg": 10.91,
+   "cruise_ground_speed_mps": 15.25,
+   "lane_time_s": 149.8,
+   "approach_tilt_deg": 0.54,
+   "approach_s": 50.2
+  },
+  {
+   "run": "vtolwind_0_2",
+   "wind_mps": 0,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 2,
+   "script_git": "3ad599cedf98",
+   "status": "COMPLETE",
+   "validation": "pass",
+   "landings_cm": {
+    "IN": 7.4,
+    "OUT": 7.5
+   },
+   "latched": true,
+   "crab_deg": -3.07,
+   "cruise_ground_speed_mps": 15.01,
+   "lane_time_s": 153.2,
+   "approach_tilt_deg": 0.51,
+   "approach_s": 49.9
+  },
+  {
+   "run": "vtolwind_5_1",
+   "wind_mps": 5,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 1,
+   "script_git": "3ad599cedf98",
+   "status": "FAILED: pad 4: lock not verified (V29/V30)",
+   "validation": [
+    "run status [{'type': 'run_status', 't_us': 299400000, 'status': 'FAILED: pad 4: lock not verified (V29/V30)'}]",
+    "pad B visit [('V01', '(none)', 'APPROACH'), ('V06', 'APPROACH', 'RELEASING'), ('V15', 'RELEASING', 'VERIFY_RELEASE'), ('V18', 'VERIFY_RELEASE', 'WAIT_OUT'), ('V21', 'WAIT_OUT', 'HOPPING'), ('V24', 'HOPPING', 'LATCHING'), ('V28', 'LATCHING', 'VERIFY_LOCK')]",
+    "drone sequence [('D19', 'PARKED', 'PARKED'), ('D01', 'PARKED', 'TAKEOFF'), ('D02', 'TAKEOFF', 'EN_ROUTE'), ('D03', 'EN_ROUTE', 'HOLDING'), ('D04', 'HOLDING', 'APPROACH'), ('D05', 'APPROACH', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD'), ('D15', 'ON_PAD', 'HOPPING'), ('D15', 'HOPPING', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD')]",
+    "messages [('DRONE', 'DRONE_STATUS'), ('FLEET_MANAGER', 'PICKUP_ASSIGNED'), ('FLEET_MANAGER', 'MISSION_ASSIGN'), ('DRONE', 'DEPART_REQUEST'), ('PAD', 'DEPART_CLEAR'), ('DRONE', 'DEPARTED'), ('DRONE', 'DRONE_STATUS'), ('DRONE', 'LANDING_REQUEST'), ('PAD', 'LANDING_GRANT'), ('DRONE', 'LANDED'), ('DRONE', 'DRONE_STATUS'), ('PAD', 'RELEASE_CMD'), ('DRONE', 'RELEASE_REPORT'), ('PAD', 'POD_DELIVERED'), ('PAD', 'HOP_CMD'), ('DRONE', 'LANDED'), ('PAD', 'LATCH_CMD'), ('DRONE', 'LATCH_REPORT')]"
+   ],
+   "landings_cm": {
+    "IN": 5.7,
+    "OUT": 25.9
+   },
+   "latched": false,
+   "crab_deg": -18.38,
+   "cruise_ground_speed_mps": 15.78,
+   "lane_time_s": 148.5,
+   "approach_tilt_deg": 1.78,
+   "approach_s": 53.2
+  },
+  {
+   "run": "vtolwind_5_2",
+   "wind_mps": 5,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 2,
+   "script_git": "3ad599cedf98",
+   "status": "COMPLETE",
+   "validation": "pass",
+   "landings_cm": {
+    "IN": 2.7,
+    "OUT": 14.3
+   },
+   "latched": true,
+   "crab_deg": -16.54,
+   "cruise_ground_speed_mps": 15.63,
+   "lane_time_s": 149.4,
+   "approach_tilt_deg": 1.61,
+   "approach_s": 52.5
+  },
+  {
+   "run": "vtolwind_8_1",
+   "wind_mps": 8,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 1,
+   "script_git": "3ad599cedf98",
+   "status": "FAILED: pad 4: lock not verified (V29/V30)",
+   "validation": [
+    "run status [{'type': 'run_status', 't_us': 288552000, 'status': 'FAILED: pad 4: lock not verified (V29/V30)'}]",
+    "pad B visit [('V01', '(none)', 'APPROACH'), ('V06', 'APPROACH', 'RELEASING'), ('V15', 'RELEASING', 'VERIFY_RELEASE'), ('V18', 'VERIFY_RELEASE', 'WAIT_OUT'), ('V21', 'WAIT_OUT', 'HOPPING'), ('V24', 'HOPPING', 'LATCHING'), ('V28', 'LATCHING', 'VERIFY_LOCK')]",
+    "drone sequence [('D19', 'PARKED', 'PARKED'), ('D01', 'PARKED', 'TAKEOFF'), ('D02', 'TAKEOFF', 'EN_ROUTE'), ('D03', 'EN_ROUTE', 'HOLDING'), ('D04', 'HOLDING', 'APPROACH'), ('D05', 'APPROACH', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD'), ('D15', 'ON_PAD', 'HOPPING'), ('D15', 'HOPPING', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD')]",
+    "messages [('DRONE', 'DRONE_STATUS'), ('FLEET_MANAGER', 'PICKUP_ASSIGNED'), ('FLEET_MANAGER', 'MISSION_ASSIGN'), ('DRONE', 'DEPART_REQUEST'), ('PAD', 'DEPART_CLEAR'), ('DRONE', 'DEPARTED'), ('DRONE', 'DRONE_STATUS'), ('DRONE', 'LANDING_REQUEST'), ('PAD', 'LANDING_GRANT'), ('DRONE', 'LANDED'), ('DRONE', 'DRONE_STATUS'), ('PAD', 'RELEASE_CMD'), ('DRONE', 'RELEASE_REPORT'), ('PAD', 'POD_DELIVERED'), ('PAD', 'HOP_CMD'), ('DRONE', 'LANDED'), ('PAD', 'LATCH_CMD'), ('DRONE', 'LATCH_REPORT')]"
+   ],
+   "landings_cm": {
+    "IN": 29.0,
+    "OUT": 42.3
+   },
+   "latched": false,
+   "crab_deg": -25.43,
+   "cruise_ground_speed_mps": 16.6,
+   "lane_time_s": 144.7,
+   "approach_tilt_deg": 1.84,
+   "approach_s": 47.3
+  },
+  {
+   "run": "vtolwind_8_2",
+   "wind_mps": 8,
+   "wind_from_deg": 22,
+   "gust_frac": 0.5,
+   "seed": 2,
+   "script_git": "3ad599cedf98",
+   "status": "FAILED: pad 4: lock not verified (V29/V30)",
+   "validation": [
+    "run status [{'type': 'run_status', 't_us': 301652000, 'status': 'FAILED: pad 4: lock not verified (V29/V30)'}]",
+    "pad B visit [('V01', '(none)', 'APPROACH'), ('V06', 'APPROACH', 'RELEASING'), ('V15', 'RELEASING', 'VERIFY_RELEASE'), ('V18', 'VERIFY_RELEASE', 'WAIT_OUT'), ('V21', 'WAIT_OUT', 'HOPPING'), ('V24', 'HOPPING', 'LATCHING'), ('V28', 'LATCHING', 'VERIFY_LOCK')]",
+    "drone sequence [('D19', 'PARKED', 'PARKED'), ('D01', 'PARKED', 'TAKEOFF'), ('D02', 'TAKEOFF', 'EN_ROUTE'), ('D03', 'EN_ROUTE', 'HOLDING'), ('D04', 'HOLDING', 'APPROACH'), ('D05', 'APPROACH', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD'), ('D15', 'ON_PAD', 'HOPPING'), ('D15', 'HOPPING', 'ON_PAD'), ('D15', 'ON_PAD', 'ON_PAD')]",
+    "messages [('DRONE', 'DRONE_STATUS'), ('FLEET_MANAGER', 'PICKUP_ASSIGNED'), ('FLEET_MANAGER', 'MISSION_ASSIGN'), ('DRONE', 'DEPART_REQUEST'), ('PAD', 'DEPART_CLEAR'), ('DRONE', 'DEPARTED'), ('DRONE', 'DRONE_STATUS'), ('DRONE', 'LANDING_REQUEST'), ('PAD', 'LANDING_GRANT'), ('DRONE', 'LANDED'), ('DRONE', 'DRONE_STATUS'), ('PAD', 'RELEASE_CMD'), ('DRONE', 'RELEASE_REPORT'), ('PAD', 'POD_DELIVERED'), ('PAD', 'HOP_CMD'), ('DRONE', 'LANDED'), ('PAD', 'LATCH_CMD'), ('DRONE', 'LATCH_REPORT')]"
+   ],
+   "landings_cm": {
+    "IN": 27.5,
+    "OUT": 39.1
+   },
+   "latched": false,
+   "crab_deg": -21.76,
+   "cruise_ground_speed_mps": 15.95,
+   "lane_time_s": 152.7,
+   "approach_tilt_deg": 2.05,
+   "approach_s": 52.7
+  }
+ ]
+}

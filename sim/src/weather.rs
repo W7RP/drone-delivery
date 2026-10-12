@@ -59,6 +59,10 @@ pub struct WeatherCfg {
     pub truck_factor_low_visibility: f64,
     pub hold_policy: WeatherHoldPolicy,
     pub truck_fallback_timeout_ms: TimeMs,
+    /// Routes a fully charged drone cannot fly this hour hold up only their own shipments:
+    /// FM does not assign them, pads place other shipments first, and TRUCK_FALLBACK takes
+    /// them after its timeout (A89).
+    pub energy_route_guard: bool,
 }
 
 /// One hour of the series, in SI, wind and gust at 10 m.
@@ -204,6 +208,9 @@ pub struct CruiseCurve {
     pub model: FlightModel,
     pub rho_area: f64,
     pub parasitic_w_per_mps3: f64,
+    /// A VTOL's fixed-wing cruise (A93): power proportional to airspeed, since the SITL wing's
+    /// drag does not change with speed in level flight.
+    pub fixed_wing: bool,
 }
 
 impl CruiseCurve {
@@ -214,6 +221,7 @@ impl CruiseCurve {
             model,
             rho_area: air_density_kgpm3 * disc_area_m2,
             parasitic_w_per_mps3: 0.0,
+            fixed_wing: false,
         };
         let v = model.cruise_speed_mps;
         let spare_w = model.cruise_power_ref_w - curve.induced_w(model.power_ref_mass_kg, v);
@@ -238,8 +246,30 @@ impl CruiseCurve {
         self.induced_w(mass_kg, airspeed_mps) + self.parasitic_w_per_mps3 * airspeed_mps.powi(3)
     }
 
+    /// The fixed-wing form of a VTOL (A93).
+    pub fn fixed_wing(model: FlightModel) -> Self {
+        Self {
+            model,
+            rho_area: 0.0,
+            parasitic_w_per_mps3: 0.0,
+            fixed_wing: true,
+        }
+    }
+
+    /// The curve for the scenario's airframe; None as in `new`.
+    pub fn for_config(cfg: &crate::config::Config, w: &WeatherCfg) -> Option<Self> {
+        let model = FlightModel::from_config(cfg);
+        if cfg.drone.airframe == crate::ids::Airframe::Vtol {
+            return Some(Self::fixed_wing(model));
+        }
+        Self::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2)
+    }
+
     pub fn power_w(&self, payload_kg: f64, airspeed_mps: f64) -> f64 {
         let m = &self.model;
+        if self.fixed_wing {
+            return m.cruise_power_w(payload_kg) * airspeed_mps / m.cruise_speed_mps;
+        }
         let mass_kg = m.empty_mass_kg + m.latch_mass_kg + payload_kg;
         let fitted_w = m.cruise_power_w(payload_kg);
         fitted_w * self.shape_w(mass_kg, airspeed_mps) / self.shape_w(mass_kg, m.cruise_speed_mps)
@@ -349,6 +379,9 @@ mod tests {
             cruise_power_ref_w: 2107.87,
             hover_power_ref_w: 1830.508,
             cruise_speed_mps: 15.033,
+            transition_s: 0.0,
+            transition_power_ref_w: 0.0,
+            cruise_mass_exponent: 1.5,
         };
         CruiseCurve::new(model, 1.225, 4.0 * 0.061_22).expect("fit above ideal induced power")
     }

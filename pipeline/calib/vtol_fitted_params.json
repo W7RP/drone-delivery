@@ -1,0 +1,39 @@
+{
+ "params": {
+  "takeoff_s": 26.2127,
+  "approach_s": 49.876,
+  "hop_s": 24.158,
+  "hover_power_ref_w": 1472.485,
+  "cruise_speed_mps": 15.2112,
+  "cruise_mass_exponent": 1.2115,
+  "cruise_power_ref_w": 556.4254,
+  "transition_s": 14.3041,
+  "transition_power_ref_w": 2657.8116,
+  "power_ref_mass_kg": 14.6
+ },
+ "std": {
+  "takeoff_s": 0.1242,
+  "approach_s": 0.6279,
+  "hop_s": 0.3996,
+  "hover_power_ref_w": 4.2157,
+  "cruise_speed_mps": 0.0536,
+  "cruise_mass_exponent": 0.0279,
+  "cruise_power_ref_w": 4.4689,
+  "transition_s": 0.6905,
+  "transition_power_ref_w": 94.9411,
+  "power_ref_mass_kg": 0.0
+ },
+ "mtow_kg": 16.0,
+ "runs": [
+  "vtol_0_1",
+  "vtol_0_2",
+  "vtol_2_1",
+  "vtol_2_2",
+  "vtol_5_1",
+  "vtol_5_2"
+ ],
+ "bootstrap": {
+  "draws": 1992,
+  "seed": 7
+ }
+}

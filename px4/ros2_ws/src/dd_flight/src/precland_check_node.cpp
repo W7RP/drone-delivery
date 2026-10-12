@@ -37,7 +37,7 @@ public:
         HandshakeBus::qos());
     status_sub_ = create_subscription<dd_interfaces::msg::TargetStatus>("/dd/detector/status", 10,
         [this](const dd_interfaces::msg::TargetStatus & s) {detections_ = s.n_detections;});
-    truth_sub_ = create_subscription<geometry_msgs::msg::Pose>("/dd/truth/dd_quad", 10,
+    truth_sub_ = create_subscription<geometry_msgs::msg::Pose>("/dd/truth/drone", 10,
         [this](const geometry_msgs::msg::Pose & p) {truth_ = {p.position.x, p.position.y, p.position.z};});
     timer_ = create_wall_timer(std::chrono::milliseconds(50), [this]() {step();});
   }

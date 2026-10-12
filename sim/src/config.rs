@@ -12,22 +12,23 @@ use toml::{Table, Value};
 
 use crate::flight::FlightModel;
 use crate::ids::{
-    AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName, DiversionPolicyName,
-    DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MAX_OUT_SPOTS,
-    MatrixSource, NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset,
-    ReturnPolicy, ServiceMode, TimeMs, WeatherHoldPolicy, ms_from_s,
+    Airframe, AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName,
+    DiversionPolicyName, DroneRebalancingPolicyName, FaultKind, HoldingPolicyName,
+    InOccupiedAction, MAX_OUT_SPOTS, MatrixSource, NetworkTopology, OutEmptyPolicy, PadId,
+    PodRebalancingPolicyName, Preset, ReturnPolicy, ServiceMode, TimeMs, WeatherHoldPolicy,
+    ms_from_s,
 };
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
 use crate::traffic::{DELAY_CLASSES, TrafficCfg};
 use crate::weather::{CruiseCurve, Limits, WeatherCfg};
 
-pub const SCHEMA_VERSION: &str = "1.8.0";
+pub const SCHEMA_VERSION: &str = "1.9.0";
 /// Earlier minor versions this core still reads. Each later version only added optional keys,
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
-const COMPATIBLE_VERSIONS: [&str; 4] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0"];
+const COMPATIBLE_VERSIONS: [&str; 5] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 21] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -46,8 +47,13 @@ const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
     ("policy", "yield_on_request", "1.7.0"),
     ("", "weather", "1.8.0"),
     ("", "traffic", "1.8.0"),
+    ("metrics", "order_outcomes", "1.9.0"),
+    ("weather", "energy_route_guard", "1.9.0"),
+    ("traffic", "start_unix_s", "1.9.0"),
 ];
 /// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
+/// OUT spots a pad could have before schema 1.9.0 added OUT_4 (A72).
+const PRE_1_9_MAX_OUT_SPOTS: usize = 3;
 const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
 const DEFAULT_MAX_EVENT_LOG_MIB: u64 = 256;
 const BYTES_PER_MIB: u64 = 1 << 20;
@@ -192,6 +198,12 @@ pub struct DroneCfg {
     /// Given, or derived from the OUT landing error and the latch capture radius (A71).
     pub p_latch_fault: f64,
     pub latch_derivation: Option<LatchDerivation>,
+    /// Flight-profile keys of a VTOL (8.7, A93); a multirotor keeps the defaults: no
+    /// transition, cruise power with mass to the 1.5.
+    pub airframe: Airframe,
+    pub transition_s: f64,
+    pub transition_power_ref_w: f64,
+    pub cruise_mass_exponent: f64,
 }
 
 /// Where a derived `p_latch_fault` came from (A71).
@@ -372,6 +384,8 @@ pub struct Config {
     pub truck: TruckCfg,
     pub hist_bin_ms: TimeMs,
     pub hist_max_ms: TimeMs,
+    /// `metrics.order_outcomes` (M11): classify every request at the horizon.
+    pub order_outcomes: bool,
     pub costs: CostsCfg,
     pub faults: Vec<FaultCfg>,
     /// `[weather]` (2.10); None runs without weather.
@@ -713,6 +727,12 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         }
     }
 
+    if usize::from(pad_ops.out_spots) > PRE_1_9_MAX_OUT_SPOTS && minor(version) < minor("1.9.0") {
+        return err(format!(
+            "pad_ops.out_spots: {} needs schema_version \"1.9.0\", the file says \"{version}\"",
+            pad_ops.out_spots
+        ));
+    }
     let mut drone = parse_drone(&top.section("drone")?, &names, &pads)?;
     let flight_profile = if top.has("flight_profile") {
         Some(apply_flight_profile(&top, scenario_dir, &mut drone)?)
@@ -778,9 +798,10 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
     }
 
     let m = top.section("metrics")?;
-    m.allow(&["hist_bin_s", "hist_max_s"])?;
+    m.allow(&["hist_bin_s", "hist_max_s", "order_outcomes"])?;
     let hist_bin_ms = ms_from_s(m.quantity("hist_bin_s", "s", Range::Pos)?);
     let hist_max_ms = ms_from_s(m.quantity("hist_max_s", "s", Range::Pos)?);
+    let order_outcomes = m.has("order_outcomes") && m.boolean("order_outcomes")?;
 
     let c = top.section("costs")?;
     c.allow(&["truck_per_m", "truck_per_s", "drone_per_s", "energy_per_j"])?;
@@ -867,6 +888,7 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         truck,
         hist_bin_ms,
         hist_max_ms,
+        order_outcomes,
         costs,
         faults,
         weather,
@@ -1083,6 +1105,18 @@ const PROFILE_KEYS: [(&str, &str); 7] = [
     ("hop_s", "s"),
 ];
 
+/// Keys a profile may add (8.7, A93): a VTOL's airframe, MTOW, transition overhead and cruise
+/// power mass exponent. `transition_s` and `transition_power_ref_w` go together.
+const PROFILE_OPTIONAL_KEYS: [&str; 5] = [
+    "airframe",
+    "mtow_kg",
+    "transition_s",
+    "transition_power_ref_w",
+    "cruise_mass_exponent",
+];
+/// The multirotor's cruise power grows with mass to this power (spec 2.7).
+const DEFAULT_CRUISE_MASS_EXPONENT: f64 = 1.5;
+
 /// `[flight_profile] file`: read the profile (relative to the scenario's directory) and put
 /// its values over the drone section's, which stay the scenario's placeholder profile.
 fn apply_flight_profile(
@@ -1109,7 +1143,8 @@ fn apply_flight_profile(
     let name = p.string("name").map_err(in_file)?.to_owned();
     let source = p.string("source").map_err(in_file)?.to_owned();
     let d = p.section("drone").map_err(in_file)?;
-    let keys: Vec<&str> = PROFILE_KEYS.iter().map(|(k, _)| *k).collect();
+    let mut keys: Vec<&str> = PROFILE_KEYS.iter().map(|(k, _)| *k).collect();
+    keys.extend(PROFILE_OPTIONAL_KEYS);
     d.allow(&keys).map_err(in_file)?;
     let value = |key: &str, unit: &str| d.quantity(key, unit, Range::Pos).map_err(in_file);
     drone.cruise_speed_mps = value("cruise_speed_mps", "m/s")?;
@@ -1119,6 +1154,27 @@ fn apply_flight_profile(
     drone.takeoff_s = value("takeoff_s", "s")?;
     drone.approach_s = value("approach_s", "s")?;
     drone.hop_s = value("hop_s", "s")?;
+    if d.has("airframe") {
+        drone.airframe = d
+            .enumeration("airframe", Airframe::from_name)
+            .map_err(in_file)?;
+    }
+    if d.has("mtow_kg") {
+        drone.mtow_kg = value("mtow_kg", "kg")?;
+    }
+    if d.has("transition_s") {
+        drone.transition_s = d
+            .quantity("transition_s", "s", Range::NonNeg)
+            .map_err(in_file)?;
+        drone.transition_power_ref_w = d
+            .quantity("transition_power_ref_w", "W", Range::NonNeg)
+            .map_err(in_file)?;
+    }
+    if d.has("cruise_mass_exponent") {
+        drone.cruise_mass_exponent = d
+            .quantity("cruise_mass_exponent", "1", Range::NonNeg)
+            .map_err(in_file)?;
+    }
     Ok(FlightProfile { path, name, source })
 }
 
@@ -1233,6 +1289,10 @@ fn parse_drone(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<Dro
         p_release_fault: d.quantity("p_release_fault", "1", Range::Prob)?,
         p_latch_fault,
         latch_derivation,
+        airframe: Airframe::Multirotor,
+        transition_s: 0.0,
+        transition_power_ref_w: 0.0,
+        cruise_mass_exponent: DEFAULT_CRUISE_MASS_EXPONENT,
     })
 }
 
@@ -1446,6 +1506,7 @@ fn parse_weather(
         "truck_factor_low_visibility",
         "hold_policy",
         "truck_fallback_timeout_s",
+        "energy_route_guard",
     ])?;
     let Some(base) = scenario_dir else {
         return err("weather: needs the scenario's directory; load the scenario from its file");
@@ -1520,6 +1581,7 @@ fn parse_weather(
             "s",
             Range::Pos,
         )?),
+        energy_route_guard: w.has("energy_route_guard") && w.boolean("energy_route_guard")?,
     })
 }
 
@@ -1535,6 +1597,7 @@ fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
         "incident_rate_per_pair_h",
         "incident_delay_median_s",
         "incident_delay_sigma",
+        "start_unix_s",
     ])?;
     let shape = |key: &str| -> Result<[f64; HOURS_PER_DAY]> {
         let Value::Array(items) = t.get(key)? else {
@@ -1563,8 +1626,23 @@ fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
         delay("peak_delay_other")?,
         delay("peak_delay_structure")?,
     ];
+    let start_weekday: u8 = narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?;
+    let start_unix_s = if t.has("start_unix_s") {
+        #[allow(clippy::cast_possible_truncation)]
+        let s = t.quantity("start_unix_s", "s", Range::NonNeg)?.round() as i64;
+        let local_day = crate::traffic::eastern_local_s(s).div_euclid(86_400);
+        if crate::traffic::weekday(local_day) != u64::from(start_weekday) {
+            return err(
+                "traffic.start_weekday: R23 must be the US Eastern weekday of traffic.start_unix_s",
+            );
+        }
+        Some(s)
+    } else {
+        None
+    };
     Ok(TrafficCfg {
-        start_weekday: narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?,
+        start_weekday,
+        start_unix_s,
         weekday_shape: shape("weekday_shape")?,
         weekend_shape: shape("weekend_shape")?,
         peak_delay,
@@ -1816,13 +1894,16 @@ fn check_rules(cfg: &Config) -> Result<()> {
         return err("metrics: R13 hist_max_s must exceed hist_bin_s");
     }
     if let Some(w) = &cfg.weather {
+        let multirotor = cfg.drone.airframe == Airframe::Multirotor;
         if cfg.drone.latch_derivation.is_none() {
             return err(
                 "weather: R19 needs the derived latch keys (A71) so gusts can widen the landing error",
             );
         }
         let model = FlightModel::from_config(cfg);
-        if CruiseCurve::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2).is_none() {
+        if multirotor
+            && CruiseCurve::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2).is_none()
+        {
             return err(
                 "weather: R20 drone.cruise_power_ref_w is below the ideal induced power at cruise speed for this disc area and air density",
             );

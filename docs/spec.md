@@ -1,6 +1,6 @@
 # drone-delivery specification, phase 1 (interface freeze)
 
-Spec version 1.8.0. This document, `schemas/` and `configs/` are the contract for the Rust
+Spec version 1.9.0. This document, `schemas/` and `configs/` are the contract for the Rust
 discrete-event core, the Python offline pipeline and the PX4/ROS 2 calibration harness.
 Version 1.0.0 was frozen in phase 1; every change since then is listed in section 11.
 
@@ -67,7 +67,7 @@ Entities:
 |---|---|---|---|
 | Order | One request to move one pod from an origin pad to a destination pad. Created by FM when it receives `POD_PLACED`. Kind `SHIPMENT` (loaded pod from demand) or `POD_RETURN` (empty pod moved by pod rebalancing). | FM | metrics, D (via mission) |
 | Pod | A physical container. Fixed population per run (`pads[].initial_empty_pods`). Circulates between pads; never created or destroyed. | FM (custody updates arrive as PC messages) | PC (inventory mirror) |
-| Pad | A landing site with passive spots, one IN and `pad_ops.out_spots` OUT spots (OUT, OUT_2, OUT_3; one by default, A72), a parking area of `pads[].parking_capacity` slots (may be 0), a PC, an empty-pod inventory and a return policy. Static data from config; dynamic data in `PadState`. | PC | FM (mirror via `PAD_STATUS`) |
+| Pad | A landing site with passive spots, one IN and `pad_ops.out_spots` OUT spots (OUT, OUT_2, OUT_3, OUT_4; one by default, A72), a parking area of `pads[].parking_capacity` slots (may be 0), a PC, an empty-pod inventory and a return policy. Static data from config; dynamic data in `PadState`. | PC | FM (mirror via `PAD_STATUS`) |
 | Spot | IN or one OUT spot at one pad. Holds at most one drone and at most one pod. Has a presence sensor (drone present / pod present, no identity). OUT has charging contacts when the pad has a charger. The parking area (`Spot` value PARKING) holds idle drones only, never pods, and never blocks IN or OUT. | PC | FM |
 | Visit | One drone's pass through one pad, from landing request to departure. The unit of the pad state machine (section 3). | PC | metrics |
 | Drone | One aircraft with its own latch. Identical class across the fleet. | D | FM (mirror via `DRONE_STATUS`), PC (via handshake) |
@@ -283,7 +283,7 @@ whole hour. Without `[weather]` none of this exists and no `WEATHER_HOUR` is sch
 | Cruise flight | Along the lane's straight track (pad to pad) the drone holds `drone.cruise_speed_mps` over the ground, unless the airspeed that needs exceeds `weather.max_airspeed_mps`; then it flies at that airspeed and its ground speed drops, never below 1 m/s. Power at airspeed V and mass m is `P_fit(m) * S(m, V) / S(m, V_fit)`, where `P_fit` is the fitted cruise power of 2.7, `V_fit` = `drone.cruise_speed_mps`, and S is the ideal induced power from momentum theory (`weather.air_density_kgpm3`, `weather.rotor_disc_area_m2`) plus `c V^3`, with c fixed so that `S(drone.power_ref_mass_kg, V_fit)` = `drone.cruise_power_ref_w` (A77). Takeoff, approach, go-around, hop and hold keep the fitted hover power. The energy guards of 6 use the same lane times and energies. |
 | Operating limits | An hour is flyable when wind <= `weather.max_wind_mps`, gust <= `weather.max_gust_mps`, visibility >= `weather.min_visibility_m`, precipitation <= `weather.max_precip_mm_h`, temperature is within [`weather.min_temp_c`, `weather.max_temp_c`], and the series does not mark it missing. In an hour that is not flyable FM assigns no order and sends no drone to another pad: 6.1, 6.2 and 6.4 return nothing and waiting drones keep waiting. A pickup due to a parked drone at another pad goes back to unassigned. Moves within a pad (PARK, the V44 ground hop) still happen. Landing clearance needs wind <= `weather.landing_max_wind_mps` and gust <= `weather.landing_max_gust_mps` (at or above the dispatch limits, R21), observed or not. Beyond either, the PC holds every landing request (V02, `LANDING_HOLD` reason WEATHER) and grants none (3.5) until a `WEATHER_HOUR` clears them (A79). |
 | Landing | The per-axis spread of the OUT landing error (A71) is multiplied by `1 + weather.latch_gust_k * (gust / weather.latch_gust_ref_mps)^2`, and `p_latch_fault` is derived again each hour. `pad_ops.p_marker_detect` is multiplied by (1 - penalty) for each of rain, snow and visibility below `weather.low_visibility_m` (A80). |
-| Battery | Usable capacity is `drone.battery_capacity_j` times the `weather.battery_derate_*` factor at the hour's temperature. SoC drains against it and the energy guards use it (A81). Charging is unchanged. |
+| Battery | Usable capacity is `drone.battery_capacity_j` times the `weather.battery_derate_*` factor at the hour's temperature. SoC drains against it and the energy guards use it (A81). Charging is unchanged. A route is energy-blocked this hour when a drone at `drone.charge_target_soc` fails `dispatch_ok` on it with the gross payload; with `weather.energy_route_guard` such routes hold up only their own shipments (A89). |
 | Truck | Truck speed, in the baseline of 7 and for the fallback, is multiplied by `weather.truck_factor_rain`, `_snow` and `_low_visibility` for each condition present in the departure hour (A82). |
 | Hold policy | `weather.hold_policy` WAIT: blocked orders wait. TRUCK_FALLBACK (A83): a SHIPMENT not yet assigned goes by truck once it has waited `weather.truck_fallback_timeout_s`, counted from its request or from the start of the block if that came after it, and dispatch is still blocked (P10, P11). It closes TRUCKED with `delivered_t_ms` = now plus the truck trip of 7 started now. |
 
@@ -305,7 +305,9 @@ weekend, with `local_s = sim.start_time_of_day_s + t_dep / 1000`. Every
 `truck.tod_speed_factors[]` entry must then be 1 (R22). Incidents (A86): each directed pair and run hour has a Poisson
 number of incidents at `traffic.incident_rate_per_pair_h` (at most 16), each adding a
 lognormal delay with median `traffic.incident_delay_median_s` and log-spread
-`traffic.incident_delay_sigma`, drawn from the TRAFFIC stream (5.4).
+`traffic.incident_delay_sigma`, drawn from the TRAFFIC stream (5.4). With
+`traffic.start_unix_s`, h and the day of week come from US Eastern local time of
+`start_unix_s + t_dep / 1000` instead, daylight saving included (A90).
 
 ## 3 Pad state machine
 
@@ -919,6 +921,7 @@ Percentiles are the upper edge of the histogram bin that contains the target ran
 
 | M8 | truck_cost_per_delivery, drone_cost_per_delivery, cost_ratio, breakeven_deliveries_per_drone_h, actual_deliveries_per_drone_h | Truck: mean of `truck_cost` (below) over M2's orders. Drone: (`costs.drone_per_s` * `drone.fleet_size` * T_W + `costs.energy_per_j` * E_grid) / count(M1), with E_grid = energy added in W / `charging.efficiency`. cost_ratio = drone / truck. Break-even = `costs.drone_per_s` * 3600 / (truck_cost_per_delivery - E_grid cost per delivery): the deliveries per drone-hour at which the drone cost per delivery equals the truck's; null if the denominator is <= 0 or there are no deliveries. Actual = count(M1) / `drone.fleet_size` / (T_W / 3600). | FM order closure; V33 | cu, cu, 1, 1/h, 1/h |
 | M10 | weather: flyable_hour_fraction, orders_flown, orders_trucked, flown_share, trucked_share, weather_aborts | Only with `[weather]`. flyable_hour_fraction = share of W in flyable hours (2.10). orders_flown = SHIPMENT orders closed DELIVERED or DIVERTED; orders_trucked = SHIPMENT orders closed TRUCKED; shares = each / (flown + trucked). weather_aborts = landing requests held for weather (V02 reason WEATHER) at a time in W. TRUCKED orders count in no other metric. | FM order closure; V02 | 1, count, count, 1, 1, count |
+| M11 | order_outcomes: requests, delivered_drone, delivered_truck, rejected_cap, blocked_weather, blocked_energy, in_flight, waiting, diverted_or_failed, completion_rate, ratio_delivered, ratio_lower_bound | Only with `metrics.order_outcomes`. Every SHIPMENT_REQUEST in W lands in one class at END_OF_RUN: DELIVERED (by drone), TRUCKED, rejected at the cap (P08), DIVERTED or FAILED, in flight (pod latched on a drone that is not on a pad), and, for the rest (in a backlog, being placed, or an order not yet on a flying drone): blocked by weather when dispatch is blocked (2.10), blocked by energy when a drone at `drone.charge_target_soc` fails `dispatch_ok` with the gross payload from origin to destination this hour, else waiting. completion_rate = (drone + truck) / requests. ratio_delivered = sum of door-to-door / sum of truck baseline over the delivered (drone or truck); ratio_lower_bound adds every unfinished class but rejected and diverted/failed, at its time to END_OF_RUN, against its truck baseline. | END_OF_RUN | count, 1 |
 | M9 | requests_rejected, rejected_fraction | requests_rejected = SHIPMENT_REQUESTs in W turned away at a full backlog; rejected_fraction = requests_rejected / all SHIPMENT_REQUESTs in W. A rejected request never becomes an order, so it appears in no other metric except M6. | P08 | count, 1 |
 
 Truck baseline per order:
@@ -1039,7 +1042,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | pad_ops.manual_release_s | s | Release by a person, MANUAL. |
 | pad_ops.manual_latch_s | s | Latch by a person, MANUAL. |
 | pad_ops.p_marker_detect | 1 | Probability the fiducial is detected on one approach. |
-| pad_ops.out_spots | count | 1.6.0, optional, 1 to 3, default 1. OUT spots at every pad (A72). |
+| pad_ops.out_spots | count | 1.6.0, optional, 1 to 3, default 1; 4 from 1.9.0. OUT spots at every pad (A72). |
 | pad_ops.parking_capacity | count | 1.6.0, optional. Replaces every pad's `pads[].parking_capacity` (A72). |
 | pad_ops.marker_self_check | - | 1.6.0, optional, default false. The pad checks its own fiducial and reports a marker fault to FM in `PAD_STATUS` (A35). |
 | pad_ops.max_go_arounds | count | Go-arounds per approach cycle before abort. |
@@ -1088,6 +1091,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | truck.tod_speed_factors[] | 1 | 24 factors; index = departure hour; travel time = free-flow / factor. |
 | metrics.hist_bin_s | s | Histogram bin width. |
 | metrics.hist_max_s | s | Start of the open-ended last bin. |
+| metrics.order_outcomes | - | 1.9.0, optional, default false. Report M11. |
 | costs.truck_per_m | cu/m | Truck cost per road metre. |
 | costs.truck_per_s | cu/s | Truck and driver cost per second loading, driving and unloading. |
 | costs.drone_per_s | cu/s | Cost of one drone per second of the metrics window (ownership, ops share). |
@@ -1124,6 +1128,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | weather.truck_factor_low_visibility | 1 | Truck speed factor below `weather.low_visibility_m`. |
 | weather.hold_policy | - | WeatherHoldPolicy: WAIT or TRUCK_FALLBACK (A83). |
 | weather.truck_fallback_timeout_s | s | TRUCK_FALLBACK: wait before a blocked shipment goes by truck. |
+| weather.energy_route_guard | - | 1.9.0, optional, default false. Per-route energy guard (A89): FM does not assign a shipment whose route a fully charged drone cannot fly this hour, pads place the first backlog shipment whose route can be flown, and TRUCK_FALLBACK also takes shipments blocked this way. |
 | traffic.start_weekday | count | 1.8.0, optional section (2.11). Day of week of the day holding t = 0: 0 Monday to 6 Sunday. |
 | traffic.weekday_shape[] | 1 | 24 values in [0, 1]: share of the peak delay at each local hour, Monday to Friday. |
 | traffic.weekend_shape[] | 1 | The same for Saturday and Sunday. |
@@ -1134,6 +1139,7 @@ lane graph and truck matrix, 8.4). It gives demand either as `demand.flows[]` or
 | traffic.incident_rate_per_pair_h | 1/h | Incidents per directed pad pair and hour (A86). |
 | traffic.incident_delay_median_s | s | Median delay one incident adds. |
 | traffic.incident_delay_sigma | 1 | Log-spread of that delay. |
+| traffic.start_unix_s | s | 1.9.0, optional. UTC instant of t = 0, s since 1970-01-01. With it, the hour and day of 2.11 are US Eastern local time with daylight saving (A90), and `traffic.start_weekday` must be its local weekday (R23). |
 
 ### 8.3 Cross-field rules
 
@@ -1167,6 +1173,8 @@ Checked at load by the core and by `scripts/check_spec.py`:
   density (else no parasitic term can fit, A77).
 - R21 `weather.landing_max_wind_mps` >= `weather.max_wind_mps` and
   `weather.landing_max_gust_mps` >= `weather.max_gust_mps`.
+- R23 With `traffic.start_unix_s`, `traffic.start_weekday` is the US Eastern weekday of that
+  instant.
 - R22 `[traffic]` requires `truck.matrix_source` = FILE with a `truck_matrix.bin` of
   version_minor 2 or above, and every `truck.tod_speed_factors[]` entry = 1.
 
@@ -1257,9 +1265,11 @@ A flight profile is a TOML file in `configs/flight_profiles/`, validated against
 
 - `name`;
 - `source`, which says where the values came from (`px4-sitl-proxy` for the Phase 5 fit);
-- a `drone` table setting exactly these quantities, with the units of 8.2: `cruise_speed_mps`,
+- a `drone` table setting these quantities, with the units of 8.2: `cruise_speed_mps`,
   `cruise_power_ref_w`, `hover_power_ref_w`, `power_ref_mass_kg`, `takeoff_s`, `approach_s`,
-  `hop_s`.
+  `hop_s`; and optionally (A93) `airframe` (MULTIROTOR or VTOL), `mtow_kg` (the airframe's own
+  MTOW, kg), `transition_s` with `transition_power_ref_w` (s, W), and `cruise_mass_exponent`
+  (1, default 1.5). `sim flight-model` then also prints the transition phase.
 
 A scenario selects one with `flight_profile.file`, which needs schema version 1.5.0. Its values
 replace the same keys of the drone section at load; every other key keeps the scenario's value.
@@ -1385,7 +1395,7 @@ DroneMode for D, PadMode for M, 255 where not applicable).
 ### 9.5 flight_samples.bin
 
 PX4 SITL flights only (`px4/`). magic `DDSAMPL\0`, count_a = record_bytes (96), count_b = 0,
-`source_hash` 0. One record per `logging.sample_period_s` of sim time (`px4/config/flight.yaml`),
+`source_hash` 0, version_minor 1. One record per `logging.sample_period_s` of sim time (`px4/config/flight.yaml`),
 in time order, written while the flight runs.
 
 | Offset | Size | Type | Field |
@@ -1403,7 +1413,7 @@ in time order, written while the flight runs.
 | 89 | 1 | u8 | nav_state: PX4 vehicle_status nav_state |
 | 90 | 1 | u8 | arming_state: PX4 vehicle_status arming_state |
 | 91 | 1 | u8 | pods_latched: pods the latch holds (0 or 1) |
-| 92 | 4 | u8[4] | reserved, 0 |
+| 92 | 4 | f32 | pusher_radps: VTOL pusher motor command, rad/s; 0 on a multirotor. Added in version_minor 1 (the bytes were reserved, 0) |
 
 ### 9.6 events.jsonl and visits.json
 
@@ -1413,7 +1423,8 @@ received them: `type` `msg` (a 4.2 message: `t_us` = send time, `name`, `sender`
 3.4 or 4.4 row: `t_us`, `machine` VISIT, DRONE or PAD, `row`, `pad_id`, `drone_id`, `from`,
 `to`) and one closing `run_status` (`COMPLETE` or `FAILED: <reason>`). A visit that exists
 before the run (a drone parked on OUT, 3.3) appears as row INIT from (none) to READY.
-`visits.json` holds `state_durations` (machine instance, state, entry time, seconds in the
+A VTOL run adds `vtol` lines (`t_us`, `state` MC, TRANSITION_FW, FW or TRANSITION_MC) whenever
+PX4's VTOL state changes. `visits.json` holds `state_durations` (machine instance, state, entry time, seconds in the
 state) and `landings` (pad, spot, touchdown ground truth, `error_cm`: horizontal distance from
 the spot centre). `px4/tools/flightlog.py validate` checks all of 9.3, 9.5 and 9.6 for a run.
 
@@ -1651,7 +1662,7 @@ that:
   missed. Each attempt draws anew, as if the drone re-seated, so a retry can succeed; if
   misses were tied to the landing, retries would rarely help. Marker detection stays at
   `pad_ops.p_marker_detect`.
-- A72 Pad layout is a scenario setting: `pad_ops.out_spots` (1 to 3) OUT spots at every pad,
+- A72 Pad layout is a scenario setting: `pad_ops.out_spots` (1 to 3, or 4 from 1.9.0) OUT spots at every pad,
   each with charging contacts, room for one pod and one drone; `pad_ops.parking_capacity`
   replaces every pad's parking. A pad still has one IN and one airborne movement at a time
   (A32). An empty drone takes the OUT spot holding its pickup pod, else the lowest free one, and
@@ -1726,6 +1737,46 @@ that:
 - A87 A weather week (`analysis/weather_year.py`) is 168 consecutive series hours from a local
   Monday midnight (America/New_York). The sim clock carries the local offset of that midnight,
   so after a daylight-saving change within the week, traffic's local hours are one hour off.
+- A88 M11 classes an unfinished order by the state at END_OF_RUN only: blocked by weather if
+  dispatch is blocked in the last hour, blocked by energy if its route is energy-blocked then,
+  else waiting. An order blocked earlier and now merely queued counts as waiting.
+- A89 Cold derate is applied per route: `dispatch_ok` compares each route's need with the
+  derated usable capacity. Without the energy route guard, though, cold stops every route in
+  practice: FM assigns shipments on blocked routes, drones latch them and strand at the
+  warehouse, and their pods fill the OUT spots ahead of shipments that could still fly (Phase
+  7). The guard checks the route when assigning and placing. A shipment already assigned or
+  latched when its route becomes blocked stays with its drone until the route clears.
+- A90 US Eastern local time is computed from the US rules in force since 2007 (UTC-5; UTC-4
+  from 02:00 local on the second Sunday of March to 02:00 local on the first Sunday of
+  November), not from a time-zone database; it covers the 2023 to 2025 series.
+- A91 The SITL VTOL is PX4's standard VTOL (airframe 4004) scaled by one factor, MTOW / 5.025 kg,
+  on body mass and inertia, every motor and rotor-drag constant and the lift-drag areas, so at
+  MTOW it has the stock model's accelerations, stall speed and thrust/weight, and 4004's gains
+  fly it. Geometry is the stock model's, plus skids for pod clearance. It is not a design: real
+  wings, propellers and structure of a 16 kg VTOL would differ.
+- A92 VTOL energy proxy: the four lift rotors by A57's induced power; the pusher by ideal
+  momentum theory for a propeller in axial flight, P = T (V + v_i), V the speed along the body x
+  axis (no wind in the calibration flights). Rotor and pusher disc areas are the stock model's
+  collision discs scaled by the same factor as thrust, keeping the stock disc loading. No
+  profile, motor, ESC or propeller losses.
+- A93 A VTOL flight profile (8.7) adds `airframe` VTOL, its own `mtow_kg`, `transition_s` and
+  `transition_power_ref_w` (once per flight, with the first lane from a pad or a hold: the
+  transition to fixed wing, the back-transition and the multicopter stretch to the holding
+  fix, charged at the transition power times the hover mass factor), and
+  `cruise_mass_exponent` (the cruise power's mass exponent, 1.5 for a multirotor). Takeoff,
+  approach and hop are multicopter phases at the hover power. The energy guards add one
+  transition to the dispatch need and one to a diversion. With weather, a VTOL's cruise power
+  is proportional to airspeed: in the SITL wing (Gazebo lift-drag, drag coefficient linear in
+  lift coefficient) level-flight drag does not change with speed, so thrust power is drag
+  times airspeed.
+- A94 The SITL wind check puts a constant wind, the same at every height, in the Gazebo world.
+  The wing surfaces (LiftDrag) fly in the air relative to it. Gazebo's WindEffects adds
+  mass x k x (wind - velocity) on every link that enables wind, with k a linear fit of a
+  placeholder body drag (CdA 0.1 m2 at 8 m/s, 14.6 kg: 0.033 /s; Gazebo's default of 1 /s
+  kept the VTOL below transition airspeed). The gust is Gaussian noise of standard deviation
+  gust fraction x wind on the magnitude, drawn every physics step. Gazebo's airspeed sensor
+  ignores the wind, so PX4's airspeed is ground speed along the body axis. The check informs
+  the limitations only; nothing is calibrated from it.
 
 ## 11 Amendments
 
@@ -1743,3 +1794,4 @@ that:
 | 1.6.0 | Battery-mass coupling: `drone.airframe_mass_kg`, `drone.battery_specific_energy_wh_per_kg` (8.2), versioned optional keys; A68. Marker-fault reporting: `pad_ops.marker_self_check`, `PAD_STATUS` field `marker_fault`, 6.1, 6.2, 6.4, 6.6 and `alt(b)` exclude such pads; A35 rewritten. Pad layout: `pad_ops.out_spots`, `pad_ops.parking_capacity`, Spot values OUT_2 and OUT_3, `out_index` on `HOP_CMD` and `POD_PLACED`, V43, D15, `demand.pods_per_origin` (A73), P02, 3.5, V09, V10, V21, V25, V26, V39, `slots(p)`, M3, `charging.charge_while_parked` and A16 wording; A72. Derived latch fault: `drone.latch_capture_radius_m`, `drone.out_landing_error_bias_m`, `drone.out_landing_error_sigma_m`, D15 and 3.6 wording; A71. Reordering: radio `link_seq`, `handshake.reorder_window_s`, timer `REORDER_RELEASE` (4.1, 5.1); A70. Repair after a release fault: `pad_ops.repair_mean_s`, `pad_ops.repair_spread_s`, `REPAIR_DONE` (5.1, kind 43), REPAIR stream (5.4), M06, P09, D25, V20, V42, D13 and A18 wording; A69. | Phase 6a: a bigger battery must cost mass, payload margin and energy; a release fault took a pad out for good, which drove most of Phase 3's rejections; FM kept sending drones into a pad whose marker it could not see; two messages swapped on a link cost a retry; the latch-fail probability was a guess unrelated to the measured landing error; one OUT spot per pad, held through charging, was the bottleneck Phase 5 found. |
 | 1.7.0 | Run guards: `sim.max_events_per_timestamp`, `sim.max_event_log_mib` (5.5), `sim run --no-event-log`. Yield on request: `policy.yield_on_request`, V44, 6.4; A74. | Phase 6a: a protocol loop wrote 1.8 GB of events in three seconds, and runaway probes filled a disk; idle drones on spots gridlocked no-parking layouts. |
 | 1.8.0 | `weather.bin` (9.7) under `configs/weather/<area>/` (8.4), `source_hash` rule (9.0); A75, A76. Weather in the core: 2.10, `[weather]` keys (8.2), R18 to R21, `WEATHER_HOUR` (5.1, kind 44), timer `FM_WEATHER_FALLBACK`, HoldReason WEATHER (V02, D07, 6.3), OrderStatus TRUCKED and its `deliveries.csv` row, WeatherHoldPolicy, P10, P11, M10, weather factor in the truck baseline (7); A77 to A83. Traffic: 2.11, `truck_matrix.bin` version_minor 2 with road-class and bridge/tunnel fractions (9.2; minor-1 files still load), `[traffic]` keys, R22, TRAFFIC stream (5.4); A84 to A87. | Phase 6b adds weather: the sim needs an hourly series of the real Pittsburgh weather, built offline and reproducibly like the network files, and the effects of each hour on flight, operating limits, landing, battery and truck; and road traffic for the truck, which the brief asks to model by road class from the pipeline's own routes, with no live data. |
+| 1.9.0 | M11 order outcomes and `metrics.order_outcomes`; A88. Energy route guard `weather.energy_route_guard` (2.10, P02 picks the first flyable shipment, 6.1 skips blocked shipments, TRUCK_FALLBACK on energy); A89. `traffic.start_unix_s` and R23, US Eastern local time for traffic; A90. `flight_samples.bin` version_minor 1 with `pusher_radps` (9.5) and `vtol` events (9.6); A91, A92. Spot value OUT_4 and `pad_ops.out_spots` up to 4 (A72). VTOL flight-profile keys (8.7), the transition phase in `sim flight-model`, energy guards with transitions; A93. SITL wind check; A94. | Phase 7: the 6b ratio averaged only finished orders, which hid weeks where most requests were rejected at the cap or still waiting; cold, though checked per route, stopped every route through stranded drones and blocked OUT spots; traffic peaks moved an hour with daylight saving (A87); and the VTOL layout sweep goes to four OUT spots. |

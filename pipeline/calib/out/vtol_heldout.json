@@ -1,0 +1,199 @@
+{
+ "targets": {
+  "time": 0.05,
+  "energy": 0.15
+ },
+ "calibration_script_git": "2549e822e0ac",
+ "runs": [
+  {
+   "run": "vtolheld_45_1",
+   "status": "COMPLETE",
+   "script_git": "bc4314c3586e",
+   "validation": "pass",
+   "wall_s": 102,
+   "peak_rss_mb": 693.9,
+   "lane_id": 45,
+   "lane_length_m": 1180.3275146484375,
+   "landings_cm": [
+    5.94,
+    11.35
+   ],
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 27.14,
+     "pred_time_s": 26.21,
+     "meas_energy_j": 42958.2,
+     "pred_energy_j": 38597.8
+    },
+    "lane": {
+     "meas_time_s": 92.85,
+     "pred_time_s": 91.9,
+     "meas_energy_j": 78959.2,
+     "pred_energy_j": 81194.0
+    },
+    "approach": {
+     "meas_time_s": 48.05,
+     "pred_time_s": 49.88,
+     "meas_energy_j": 76819.7,
+     "pred_energy_j": 73441.7
+    },
+    "hop": {
+     "meas_time_s": 23.85,
+     "pred_time_s": 24.16,
+     "meas_energy_j": 16695.0,
+     "pred_energy_j": 18966.6
+    }
+   },
+   "visit_time_measured_s": 191.9,
+   "visit_time_predicted_s": 192.15,
+   "time_error": 0.0013,
+   "visit_energy_measured_j": 215432.1,
+   "visit_energy_predicted_j": 212200.0,
+   "energy_error": -0.015,
+   "within_targets": true
+  },
+  {
+   "run": "vtolheld_45_2",
+   "status": "COMPLETE",
+   "script_git": "bc4314c3586e",
+   "validation": "pass",
+   "wall_s": 102,
+   "peak_rss_mb": 684.7,
+   "lane_id": 45,
+   "lane_length_m": 1180.3275146484375,
+   "landings_cm": [
+    5.09,
+    4.48
+   ],
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.94,
+     "pred_time_s": 26.21,
+     "meas_energy_j": 42115.7,
+     "pred_energy_j": 38597.8
+    },
+    "lane": {
+     "meas_time_s": 93.0,
+     "pred_time_s": 91.9,
+     "meas_energy_j": 78636.6,
+     "pred_energy_j": 81194.0
+    },
+    "approach": {
+     "meas_time_s": 47.15,
+     "pred_time_s": 49.88,
+     "meas_energy_j": 75306.4,
+     "pred_energy_j": 73441.7
+    },
+    "hop": {
+     "meas_time_s": 25.3,
+     "pred_time_s": 24.16,
+     "meas_energy_j": 17915.9,
+     "pred_energy_j": 18966.6
+    }
+   },
+   "visit_time_measured_s": 192.4,
+   "visit_time_predicted_s": 192.15,
+   "time_error": -0.0013,
+   "visit_energy_measured_j": 213974.6,
+   "visit_energy_predicted_j": 212200.0,
+   "energy_error": -0.0083,
+   "within_targets": true
+  },
+  {
+   "run": "vtolheld_4_1",
+   "status": "COMPLETE",
+   "script_git": "705d7335d0e2",
+   "validation": "pass",
+   "wall_s": 479,
+   "peak_rss_mb": 706.1,
+   "lane_id": 4,
+   "lane_length_m": 12895.5634765625,
+   "landings_cm": [
+    3.15,
+    4.62
+   ],
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 26.9,
+     "pred_time_s": 26.21,
+     "meas_energy_j": 42200.1,
+     "pred_energy_j": 38597.8
+    },
+    "lane": {
+     "meas_time_s": 870.6,
+     "pred_time_s": 862.07,
+     "meas_energy_j": 507106.3,
+     "pred_energy_j": 509737.1
+    },
+    "approach": {
+     "meas_time_s": 50.65,
+     "pred_time_s": 49.88,
+     "meas_energy_j": 81854.5,
+     "pred_energy_j": 73441.7
+    },
+    "hop": {
+     "meas_time_s": 23.55,
+     "pred_time_s": 24.16,
+     "meas_energy_j": 16199.6,
+     "pred_energy_j": 18966.6
+    }
+   },
+   "visit_time_measured_s": 971.7,
+   "visit_time_predicted_s": 962.32,
+   "time_error": -0.0097,
+   "visit_energy_measured_j": 647360.5,
+   "visit_energy_predicted_j": 640743.1,
+   "energy_error": -0.0102,
+   "within_targets": true
+  },
+  {
+   "run": "vtolheld_4_2",
+   "status": "COMPLETE",
+   "script_git": "3645c735def1",
+   "validation": "pass",
+   "wall_s": 477,
+   "peak_rss_mb": 712.7,
+   "lane_id": 4,
+   "lane_length_m": 12895.5634765625,
+   "landings_cm": [
+    3.17,
+    5.82
+   ],
+   "phases": {
+    "takeoff": {
+     "meas_time_s": 27.04,
+     "pred_time_s": 26.21,
+     "meas_energy_j": 42705.7,
+     "pred_energy_j": 38597.8
+    },
+    "lane": {
+     "meas_time_s": 870.2,
+     "pred_time_s": 862.07,
+     "meas_energy_j": 497081.9,
+     "pred_energy_j": 509737.1
+    },
+    "approach": {
+     "meas_time_s": 45.8,
+     "pred_time_s": 49.88,
+     "meas_energy_j": 73291.9,
+     "pred_energy_j": 73441.7
+    },
+    "hop": {
+     "meas_time_s": 25.7,
+     "pred_time_s": 24.16,
+     "meas_energy_j": 18235.8,
+     "pred_energy_j": 18966.6
+    }
+   },
+   "visit_time_measured_s": 968.74,
+   "visit_time_predicted_s": 962.32,
+   "time_error": -0.0066,
+   "visit_energy_measured_j": 631315.3,
+   "visit_energy_predicted_j": 640743.1,
+   "energy_error": 0.0149,
+   "within_targets": true
+  }
+ ],
+ "max_abs_time_error": 0.0097,
+ "max_abs_energy_error": 0.015
+}

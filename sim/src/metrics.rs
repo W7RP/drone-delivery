@@ -229,6 +229,11 @@ impl Metrics {
         }
     }
 
+    /// SHIPMENT_REQUESTs in W, and those of them rejected at the backlog cap (M6, M9).
+    pub fn requests_in_window(&self) -> (u64, u64) {
+        (self.requests, self.rejected)
+    }
+
     pub fn in_window(&self, t: TimeMs) -> bool {
         t >= self.window.0 && t <= self.window.1
     }

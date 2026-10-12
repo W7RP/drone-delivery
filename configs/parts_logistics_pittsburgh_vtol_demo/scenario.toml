@@ -1,0 +1,353 @@
+# Demo scenario of Phase 7: the VTOL layout with every realism key on. Pad layout, repair,
+# yield on request, derived latch fault, marker self-check, reorder window and battery-mass
+# coupling as in parts_logistics_pittsburgh_vtol_layout; weather (2.10) from the committed AGC
+# series with the per-route energy guard (A89); traffic (2.11) in US Eastern local time (A90);
+# order outcomes (M11). It starts at local midnight on Monday 2023-01-02, the first complete
+# week of the series. Every number is a placeholder (assumption = true), not real data.
+
+schema_version = "1.9.0"
+
+# No scheduled faults; random pad-controller faults still follow pad_ops.pc_fault_rate_per_h.
+faults = []
+
+[meta]
+name = "parts_logistics_pittsburgh_vtol_demo"
+preset = "PARTS_LOGISTICS"
+status = "COMPLETE"
+city = "Pittsburgh"
+description = "The VTOL layout with every realism key on: repair, yield on request, derived latch fault, marker self-check, reorder window, hourly AGC weather with the energy route guard, road traffic in local time and order outcomes, one week from Monday 2023-01-02."
+
+[sim]
+seed = { value = 42, unit = "1", assumption = true }
+duration_s = { value = 604800.0, unit = "s", assumption = true }
+warmup_s = { value = 3600.0, unit = "s", assumption = true }
+start_time_of_day_s = { value = 0.0, unit = "s", assumption = true }
+replications = { value = 1, unit = "count", assumption = true }
+
+[geo]
+origin_lat_deg = { value = 40.4406, unit = "deg", assumption = true }
+origin_lon_deg = { value = -79.9959, unit = "deg", assumption = true }
+
+# Pads (derived/pads.toml), lanes (derived/lanes.csr.bin) and the truck matrix
+# (derived/truck_matrix.bin), relative to this file.
+[network_files]
+dir = "../parts_logistics_pittsburgh_vtol/derived"
+
+# Flight profile (spec 8.7): replaces the drone section's flight-model keys,
+# which stay the placeholder profile.
+[flight_profile]
+file = "../flight_profiles/px4_sitl_vtol_proxy.toml"
+
+[drone]
+# Variant key (parts_logistics_pittsburgh_vtol).
+out_landing_error_sigma_m = { value = 0.034821452725140145, unit = "m", assumption = true }
+# Variant key (parts_logistics_pittsburgh_vtol).
+out_landing_error_bias_m = { value = 0.08003523204675218, unit = "m", assumption = true }
+# Variant key (parts_logistics_pittsburgh_vtol).
+latch_capture_radius_m = { value = 0.15, unit = "m", assumption = true }
+# Rule (spec A52): ceil(offered drone-hours per hour 3.159 / target utilisation 0.5).
+fleet_size = { value = 7, unit = "count", assumption = true }
+# Battery-mass coupling (spec A68): empty mass = airframe + battery / specific energy.
+airframe_mass_kg = { value = 4.5, unit = "kg", assumption = true }
+battery_specific_energy_wh_per_kg = { value = 200.0, unit = "Wh/kg", assumption = true }
+latch_mass_kg = { value = 0.6, unit = "kg", assumption = true }
+mtow_kg = { value = 16.0, unit = "kg", assumption = true }
+# Variant override (parts_logistics_pittsburgh_vtol).
+battery_capacity_j = { value = 2232000.0, unit = "J", assumption = true }
+initial_soc = { value = 1.0, unit = "1", assumption = true }
+reserve_soc = { value = 0.2, unit = "1", assumption = true }
+charge_target_soc = { value = 0.95, unit = "1", assumption = true }
+cruise_speed_mps = { value = 15.0, unit = "m/s", assumption = true }
+cruise_power_ref_w = { value = 1000.0, unit = "W", assumption = true }
+hover_power_ref_w = { value = 1200.0, unit = "W", assumption = true }
+power_ref_mass_kg = { value = 14.6, unit = "kg", assumption = true }
+takeoff_s = { value = 30.0, unit = "s", assumption = true }
+approach_s = { value = 45.0, unit = "s", assumption = true }
+go_around_s = { value = 40.0, unit = "s", assumption = true }
+hop_s = { value = 20.0, unit = "s", assumption = true }
+p_release_fault = { value = 0.01, unit = "1", assumption = true }
+
+[payload]
+pod_gross_mass_kg = { value = 5.0, unit = "kg", assumption = true }
+pod_empty_mass_kg = { value = 1.2, unit = "kg", assumption = true }
+
+[charging]
+mode = "OUT_CONTACTS"
+power_w = { value = 1500.0, unit = "W", assumption = true }
+efficiency = { value = 0.9, unit = "1", assumption = true }
+charge_while_parked = false
+
+[pad_ops]
+# Variant key (parts_logistics_pittsburgh_vtol).
+marker_self_check = true
+# Variant key (parts_logistics_pittsburgh_vtol).
+repair_spread_s = { value = 3600.0, unit = "s", assumption = true }
+# Variant key (parts_logistics_pittsburgh_vtol).
+repair_mean_s = { value = 7200.0, unit = "s", assumption = true }
+pod_place_s = { value = 60.0, unit = "s", assumption = true }
+pod_remove_s = { value = 120.0, unit = "s", assumption = true }
+release_s = { value = 5.0, unit = "s", assumption = true }
+release_verify_s = { value = 3.0, unit = "s", assumption = true }
+latch_s = { value = 8.0, unit = "s", assumption = true }
+latch_verify_s = { value = 3.0, unit = "s", assumption = true }
+manual_release_s = { value = 45.0, unit = "s", assumption = true }
+manual_latch_s = { value = 60.0, unit = "s", assumption = true }
+p_marker_detect = { value = 0.97, unit = "1", assumption = true }
+max_go_arounds = { value = 2, unit = "count", assumption = true }
+release_max_retries = { value = 1, unit = "count", assumption = true }
+latch_max_retries = { value = 1, unit = "count", assumption = true }
+out_empty_policy = "DEPART_EMPTY"
+out_empty_wait_timeout_s = { value = 120.0, unit = "s", assumption = true }
+pc_fault_rate_per_h = { value = 0.01, unit = "1/h", assumption = true }
+pc_fault_duration_s = { value = 600.0, unit = "s", assumption = true }
+# Pad layout chosen by analysis/sweep.py (spec A72): every pad alike.
+out_spots = { value = 4, unit = "count", assumption = true }
+parking_capacity = { value = 0, unit = "count", assumption = true }
+
+[handshake]
+# Variant key (parts_logistics_pittsburgh_vtol).
+reorder_window_s = { value = 1.0, unit = "s", assumption = true }
+local_latency_s = { value = 0.05, unit = "s", assumption = true }
+fm_latency_s = { value = 0.2, unit = "s", assumption = true }
+p_msg_loss = { value = 0.0, unit = "1", assumption = true }
+response_timeout_s = { value = 2.0, unit = "s", assumption = true }
+max_retries = { value = 1, unit = "count", assumption = true }
+hold_retry_s = { value = 15.0, unit = "s", assumption = true }
+pc_silence_alert_s = { value = 30.0, unit = "s", assumption = true }
+
+[policy]
+# Variant key (parts_logistics_pittsburgh_vtol).
+yield_on_request = true
+assignment = "MIN_ETA"
+dispatch = "IMMEDIATE"
+holding = "BOUNDED_HOLD"
+drone_rebalancing = "NEAREST_UNCLAIMED"
+pod_rebalancing = "MIN_THRESHOLD"
+diversion = "NEAREST_FEASIBLE"
+in_occupied_action = "HOLD"
+max_hold_s = { value = 180.0, unit = "s", assumption = true }
+marker_hold_s = { value = 60.0, unit = "s", assumption = true }
+marker_max_hold_cycles = { value = 1, unit = "count", assumption = true }
+# 0 turns threshold rebalancing off: pods go home by RETURN_HOME (derived/pads.toml).
+pod_min_per_pad = { value = 0, unit = "count", assumption = true }
+
+[truck]
+matrix_source = "FILE"
+dispatch_delay_s = { value = 900.0, unit = "s", assumption = true }
+load_s = { value = 300.0, unit = "s", assumption = true }
+unload_s = { value = 300.0, unit = "s", assumption = true }
+# Flat: [traffic] below carries time of day (spec R22).
+tod_speed_factors = [
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+]
+
+[metrics]
+hist_bin_s = { value = 10.0, unit = "s", assumption = true }
+hist_max_s = { value = 14400.0, unit = "s", assumption = true }
+order_outcomes = true
+
+[costs]
+truck_per_m = { value = 0.0008, unit = "cu/m", assumption = true }
+truck_per_s = { value = 0.012, unit = "cu/s", assumption = true }
+drone_per_s = { value = 0.002, unit = "cu/s", assumption = true }
+energy_per_j = { value = 4.0e-8, unit = "cu/J", assumption = true }
+
+[demand]
+deadline_offset_s = { value = 3600.0, unit = "s", assumption = true }
+# About five hours of one warehouse's requests; beyond that a shipper books another carrier.
+max_backlog_per_pad = { value = 20, unit = "count", assumption = true }
+# Each warehouse sends 4.0 requests per hour, split evenly over the pads its drones can reach (R16).
+# Left out, beyond the energy guard: Consumer_Fresh_Produce -> Mon_Valley_Works_Clairton_Plant.
+# Left out, beyond the energy guard: Consumer_Fresh_Produce -> Old_Koppers_Area.
+# Left out, beyond the energy guard: Achieva_Mailing_Service -> Mon_Valley_Works_Clairton_Plant.
+# Left out, beyond the energy guard: Achieva_Mailing_Service -> Old_Koppers_Area.
+
+[[demand.flows]]
+origin = "Consumer_Fresh_Produce"
+destination = "UPMC_Oakland"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Consumer_Fresh_Produce"
+destination = "UPMC_Magee_Womens_Hospital"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Consumer_Fresh_Produce"
+destination = "VA_Pittsburgh_Healthcare_System"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Consumer_Fresh_Produce"
+destination = "Mon_Valley_Works_Edgar_Thomson_P"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Consumer_Fresh_Produce"
+destination = "Josh_Steel"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Achieva_Mailing_Service"
+destination = "UPMC_Oakland"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Achieva_Mailing_Service"
+destination = "UPMC_Magee_Womens_Hospital"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Achieva_Mailing_Service"
+destination = "VA_Pittsburgh_Healthcare_System"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Achieva_Mailing_Service"
+destination = "Mon_Valley_Works_Edgar_Thomson_P"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+[[demand.flows]]
+origin = "Achieva_Mailing_Service"
+destination = "Josh_Steel"
+rate_per_h = { value = 0.8, unit = "1/h", assumption = true }
+
+# Hourly weather (spec 2.10) from configs/weather/pittsburgh (AGC, 2023 to 2025 UTC).
+# start_hour 29 is 2023-01-02 05:00 UTC, local midnight. Limits, landing error, marker
+# penalties, battery derate and truck factors are uncalibrated placeholders (A77 to A83).
+[weather]
+series_file = "../weather/pittsburgh/weather.bin"
+start_hour = { value = 29, unit = "count", assumption = true }
+wind_shear_exponent = { value = 0.2, unit = "1", assumption = true }
+# 200 ft, the airspace cruise altitude of pipeline/params.yaml.
+cruise_height_m = { value = 61.0, unit = "m", assumption = true }
+# FW_AIRSPD_MAX of px4/params/sitl_vtol.params.
+max_airspeed_mps = { value = 22.0, unit = "m/s", assumption = true }
+# The four lift rotors of the scaled VTOL proxy (docs/vtol.md 1): radius 0.1784 m each.
+rotor_disc_area_m2 = { value = 0.40013, unit = "m2", assumption = true }
+air_density_kgpm3 = { value = 1.225, unit = "kg/m3", assumption = true }
+max_wind_mps = { value = 10.0, unit = "m/s", assumption = true }
+max_gust_mps = { value = 15.0, unit = "m/s", assumption = true }
+min_visibility_m = { value = 3000.0, unit = "m", assumption = true }
+max_precip_mm_h = { value = 4.0, unit = "mm/h", assumption = true }
+min_temp_c = { value = -10.0, unit = "degC", assumption = true }
+max_temp_c = { value = 40.0, unit = "degC", assumption = true }
+landing_max_wind_mps = { value = 14.0, unit = "m/s", assumption = true }
+landing_max_gust_mps = { value = 20.0, unit = "m/s", assumption = true }
+latch_gust_k = { value = 1.0, unit = "1", assumption = true }
+latch_gust_ref_mps = { value = 10.0, unit = "m/s", assumption = true }
+marker_penalty_rain = { value = 0.05, unit = "1", assumption = true }
+marker_penalty_snow = { value = 0.1, unit = "1", assumption = true }
+marker_penalty_low_visibility = { value = 0.2, unit = "1", assumption = true }
+low_visibility_m = { value = 1600.0, unit = "m", assumption = true }
+battery_derate_temp_c = [
+  { value = -20.0, unit = "degC", assumption = true },
+  { value = -10.0, unit = "degC", assumption = true },
+  { value = 0.0, unit = "degC", assumption = true },
+  { value = 10.0, unit = "degC", assumption = true },
+  { value = 20.0, unit = "degC", assumption = true },
+]
+battery_derate_factor = [
+  { value = 0.6, unit = "1", assumption = true },
+  { value = 0.75, unit = "1", assumption = true },
+  { value = 0.85, unit = "1", assumption = true },
+  { value = 0.95, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+]
+truck_factor_rain = { value = 0.9, unit = "1", assumption = true }
+truck_factor_snow = { value = 0.75, unit = "1", assumption = true }
+truck_factor_low_visibility = { value = 0.9, unit = "1", assumption = true }
+# Phase 7 step 2: with the energy route guard, TRUCK_FALLBACK completes 98 to 99% of the
+# windiest and coldest weeks where WAIT fills the backlog cap (analysis/out/completion.md).
+hold_policy = "TRUCK_FALLBACK"
+truck_fallback_timeout_s = { value = 3600.0, unit = "s", assumption = true }
+energy_route_guard = true
+
+# Road traffic for the truck (spec 2.11), with truck.tod_speed_factors flat (R22). Weekday
+# peaks at 08:00 and 17:00 local time, a midday hump at weekends; motorways and bridges the
+# most sensitive. All placeholders (A84 to A86). start_unix_s is 2023-01-02 05:00 UTC.
+[traffic]
+start_weekday = { value = 0, unit = "count", assumption = true }
+start_unix_s = { value = 1672635600.0, unit = "s", assumption = true }
+weekday_shape = [
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.8, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 0.5, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.5, unit = "1", assumption = true },
+  { value = 0.9, unit = "1", assumption = true },
+  { value = 1.0, unit = "1", assumption = true },
+  { value = 0.6, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+]
+weekend_shape = [
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.1, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.3, unit = "1", assumption = true },
+  { value = 0.2, unit = "1", assumption = true },
+  { value = 0.1, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+  { value = 0.0, unit = "1", assumption = true },
+]
+peak_delay_motorway = { value = 1.0, unit = "1", assumption = true }
+peak_delay_primary = { value = 0.6, unit = "1", assumption = true }
+peak_delay_other = { value = 0.3, unit = "1", assumption = true }
+peak_delay_structure = { value = 0.8, unit = "1", assumption = true }
+incident_rate_per_pair_h = { value = 0.02, unit = "1/h", assumption = true }
+incident_delay_median_s = { value = 600.0, unit = "s", assumption = true }
+incident_delay_sigma = { value = 0.8, unit = "1", assumption = true }
