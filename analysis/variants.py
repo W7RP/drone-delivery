@@ -1,13 +1,16 @@
 """Shared helpers for the Phase 6a analysis scripts: read a committed scenario, change keys in a
 copy, write the copy where `sim run` can load it, and run the release sim.
 
-A copy keeps its scenario's network and flight profile: `network_files.dir` and
-`flight_profile.file` are rewritten as absolute paths, so the copy can live anywhere. The copy's
+A copy keeps its scenario's network, flight profile and weather: `network_files.dir`,
+`flight_profile.file` and `weather.series_file` are rewritten as absolute paths, so the copy can
+live anywhere. The copy's
 directory is named after its `meta.name` (spec R14). Committed scenario files are never edited.
 """
 
 import json
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import tomli
@@ -18,6 +21,8 @@ CONFIGS = ROOT / "configs"
 SIM = ROOT / "sim" / "target" / "release" / "sim"
 OUT = ROOT / "analysis" / "out"
 J_PER_WH = 3600.0
+# A sweep refuses to start with less free space than this on the repo drive or the temp drive.
+MIN_FREE_BYTES = 20 * 1024**3
 
 
 def load(name: str) -> dict:
@@ -29,6 +34,8 @@ def absolute_paths(cfg: dict, source_dir: Path) -> dict:
         cfg["network_files"]["dir"] = str((source_dir / cfg["network_files"]["dir"]).resolve())
     if "flight_profile" in cfg:
         cfg["flight_profile"]["file"] = str((source_dir / cfg["flight_profile"]["file"]).resolve())
+    if "weather" in cfg:
+        cfg["weather"]["series_file"] = str((source_dir / cfg["weather"]["series_file"]).resolve())
     return cfg
 
 
@@ -69,9 +76,9 @@ def variant(source: str, root: Path, name: str, edits: dict, description: str = 
 
 
 def run(scenario: Path, seed: int, out: Path) -> dict:
-    """`sim run` in release; returns metrics.json."""
+    """`sim run` in release, without an event log; returns metrics.json."""
     subprocess.run(
-        [str(SIM), "run", str(scenario), "--seed", str(seed), "--out", str(out)],
+        [str(SIM), "run", str(scenario), "--seed", str(seed), "--out", str(out), "--no-event-log"],
         check=True,
         capture_output=True,
     )
@@ -83,5 +90,14 @@ def sim_json(*args: str) -> dict:
     return json.loads(done.stdout)
 
 
+def require_free_disk() -> None:
+    """Stop before a sweep can fill a disk (Phase 6a's runaway runs once did)."""
+    for where in (ROOT, Path(tempfile.gettempdir())):
+        free = shutil.disk_usage(where).free
+        if free < MIN_FREE_BYTES:
+            raise SystemExit(f"{where}: {free / 1024**3:.1f} GB free, a sweep needs 20 GB")
+
+
 def build_sim() -> None:
+    require_free_disk()
     subprocess.run(["cargo", "build", "--quiet", "--release"], cwd=ROOT / "sim", check=True)

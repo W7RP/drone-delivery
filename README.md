@@ -73,9 +73,25 @@ Phase 6a adds realism and then attacks that bottleneck (`docs/network-realism.md
   messages are put back in order, and latch failures follow the measured landing error.
 - **Layout:** pads can have up to three OUT spots and charging parking. At 1370 Wh, two OUT
   spots and 6 kW chargers take door-to-door from 9710 s to 735 s, now 3.1 times faster than the
-  truck.
+  truck (1370 Wh: infeasible airframe, not for demo).
 - **Opt-in:** every new behaviour is set by optional config keys, so existing scenarios and
   their results are unchanged.
+
+Phase 6b moves the demo to the coupled 900 Wh airframe and adds weather and traffic
+(`docs/weather-traffic.md`):
+
+- **Guards and yield:** runs abort on a zero-time loop or an oversized event log, and idle
+  drones make room for arriving ones, which ends the no-parking gridlock of Phase 6a.
+- **900 Wh layout:** 3 kW chargers and three OUT spots per pad take door-to-door from 1659 s to
+  463 s, 4.2 times faster than the truck in good conditions.
+- **Weather:** three years of hourly AGC airport observations drive wind energy, operating
+  limits, landing error, battery derate and truck speed.
+- **Traffic:** truck routes are split by road class from the pipeline's own routing, with
+  time-of-day profiles and random incidents.
+- **Results:** over 156 weeks the median week is 1.8 times faster than the truck (2.4 times
+  with a truck fallback), but the worst tenth of weeks are over six times slower. Cold
+  derates the marginal battery below the energy guard, and hours over the limits stop
+  dispatch. The wind limits matter most, then the cold derate.
 
 What was learnt building it is in `docs/spec.md` section 11. Forcing each failure branch and
 sweeping seeds with every fault at once found ten gaps in the phase-1 spec; each is fixed and
@@ -115,12 +131,14 @@ Every number behind those results is a placeholder.
   factor, memory.
 - `docs/network-realism.md`: battery mass, truck fairness, repair, marker faults, message
   reordering, latch failures, and the charging, layout, pod and fleet sweeps (`analysis/`).
+- `docs/weather-traffic.md`: run guards, the yield fix, the 900 Wh layout and fleet, the
+  weather series, weather and traffic in the sim, the demo scenario, and the year of weather.
 - `docs/calibration.md`: the flight model fitted to the SITL logs, held-out flights, and what
   the fit changes for range, lanes, battery and the Pittsburgh week.
 - `schemas/`, `configs/`: the machine-readable contract and the scenarios. `ab_synthetic`,
-  `hub_spoke_6`, `mesh_small`, `scale_200` and the three `parts_logistics_pittsburgh`
-  variants (fitted profile, placeholder profile, fitted with a 1370 Wh battery) run; the other
-  three presets are still stubs.
+  `hub_spoke_6`, `mesh_small`, `scale_200` and the `parts_logistics_pittsburgh` variants
+  (fitted profile, placeholder profile, fitted with a 1370 Wh battery, the 1370 Wh and 900 Wh
+  layouts, and the Phase 6b demo) run; the other three presets are still stubs.
 
 ## Running it
 
@@ -131,14 +149,14 @@ Build, run, read the event log and run the tests: see `docs/running.md`. One com
 
 ```
 docs/       spec.md, paper-run.md, results.md, running.md, pipeline.md, flight-runs.md,
-            calibration.md, network-realism.md, media/ (calibration plots)
+            calibration.md, network-realism.md, weather-traffic.md, media/ (calibration plots)
 schemas/    common, config, entities, events (JSON Schema)
 configs/    one directory per scenario, each with scenario.toml (and derived/ from the pipeline);
-            flight_profiles/ (the fitted profile)
+            flight_profiles/ (the fitted profile); weather/ (the hourly series)
 sim/        Rust crate: src/ (core), src/bin/sim.rs (CLI), tests/
 pipeline/   offline data pipeline: run.sh, ddpipe/ (Python), sources/sites/params YAML, tests/;
             calib/ (flight model calibration)
 px4/        SITL flight: run_flight.sh, ros2_ws/ (C++ nodes), sim/, config/, tools/, samples/
 scripts/    verify.sh, check_spec.py, scale_demand.py
-analysis/   Phase 6a analysis scripts (uv run) and their results in out/
+analysis/   Phase 6a and 6b analysis scripts (uv run) and their results in out/
 ```

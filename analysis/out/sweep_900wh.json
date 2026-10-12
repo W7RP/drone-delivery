@@ -1,0 +1,1225 @@
+{
+ "base": "parts_logistics_pittsburgh",
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "cost_cu": {
+  "pad_base": 100.0,
+  "per_spot": 20.0,
+  "per_charger_kw": 10.0,
+  "per_parking_slot": 15.0
+ },
+ "n_pads": 5,
+ "before": {
+  "door_to_door_s": {
+   "mean": 1658.9261314746095,
+   "std": 863.0018490892047
+  },
+  "pod_wait_s": {
+   "mean": 1032.5718086810027,
+   "std": 837.7421064705477
+  },
+  "truck_s": {
+   "mean": 1939.3691238397555,
+   "std": 3.543199851191223
+  },
+  "rejected_fraction": {
+   "mean": 0.00029806259314456036,
+   "std": 0.0006664882198210997
+  }
+ },
+ "before_with_repair": {
+  "door_to_door_s": {
+   "mean": 1223.045178977111,
+   "std": 165.2725361861983
+  },
+  "pod_wait_s": {
+   "mean": 610.0678479790207,
+   "std": 147.7104243474699
+  },
+  "truck_s": {
+   "mean": 1938.7596942975347,
+   "std": 2.981491097979888
+  },
+  "rejected_fraction": {
+   "mean": 0.0,
+   "std": 0.0
+  }
+ },
+ "points": [
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 775.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1536.0826750656602,
+    "std": 190.02935331225962
+   },
+   "pod_wait_s": {
+    "mean": 885.9253375363882,
+    "std": 175.16525265200002
+   },
+   "truck_s": {
+    "mean": 1938.5043616230116,
+    "std": 3.029451917934844
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 950.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 686.1523141199226,
+    "std": 26.39089328299984
+   },
+   "pod_wait_s": {
+    "mean": 116.77892366772221,
+    "std": 10.826354964416922
+   },
+   "truck_s": {
+    "mean": 1938.5934024262199,
+    "std": 3.307515506032927
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 1125.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 592.9179617824454,
+    "std": 76.66532557797466
+   },
+   "pod_wait_s": {
+    "mean": 92.86376116804963,
+    "std": 51.698296023418855
+   },
+   "truck_s": {
+    "mean": 1938.5171492720212,
+    "std": 3.051460539664126
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 925.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1358.4639519670668,
+    "std": 177.49138688672696
+   },
+   "pod_wait_s": {
+    "mean": 676.7890119392586,
+    "std": 153.41278161280596
+   },
+   "truck_s": {
+    "mean": 1938.9279465811583,
+    "std": 3.0820059772354935
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 1100.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 944.9528072723633,
+    "std": 114.81329332970535
+   },
+   "pod_wait_s": {
+    "mean": 171.08985764990987,
+    "std": 61.475398046392684
+   },
+   "truck_s": {
+    "mean": 1938.6611266830907,
+    "std": 3.164481295632643
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 1275.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 1080.4182246954374,
+    "std": 439.61201388152483
+   },
+   "pod_wait_s": {
+    "mean": 183.44396680943402,
+    "std": 162.47799350303742
+   },
+   "truck_s": {
+    "mean": 1938.610322251679,
+    "std": 3.177722872075654
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 1075.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 998.3270670284412,
+    "std": 150.1476316874601
+   },
+   "pod_wait_s": {
+    "mean": 417.2032632509578,
+    "std": 128.8151061254546
+   },
+   "truck_s": {
+    "mean": 1938.555053284815,
+    "std": 2.8630606242548913
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 1250.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 936.5482490711969,
+    "std": 185.16355754680143
+   },
+   "pod_wait_s": {
+    "mean": 199.0004941460852,
+    "std": 101.49503093809457
+   },
+   "truck_s": {
+    "mean": 1938.6613775546452,
+    "std": 2.750478933984853
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 1425.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 977.2540522874548,
+    "std": 428.99192374197986
+   },
+   "pod_wait_s": {
+    "mean": 152.47864793593442,
+    "std": 149.73142732648893
+   },
+   "truck_s": {
+    "mean": 1938.5753260667266,
+    "std": 3.3695343238578146
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 1225.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 906.2133565072985,
+    "std": 92.24636990665628
+   },
+   "pod_wait_s": {
+    "mean": 343.5063650087578,
+    "std": 78.00220580336318
+   },
+   "truck_s": {
+    "mean": 1938.7103730737722,
+    "std": 2.862344349836025
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 1400.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 780.2664044056373,
+    "std": 81.47093564125903
+   },
+   "pod_wait_s": {
+    "mean": 132.1735182661971,
+    "std": 46.682545620520436
+   },
+   "truck_s": {
+    "mean": 1938.4190507870358,
+    "std": 2.851819149883983
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 1575.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 854.6938698866709,
+    "std": 183.20475880166387
+   },
+   "pod_wait_s": {
+    "mean": 111.78995353149826,
+    "std": 56.304076600186484
+   },
+   "truck_s": {
+    "mean": 1938.6142541624547,
+    "std": 3.1223545624286704
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 850.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 759.5195762668491,
+    "std": 56.42028746219446
+   },
+   "pod_wait_s": {
+    "mean": 300.8361119586481,
+    "std": 51.943761522708094
+   },
+   "truck_s": {
+    "mean": 1938.5966900532417,
+    "std": 2.934860370293591
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 1100.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 541.3426683096961,
+    "std": 43.00584599673239
+   },
+   "pod_wait_s": {
+    "mean": 106.68932439423675,
+    "std": 39.911870893804775
+   },
+   "truck_s": {
+    "mean": 1938.7888733969492,
+    "std": 3.325529585352958
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 1350.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 463.3454350256475,
+    "std": 8.645830855477675
+   },
+   "pod_wait_s": {
+    "mean": 65.02274516398025,
+    "std": 0.7021071878008194
+   },
+   "truck_s": {
+    "mean": 1938.813052362483,
+    "std": 2.951330118775763
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 1075.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 655.7239857347244,
+    "std": 16.36184742222729
+   },
+   "pod_wait_s": {
+    "mean": 181.05109604987138,
+    "std": 14.40292708955679
+   },
+   "truck_s": {
+    "mean": 1938.6481723547342,
+    "std": 3.1009733031799835
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 1325.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 617.2045238606731,
+    "std": 64.92899627001547
+   },
+   "pod_wait_s": {
+    "mean": 82.98642738233869,
+    "std": 19.719880614209025
+   },
+   "truck_s": {
+    "mean": 1938.3825274019298,
+    "std": 2.8539416860827034
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 1575.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 602.1700026563873,
+    "std": 32.21279518907557
+   },
+   "pod_wait_s": {
+    "mean": 62.123735369502334,
+    "std": 1.0618470207072548
+   },
+   "truck_s": {
+    "mean": 1938.4961558461139,
+    "std": 3.033130922079982
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 1300.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 570.4869268162398,
+    "std": 13.52350995342661
+   },
+   "pod_wait_s": {
+    "mean": 136.54053196602814,
+    "std": 9.351808367610365
+   },
+   "truck_s": {
+    "mean": 1938.423213046982,
+    "std": 2.9925314910726497
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 1550.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 579.5591584892466,
+    "std": 19.66946265774048
+   },
+   "pod_wait_s": {
+    "mean": 74.87933745937876,
+    "std": 3.391195889384333
+   },
+   "truck_s": {
+    "mean": 1938.4395534544947,
+    "std": 2.687513897939311
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 1800.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 570.778479480137,
+    "std": 28.29637324084967
+   },
+   "pod_wait_s": {
+    "mean": 66.02215654036249,
+    "std": 6.792719930888137
+   },
+   "truck_s": {
+    "mean": 1938.6579680142556,
+    "std": 2.8995035388814623
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 1525.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 564.0259326464054,
+    "std": 28.350269914308512
+   },
+   "pod_wait_s": {
+    "mean": 138.21683435269463,
+    "std": 22.201893706533838
+   },
+   "truck_s": {
+    "mean": 1938.6150517453752,
+    "std": 2.886011015497085
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 1775.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 561.8373860685932,
+    "std": 34.32996743838594
+   },
+   "pod_wait_s": {
+    "mean": 73.88402279421177,
+    "std": 6.515082505803587
+   },
+   "truck_s": {
+    "mean": 1938.279140153336,
+    "std": 2.8610185414119695
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 2025.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 590.5915316921262,
+    "std": 69.86793217072204
+   },
+   "pod_wait_s": {
+    "mean": 70.11737609114815,
+    "std": 17.796122160003026
+   },
+   "truck_s": {
+    "mean": 1938.804056966724,
+    "std": 2.9754765049629213
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 1000.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 627.1398946529439,
+    "std": 41.90321190537539
+   },
+   "pod_wait_s": {
+    "mean": 226.97594020561596,
+    "std": 36.971143888478025
+   },
+   "truck_s": {
+    "mean": 1938.4674417697952,
+    "std": 3.1526374824194097
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 1400.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 465.9300908897343,
+    "std": 5.125820524929791
+   },
+   "pod_wait_s": {
+    "mean": 72.94128035949242,
+    "std": 1.0139552810821697
+   },
+   "truck_s": {
+    "mean": 1938.5795438713508,
+    "std": 2.7529812835164162
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 1800.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 438.7087058447187,
+    "std": 30.35714161459296
+   },
+   "pod_wait_s": {
+    "mean": 75.39795960726104,
+    "std": 25.715072093602117
+   },
+   "truck_s": {
+    "mean": 1938.7352553694254,
+    "std": 3.191725342800132
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 1375.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 541.9043269305712,
+    "std": 7.2579964751619
+   },
+   "pod_wait_s": {
+    "mean": 125.73948616728721,
+    "std": 5.241688951542243
+   },
+   "truck_s": {
+    "mean": 1938.828070805582,
+    "std": 3.240330847874397
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 1775.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 572.046042838596,
+    "std": 41.06006108636302
+   },
+   "pod_wait_s": {
+    "mean": 73.1314125266899,
+    "std": 6.744369806483778
+   },
+   "truck_s": {
+    "mean": 1938.7921977495625,
+    "std": 3.0868045922534493
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 2175.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 542.3087406297798,
+    "std": 26.129229013233804
+   },
+   "pod_wait_s": {
+    "mean": 69.18769191033103,
+    "std": 17.955918028450245
+   },
+   "truck_s": {
+    "mean": 1938.5635081824166,
+    "std": 3.1244719160124967
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 1750.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 511.54601669241003,
+    "std": 21.06781622320803
+   },
+   "pod_wait_s": {
+    "mean": 119.14428736749383,
+    "std": 21.26471430912737
+   },
+   "truck_s": {
+    "mean": 1938.4760379474658,
+    "std": 3.2943286144395922
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 2150.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 505.6289377395248,
+    "std": 7.7455874884341815
+   },
+   "pod_wait_s": {
+    "mean": 70.14510784842881,
+    "std": 6.74832836935782
+   },
+   "truck_s": {
+    "mean": 1938.7548429701249,
+    "std": 3.0815482419988984
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 2550.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 517.7398086662673,
+    "std": 41.43096406461908
+   },
+   "pod_wait_s": {
+    "mean": 66.75223223761813,
+    "std": 10.797564848660485
+   },
+   "truck_s": {
+    "mean": 1938.5452837924597,
+    "std": 2.7747484280509136
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 2125.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 511.130263671297,
+    "std": 37.659405493165515
+   },
+   "pod_wait_s": {
+    "mean": 124.86738224606783,
+    "std": 32.9019377073132
+   },
+   "truck_s": {
+    "mean": 1938.4558188828585,
+    "std": 2.7649627328690043
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 2525.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 564.5098979626312,
+    "std": 89.26530329684752
+   },
+   "pod_wait_s": {
+    "mean": 90.33448578778064,
+    "std": 24.991543981893226
+   },
+   "truck_s": {
+    "mean": 1938.564527473439,
+    "std": 3.104459780135451
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 2925.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 512.4449836454479,
+    "std": 24.217835952268114
+   },
+   "pod_wait_s": {
+    "mean": 76.23980471323023,
+    "std": 20.72683655574434
+   },
+   "truck_s": {
+    "mean": 1938.4690386465838,
+    "std": 3.2761202129769478
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 1,
+   "cost_cu": 1300.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 544.0917494167803,
+    "std": 14.973835729666526
+   },
+   "pod_wait_s": {
+    "mean": 174.46963029460457,
+    "std": 15.788556260793284
+   },
+   "truck_s": {
+    "mean": 1938.6173307449412,
+    "std": 2.9489832033183627
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 2,
+   "cost_cu": 2000.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 470.5419828695234,
+    "std": 33.34957536283636
+   },
+   "pod_wait_s": {
+    "mean": 92.35969028383437,
+    "std": 31.714792861797907
+   },
+   "truck_s": {
+    "mean": 1938.485356852982,
+    "std": 3.504031564349422
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 3,
+   "cost_cu": 2700.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 422.10102120396243,
+    "std": 26.643010308111677
+   },
+   "pod_wait_s": {
+    "mean": 75.33412735346056,
+    "std": 24.563089348281395
+   },
+   "truck_s": {
+    "mean": 1938.4008248064033,
+    "std": 3.4971493739271557
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 1,
+   "cost_cu": 1975.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 521.7210959845925,
+    "std": 31.374534135530556
+   },
+   "pod_wait_s": {
+    "mean": 126.49118833356843,
+    "std": 27.671133490425824
+   },
+   "truck_s": {
+    "mean": 1938.6550871819709,
+    "std": 3.041978044358614
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 2,
+   "cost_cu": 2675.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 525.8778988954406,
+    "std": 46.650191330204116
+   },
+   "pod_wait_s": {
+    "mean": 79.00839537637953,
+    "std": 26.736220480924658
+   },
+   "truck_s": {
+    "mean": 1938.4424099055705,
+    "std": 3.186183818699261
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 1,
+   "out_spots": 3,
+   "cost_cu": 3375.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 513.9664932386881,
+    "std": 26.746932323572747
+   },
+   "pod_wait_s": {
+    "mean": 63.19749046482858,
+    "std": 5.757502625424834
+   },
+   "truck_s": {
+    "mean": 1938.4696180414467,
+    "std": 2.829488848329991
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 1,
+   "cost_cu": 2650.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 481.42908788256864,
+    "std": 8.869607802858653
+   },
+   "pod_wait_s": {
+    "mean": 105.67906957397597,
+    "std": 10.074151532915291
+   },
+   "truck_s": {
+    "mean": 1938.6020165318073,
+    "std": 3.1919587140762413
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 2,
+   "cost_cu": 3350.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 574.6337505983529,
+    "std": 145.04484563194583
+   },
+   "pod_wait_s": {
+    "mean": 99.38063286170056,
+    "std": 53.78780214376719
+   },
+   "truck_s": {
+    "mean": 1938.6435020305694,
+    "std": 3.224727196031692
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 2,
+   "out_spots": 3,
+   "cost_cu": 4050.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 505.28923834591853,
+    "std": 36.41147738258415
+   },
+   "pod_wait_s": {
+    "mean": 71.06611101984221,
+    "std": 23.142816862656883
+   },
+   "truck_s": {
+    "mean": 1938.6246986440797,
+    "std": 3.1184238854259894
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 1,
+   "cost_cu": 3325.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 469.87869683433735,
+    "std": 3.1340826995923203
+   },
+   "pod_wait_s": {
+    "mean": 97.88441432208985,
+    "std": 2.289901341184598
+   },
+   "truck_s": {
+    "mean": 1938.4068351150213,
+    "std": 2.897787495906411
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 2,
+   "cost_cu": 4025.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 503.1494108124307,
+    "std": 29.032594777691425
+   },
+   "pod_wait_s": {
+    "mean": 85.21228901004082,
+    "std": 26.058974347216985
+   },
+   "truck_s": {
+    "mean": 1938.7255766188562,
+    "std": 3.1096379378846137
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 3,
+   "out_spots": 3,
+   "cost_cu": 4725.0,
+   "feasible": true,
+   "door_to_door_s": {
+    "mean": 473.0777219907926,
+    "std": 34.109922187326426
+   },
+   "pod_wait_s": {
+    "mean": 67.51396618700282,
+    "std": 16.26300266862711
+   },
+   "truck_s": {
+    "mean": 1938.6154797151619,
+    "std": 2.8822136276164847
+   },
+   "rejected_fraction": {
+    "mean": 0.0,
+    "std": 0.0
+   }
+  }
+ ],
+ "pareto": [
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 1
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 1
+  },
+  {
+   "power_w": 1500.0,
+   "parking": 0,
+   "out_spots": 2
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 1
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 2
+  },
+  {
+   "power_w": 3000.0,
+   "parking": 0,
+   "out_spots": 3
+  },
+  {
+   "power_w": 6000.0,
+   "parking": 0,
+   "out_spots": 3
+  },
+  {
+   "power_w": 12000.0,
+   "parking": 0,
+   "out_spots": 3
+  }
+ ],
+ "best_door_to_door_s": 422.10102120396243,
+ "chosen": {
+  "power_w": 3000.0,
+  "parking": 0,
+  "out_spots": 3,
+  "cost_cu": 1350.0,
+  "feasible": true,
+  "door_to_door_s": {
+   "mean": 463.3454350256475,
+   "std": 8.645830855477675
+  },
+  "pod_wait_s": {
+   "mean": 65.02274516398025,
+   "std": 0.7021071878008194
+  },
+  "truck_s": {
+   "mean": 1938.813052362483,
+   "std": 2.951330118775763
+  },
+  "rejected_fraction": {
+   "mean": 0.0,
+   "std": 0.0
+  }
+ }
+}

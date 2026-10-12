@@ -51,3 +51,22 @@ sources:
     url: https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/FAA_UAS_FacilityMap_Data/FeatureServer/0/query?where=1%3D1&geometry=-80.42%2C40.14%2C-79.63%2C40.72&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CEILING%2CUNIT%2CAPT1_FAAID%2CMAP_EFF&outSR=4326&orderByFields=OBJECTID&f=geojson
     license: Public domain (FAA open data, UAS Facility Maps)
     use: airspace exclusion zones
+
+  # Hourly routine METARs (report_type 3) from the Iowa Environmental Mesonet ASOS archive, the
+  # three latest complete calendar years in UTC, from the day before so the first hour has the
+  # report that rounds to it. AGC (Allegheny County Airport) is the nearer
+  # station to the lanes; PIT is the fallback (ddpipe/weather.py). Units as reported: knots,
+  # degrees true (wind from), deg F, statute miles, inches; M = missing, T = trace.
+  - name: iem_asos_agc
+    group: weather
+    file: iem_asos_agc_2023_2025.csv
+    url: https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=AGC&data=sknt&data=drct&data=gust&data=tmpf&data=vsby&data=p01i&data=wxcodes&year1=2022&month1=12&day1=31&year2=2026&month2=1&day2=1&tz=Etc%2FUTC&format=onlycomma&latlon=no&elev=no&missing=M&trace=T&direct=no&report_type=3
+    license: Public domain (NWS/FAA ASOS observations, archived by the Iowa Environmental Mesonet)
+    use: hourly weather series
+
+  - name: iem_asos_pit
+    group: weather
+    file: iem_asos_pit_2023_2025.csv
+    url: https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=PIT&data=sknt&data=drct&data=gust&data=tmpf&data=vsby&data=p01i&data=wxcodes&year1=2022&month1=12&day1=31&year2=2026&month2=1&day2=1&tz=Etc%2FUTC&format=onlycomma&latlon=no&elev=no&missing=M&trace=T&direct=no&report_type=3
+    license: Public domain (NWS/FAA ASOS observations, archived by the Iowa Environmental Mesonet)
+    use: hourly weather series, fallback station

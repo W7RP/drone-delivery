@@ -564,6 +564,10 @@ pub enum Ev {
         pad: PadId,
         drone: DroneId,
     },
+    /// The weather series moves to its next hour (2.10); `hour` indexes the series.
+    WeatherHour {
+        hour: u32,
+    },
     Timer {
         timer: TimerKind,
         owner_kind: EntityKind,
@@ -578,9 +582,10 @@ impl Ev {
         match self {
             Ev::Message { .. } => EventClass::Message,
             Ev::ShipmentRequest { .. } => EventClass::Arrival,
-            Ev::FaultStart { .. } | Ev::FaultEnd { .. } | Ev::RepairDone { .. } => {
-                EventClass::StateChange
-            }
+            Ev::FaultStart { .. }
+            | Ev::FaultEnd { .. }
+            | Ev::RepairDone { .. }
+            | Ev::WeatherHour { .. } => EventClass::StateChange,
             Ev::Timer { .. } => EventClass::Timer,
             _ => EventClass::Completion,
         }
@@ -603,6 +608,7 @@ impl Ev {
             Ev::FaultEnd { .. } => 41,
             Ev::Timer { .. } => 42,
             Ev::RepairDone { .. } => 43,
+            Ev::WeatherHour { .. } => 44,
         }
     }
 
@@ -638,6 +644,9 @@ impl Ev {
             }
             Ev::RepairDone { pad, drone } => {
                 a.u16(pad).u16(drone);
+            }
+            Ev::WeatherHour { hour } => {
+                a.u32(hour);
             }
             Ev::Timer {
                 timer,

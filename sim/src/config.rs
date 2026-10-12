@@ -1,7 +1,7 @@
 //! Scenario config loader (spec section 8). Reads `scenario.toml`, checks every key, unit and
 //! range against `schemas/config.schema.json`, expands the synthetic generator (8.6) or reads
-//! the pipeline's network files (8.4, 9.1, 9.2), applies the cross-field rules R1 to R11, R13
-//! and R17, and converts to SI seconds and integer ms.
+//! the pipeline's network files (8.4, 9.1, 9.2) and the weather series (9.7), applies the
+//! cross-field rules R1 to R11, R13 and R17 to R21, and converts to SI seconds and integer ms.
 //!
 //! R12 and R16 need routes, so they are checked in `crate::scenario` after the network is built.
 
@@ -10,21 +10,24 @@ use std::path::{Path, PathBuf};
 
 use toml::{Table, Value};
 
+use crate::flight::FlightModel;
 use crate::ids::{
     AssignmentPolicyName, ChargingMode, ConfigStatus, DispatchPolicyName, DiversionPolicyName,
     DroneRebalancingPolicyName, FaultKind, HoldingPolicyName, InOccupiedAction, MAX_OUT_SPOTS,
     MatrixSource, NetworkTopology, OutEmptyPolicy, PadId, PodRebalancingPolicyName, Preset,
-    ReturnPolicy, ServiceMode, TimeMs, ms_from_s,
+    ReturnPolicy, ServiceMode, TimeMs, WeatherHoldPolicy, ms_from_s,
 };
 use crate::netfile::{self, LaneFile, TruckFile};
 use crate::network;
+use crate::traffic::{DELAY_CLASSES, TrafficCfg};
+use crate::weather::{CruiseCurve, Limits, WeatherCfg};
 
-pub const SCHEMA_VERSION: &str = "1.6.0";
+pub const SCHEMA_VERSION: &str = "1.8.0";
 /// Earlier minor versions this core still reads. Each later version only added optional keys,
 /// which a file may use only when it declares that version (`VERSIONED_KEYS`).
-const COMPATIBLE_VERSIONS: [&str; 2] = ["1.3.0", "1.5.0"];
+const COMPATIBLE_VERSIONS: [&str; 4] = ["1.3.0", "1.5.0", "1.6.0", "1.7.0"];
 /// Optional keys and the schema version that added them.
-const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
+const VERSIONED_KEYS: [(&str, &str, &str); 18] = [
     ("", "flight_profile", "1.5.0"),
     ("drone", "airframe_mass_kg", "1.6.0"),
     ("drone", "battery_specific_energy_wh_per_kg", "1.6.0"),
@@ -38,7 +41,16 @@ const VERSIONED_KEYS: [(&str, &str, &str); 13] = [
     ("pad_ops", "out_spots", "1.6.0"),
     ("pad_ops", "parking_capacity", "1.6.0"),
     ("demand", "pods_per_origin", "1.6.0"),
+    ("sim", "max_events_per_timestamp", "1.7.0"),
+    ("sim", "max_event_log_mib", "1.7.0"),
+    ("policy", "yield_on_request", "1.7.0"),
+    ("", "weather", "1.8.0"),
+    ("", "traffic", "1.8.0"),
 ];
+/// Run guards (spec 5.5): events allowed at one sim timestamp, and the `events.bin` size cap.
+const DEFAULT_MAX_EVENTS_PER_TIMESTAMP: u32 = 10_000;
+const DEFAULT_MAX_EVENT_LOG_MIB: u64 = 256;
+const BYTES_PER_MIB: u64 = 1 << 20;
 const LATCH_DERIVATION_KEYS: [&str; 3] = [
     "latch_capture_radius_m",
     "out_landing_error_bias_m",
@@ -278,6 +290,8 @@ pub struct PolicyCfg {
     pub marker_hold_s: f64,
     pub marker_max_hold_cycles: u8,
     pub pod_min_per_pad: u32,
+    /// `policy.yield_on_request` (A74): idle drones make room for arriving drones and pods.
+    pub yield_on_request: bool,
 }
 
 /// `truck.synthetic_*` (spec 9.2 SYNTHETIC); absent when the matrix comes from a file.
@@ -333,6 +347,9 @@ pub struct Config {
     pub warmup_ms: TimeMs,
     pub start_time_of_day_s: f64,
     pub replications: u32,
+    /// Run guards (spec 5.5): a run aborts with an error past either.
+    pub max_events_per_timestamp: u32,
+    pub max_event_log_bytes: u64,
     pub origin_lat_deg: f64,
     pub origin_lon_deg: f64,
     pub pads: Vec<PadCfg>,
@@ -357,6 +374,10 @@ pub struct Config {
     pub hist_max_ms: TimeMs,
     pub costs: CostsCfg,
     pub faults: Vec<FaultCfg>,
+    /// `[weather]` (2.10); None runs without weather.
+    pub weather: Option<WeatherCfg>,
+    /// `[traffic]` (2.11); None runs without traffic.
+    pub traffic: Option<TrafficCfg>,
 }
 
 impl Config {
@@ -391,6 +412,7 @@ enum Range {
     Factor,
     Lat,
     Lon,
+    Finite,
 }
 
 impl Range {
@@ -402,6 +424,7 @@ impl Range {
             Range::Factor => v > 0.0 && v <= 10.0,
             Range::Lat => (-90.0..=90.0).contains(&v),
             Range::Lon => (-180.0..=180.0).contains(&v),
+            Range::Finite => true,
         }
     }
 
@@ -413,6 +436,7 @@ impl Range {
             Range::Factor => "in (0, 10]",
             Range::Lat => "in [-90, 90]",
             Range::Lon => "in [-180, 180]",
+            Range::Finite => "a number",
         }
     }
 }
@@ -604,6 +628,8 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "metrics",
         "costs",
         "faults",
+        "weather",
+        "traffic",
     ])?;
     let version = top.string("schema_version")?;
     if version != SCHEMA_VERSION && !COMPATIBLE_VERSIONS.contains(&version) {
@@ -631,6 +657,8 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         "warmup_s",
         "start_time_of_day_s",
         "replications",
+        "max_events_per_timestamp",
+        "max_event_log_mib",
     ])?;
     let seed_path = sim.key_path("seed");
     let seed = match quantity_table(sim.get("seed")?, &seed_path, "1")? {
@@ -651,6 +679,22 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         sim.count("replications", 1, i64::from(u32::MAX))?,
         "sim.replications",
     )?;
+    let max_events_per_timestamp = if sim.has("max_events_per_timestamp") {
+        narrow(
+            sim.count("max_events_per_timestamp", 1, i64::from(u32::MAX))?,
+            "sim.max_events_per_timestamp",
+        )?
+    } else {
+        DEFAULT_MAX_EVENTS_PER_TIMESTAMP
+    };
+    let max_event_log_mib: u64 = if sim.has("max_event_log_mib") {
+        narrow(
+            sim.count("max_event_log_mib", 1, i64::from(u32::MAX))?,
+            "sim.max_event_log_mib",
+        )?
+    } else {
+        DEFAULT_MAX_EVENT_LOG_MIB
+    };
 
     let geo = top.section("geo")?;
     geo.allow(&["origin_lat_deg", "origin_lon_deg"])?;
@@ -758,15 +802,52 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         });
     }
 
+    let traffic = if top.has("traffic") {
+        let t = parse_traffic(&top.section("traffic")?)?;
+        let has_fractions = network_files
+            .as_ref()
+            .and_then(|f| f.truck.as_ref())
+            .is_some_and(|t| t.fractions.is_some());
+        if !has_fractions {
+            return err(
+                "traffic: R22 needs truck.matrix_source FILE with a truck_matrix.bin of version_minor 2 or above",
+            );
+        }
+        if truck
+            .tod_speed_factors
+            .iter()
+            .any(|&f| (f - 1.0).abs() > 0.0)
+        {
+            return err(
+                "truck.tod_speed_factors: R22 must all be 1 with [traffic], which carries time of day",
+            );
+        }
+        Some(t)
+    } else {
+        None
+    };
+    let duration_ms = ms_from_s(duration_s);
+    let weather = if top.has("weather") {
+        Some(parse_weather(
+            &top.section("weather")?,
+            scenario_dir,
+            duration_ms,
+        )?)
+    } else {
+        None
+    };
+
     let cfg = Config {
         name,
         preset,
         source_hash: fnv1a64(text.as_bytes()),
         seed,
-        duration_ms: ms_from_s(duration_s),
+        duration_ms,
         warmup_ms: ms_from_s(warmup_s),
         start_time_of_day_s,
         replications,
+        max_events_per_timestamp,
+        max_event_log_bytes: max_event_log_mib * BYTES_PER_MIB,
         origin_lat_deg,
         origin_lon_deg,
         pads,
@@ -788,6 +869,8 @@ pub fn parse_in(text: &str, scenario_dir: Option<&Path>) -> Result<Config> {
         hist_max_ms,
         costs,
         faults,
+        weather,
+        traffic,
     };
     check_rules(&cfg)?;
     Ok(cfg)
@@ -1304,6 +1387,7 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
         "marker_hold_s",
         "marker_max_hold_cycles",
         "pod_min_per_pad",
+        "yield_on_request",
     ])?;
     // One implementation of each in phase 2; the names are still validated.
     p.enumeration("assignment", AssignmentPolicyName::from_name)?;
@@ -1324,7 +1408,202 @@ fn parse_policy(p: &Section<'_>) -> Result<PolicyCfg> {
             p.count("pod_min_per_pad", 0, i64::from(u32::MAX))?,
             "policy.pod_min_per_pad",
         )?,
+        yield_on_request: p.has("yield_on_request") && p.boolean("yield_on_request")?,
     })
+}
+
+fn parse_weather(
+    w: &Section<'_>,
+    scenario_dir: Option<&Path>,
+    duration_ms: TimeMs,
+) -> Result<WeatherCfg> {
+    w.allow(&[
+        "series_file",
+        "start_hour",
+        "wind_shear_exponent",
+        "cruise_height_m",
+        "max_airspeed_mps",
+        "rotor_disc_area_m2",
+        "air_density_kgpm3",
+        "max_wind_mps",
+        "max_gust_mps",
+        "min_visibility_m",
+        "max_precip_mm_h",
+        "min_temp_c",
+        "max_temp_c",
+        "landing_max_wind_mps",
+        "landing_max_gust_mps",
+        "latch_gust_k",
+        "latch_gust_ref_mps",
+        "marker_penalty_rain",
+        "marker_penalty_snow",
+        "marker_penalty_low_visibility",
+        "low_visibility_m",
+        "battery_derate_temp_c",
+        "battery_derate_factor",
+        "truck_factor_rain",
+        "truck_factor_snow",
+        "truck_factor_low_visibility",
+        "hold_policy",
+        "truck_fallback_timeout_s",
+    ])?;
+    let Some(base) = scenario_dir else {
+        return err("weather: needs the scenario's directory; load the scenario from its file");
+    };
+    let path = base.join(w.string("series_file")?);
+    let series = netfile::read_weather(&read_file(&path)?)
+        .map_err(|e| ConfigError(format!("{}: {e}", path.display())))?;
+    let start_hour: usize = narrow(
+        w.count("start_hour", 0, i64::from(u32::MAX))?,
+        "weather.start_hour",
+    )?;
+    let needed = WeatherCfg::hours_needed(duration_ms);
+    if start_hour.saturating_add(needed) > series.wind_mps.len() {
+        return err(format!(
+            "weather.start_hour: R18 the run needs hours {start_hour}..{} of a {}-hour series",
+            start_hour.saturating_add(needed),
+            series.wind_mps.len()
+        ));
+    }
+    let limits = Limits {
+        max_wind_mps: w.quantity("max_wind_mps", "m/s", Range::NonNeg)?,
+        max_gust_mps: w.quantity("max_gust_mps", "m/s", Range::NonNeg)?,
+        min_visibility_m: w.quantity("min_visibility_m", "m", Range::NonNeg)?,
+        max_precip_mm_h: w.quantity("max_precip_mm_h", "mm/h", Range::NonNeg)?,
+        min_temp_c: w.quantity("min_temp_c", "degC", Range::Finite)?,
+        max_temp_c: w.quantity("max_temp_c", "degC", Range::Finite)?,
+        landing_max_wind_mps: w.quantity("landing_max_wind_mps", "m/s", Range::NonNeg)?,
+        landing_max_gust_mps: w.quantity("landing_max_gust_mps", "m/s", Range::NonNeg)?,
+    };
+    if limits.min_temp_c > limits.max_temp_c {
+        return err("weather.min_temp_c: must not exceed weather.max_temp_c");
+    }
+    if limits.landing_max_wind_mps < limits.max_wind_mps
+        || limits.landing_max_gust_mps < limits.max_gust_mps
+    {
+        return err(
+            "weather.landing_max_wind_mps: R21 landing limits must be at or above the dispatch limits",
+        );
+    }
+    let battery_derate = parse_derate_table(w)?;
+    let hold_policy = w.enumeration("hold_policy", WeatherHoldPolicy::from_name)?;
+    Ok(WeatherCfg {
+        series: std::sync::Arc::new(series),
+        start_hour,
+        wind_shear_exponent: w.quantity("wind_shear_exponent", "1", Range::NonNeg)?,
+        cruise_height_m: w.quantity("cruise_height_m", "m", Range::Pos)?,
+        max_airspeed_mps: w.quantity("max_airspeed_mps", "m/s", Range::Pos)?,
+        rotor_disc_area_m2: w.quantity("rotor_disc_area_m2", "m2", Range::Pos)?,
+        air_density_kgpm3: w.quantity("air_density_kgpm3", "kg/m3", Range::Pos)?,
+        limits,
+        latch_gust_k: w.quantity("latch_gust_k", "1", Range::NonNeg)?,
+        latch_gust_ref_mps: w.quantity("latch_gust_ref_mps", "m/s", Range::Pos)?,
+        marker_penalty_rain: w.quantity("marker_penalty_rain", "1", Range::Prob)?,
+        marker_penalty_snow: w.quantity("marker_penalty_snow", "1", Range::Prob)?,
+        marker_penalty_low_visibility: w.quantity(
+            "marker_penalty_low_visibility",
+            "1",
+            Range::Prob,
+        )?,
+        low_visibility_m: w.quantity("low_visibility_m", "m", Range::NonNeg)?,
+        battery_derate,
+        truck_factor_rain: w.quantity("truck_factor_rain", "1", Range::Factor)?,
+        truck_factor_snow: w.quantity("truck_factor_snow", "1", Range::Factor)?,
+        truck_factor_low_visibility: w.quantity(
+            "truck_factor_low_visibility",
+            "1",
+            Range::Factor,
+        )?,
+        hold_policy,
+        truck_fallback_timeout_ms: ms_from_s(w.quantity(
+            "truck_fallback_timeout_s",
+            "s",
+            Range::Pos,
+        )?),
+    })
+}
+
+fn parse_traffic(t: &Section<'_>) -> Result<TrafficCfg> {
+    t.allow(&[
+        "start_weekday",
+        "weekday_shape",
+        "weekend_shape",
+        "peak_delay_motorway",
+        "peak_delay_primary",
+        "peak_delay_other",
+        "peak_delay_structure",
+        "incident_rate_per_pair_h",
+        "incident_delay_median_s",
+        "incident_delay_sigma",
+    ])?;
+    let shape = |key: &str| -> Result<[f64; HOURS_PER_DAY]> {
+        let Value::Array(items) = t.get(key)? else {
+            return err(format!(
+                "{}: expected an array of 24 quantities",
+                t.key_path(key)
+            ));
+        };
+        if items.len() != HOURS_PER_DAY {
+            return err(format!(
+                "{}: {} entries, expected 24",
+                t.key_path(key),
+                items.len()
+            ));
+        }
+        let mut out = [0.0; HOURS_PER_DAY];
+        for (i, v) in items.iter().enumerate() {
+            out[i] = quantity_from(v, &format!("{}[{i}]", t.key_path(key)), "1", Range::Prob)?;
+        }
+        Ok(out)
+    };
+    let delay = |key: &str| t.quantity(key, "1", Range::NonNeg);
+    let peak_delay: [f64; DELAY_CLASSES] = [
+        delay("peak_delay_motorway")?,
+        delay("peak_delay_primary")?,
+        delay("peak_delay_other")?,
+        delay("peak_delay_structure")?,
+    ];
+    Ok(TrafficCfg {
+        start_weekday: narrow(t.count("start_weekday", 0, 6)?, "traffic.start_weekday")?,
+        weekday_shape: shape("weekday_shape")?,
+        weekend_shape: shape("weekend_shape")?,
+        peak_delay,
+        incident_rate_per_pair_h: t.quantity("incident_rate_per_pair_h", "1/h", Range::NonNeg)?,
+        incident_delay_median_s: t.quantity("incident_delay_median_s", "s", Range::Pos)?,
+        incident_delay_sigma: t.quantity("incident_delay_sigma", "1", Range::NonNeg)?,
+    })
+}
+
+/// `weather.battery_derate_temp_c` and `_factor`: equal-length arrays, temperatures strictly
+/// ascending, factors in (0, 1].
+fn parse_derate_table(w: &Section<'_>) -> Result<Vec<(f64, f64)>> {
+    let array = |key: &str, unit: &str, range: Range| -> Result<Vec<f64>> {
+        let Value::Array(items) = w.get(key)? else {
+            return err(format!(
+                "{}: expected an array of quantities",
+                w.key_path(key)
+            ));
+        };
+        items
+            .iter()
+            .enumerate()
+            .map(|(i, v)| quantity_from(v, &format!("{}[{i}]", w.key_path(key)), unit, range))
+            .collect()
+    };
+    let temps = array("battery_derate_temp_c", "degC", Range::Finite)?;
+    let factors = array("battery_derate_factor", "1", Range::Prob)?;
+    if temps.is_empty() || temps.len() != factors.len() {
+        return err(
+            "weather.battery_derate_temp_c: needs as many entries as battery_derate_factor, at least one",
+        );
+    }
+    if temps.windows(2).any(|t| t[0] >= t[1]) {
+        return err("weather.battery_derate_temp_c: temperatures must be strictly ascending");
+    }
+    if factors.iter().any(|&f| f <= 0.0) {
+        return err("weather.battery_derate_factor: every factor must be > 0");
+    }
+    Ok(temps.into_iter().zip(factors).collect())
 }
 
 fn parse_demand(d: &Section<'_>, names: &[String], pads: &[PadCfg]) -> Result<(TimeMs, Vec<Flow>)> {
@@ -1535,6 +1814,19 @@ fn check_rules(cfg: &Config) -> Result<()> {
     }
     if cfg.hist_max_ms <= cfg.hist_bin_ms {
         return err("metrics: R13 hist_max_s must exceed hist_bin_s");
+    }
+    if let Some(w) = &cfg.weather {
+        if cfg.drone.latch_derivation.is_none() {
+            return err(
+                "weather: R19 needs the derived latch keys (A71) so gusts can widen the landing error",
+            );
+        }
+        let model = FlightModel::from_config(cfg);
+        if CruiseCurve::new(model, w.air_density_kgpm3, w.rotor_disc_area_m2).is_none() {
+            return err(
+                "weather: R20 drone.cruise_power_ref_w is below the ideal induced power at cruise speed for this disc area and air density",
+            );
+        }
     }
     Ok(())
 }

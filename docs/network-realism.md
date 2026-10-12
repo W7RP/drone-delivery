@@ -183,7 +183,7 @@ to 2.2 per run; door-to-door (1199 s against 1179 s) and deliveries per hour (7.
 7.61) move by less than the spread between seeds. Each attempt draws anew, so the one retry
 usually saves the pickup (A71). Marker detection stays at 0.97.
 
-## 7. Charging and pad layout at 1370 Wh
+## 7. Charging and pad layout at 1370 Wh (infeasible airframe, not for demo)
 
 Phase 5 found the 1370 Wh scenario 4.4 times slower than the truck. Every pad has one OUT spot,
 and a drone that latched a pod charges on it for up to 46 minutes at 1.5 kW. New layout keys
@@ -252,7 +252,7 @@ The Pareto set (lowest door-to-door for its cost):
   fixed and covered by `sim/tests/pad_layout.rs`; the sweep stops on any run that does not
   finish in 60 s.
 
-## 8. Pods and fleet at the chosen layout
+## 8. Pods and fleet at the chosen layout (1370 Wh: infeasible airframe, not for demo)
 
 `uv run analysis/fleet.py` (about 10 s) sweeps two keys at the chosen layout: the number of
 drones, and `demand.pods_per_origin`, the empty pods each warehouse starts with (A73; the

@@ -15,4 +15,6 @@ mod pad;
 pub mod rng;
 pub mod scenario;
 pub mod trace;
+pub mod traffic;
+pub mod weather;
 pub mod world;

@@ -80,7 +80,10 @@ def check(params: dict, water_polygons: list, derived: Path) -> None:
                 if i != j and not np.isfinite(v):
                     problems.append(f"{label} {names[i]} -> {names[j]} unreachable ({v})")
     _expect(problems, "truck matrix finite for every pad pair")
-    free_flow, road, _ = binfmt.read_truck(truck_data)
+    truck, _ = binfmt.read_truck(truck_data)
+    free_flow, road = truck.free_flow_s, truck.road_m
+    _expect([] if truck.class_frac is not None else ["no road-class fractions"],
+            "truck matrix has road-class and bridge/tunnel fractions (9.2 version_minor 2)")
 
     max_speed = json.loads((derived / REPORT_FILE).read_text())["truck"]["max_speed_mps"]
     problems = []

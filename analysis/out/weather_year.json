@@ -1,0 +1,6897 @@
+{
+ "base": "parts_logistics_pittsburgh_demo",
+ "seeds": [
+  1,
+  2,
+  3
+ ],
+ "weeks": [
+  {
+   "monday": "2023-01-02",
+   "start_hour": 29,
+   "mean_wind_mps": 2.719,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 7.29,
+   "min_temp_c": -0.61,
+   "snow_hours": 6
+  },
+  {
+   "monday": "2023-01-09",
+   "start_hour": 197,
+   "mean_wind_mps": 3.387,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 0.86,
+   "min_temp_c": -6.72,
+   "snow_hours": 16
+  },
+  {
+   "monday": "2023-01-16",
+   "start_hour": 365,
+   "mean_wind_mps": 3.448,
+   "max_gust_mps": 22.64,
+   "mean_temp_c": 3.43,
+   "min_temp_c": -6.11,
+   "snow_hours": 7
+  },
+  {
+   "monday": "2023-01-23",
+   "start_hour": 533,
+   "mean_wind_mps": 4.869,
+   "max_gust_mps": 18.01,
+   "mean_temp_c": 2.05,
+   "min_temp_c": -3.28,
+   "snow_hours": 25
+  },
+  {
+   "monday": "2023-01-30",
+   "start_hour": 701,
+   "mean_wind_mps": 3.77,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": -2.65,
+   "min_temp_c": -14.44,
+   "snow_hours": 14
+  },
+  {
+   "monday": "2023-02-06",
+   "start_hour": 869,
+   "mean_wind_mps": 3.457,
+   "max_gust_mps": 21.09,
+   "mean_temp_c": 5.5,
+   "min_temp_c": -2.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-02-13",
+   "start_hour": 1037,
+   "mean_wind_mps": 4.526,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 7.51,
+   "min_temp_c": -6.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-02-20",
+   "start_hour": 1205,
+   "mean_wind_mps": 4.241,
+   "max_gust_mps": 20.58,
+   "mean_temp_c": 6.48,
+   "min_temp_c": -5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-02-27",
+   "start_hour": 1373,
+   "mean_wind_mps": 4.272,
+   "max_gust_mps": 20.58,
+   "mean_temp_c": 7.38,
+   "min_temp_c": -0.61,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-03-06",
+   "start_hour": 1541,
+   "mean_wind_mps": 3.497,
+   "max_gust_mps": 16.46,
+   "mean_temp_c": 2.96,
+   "min_temp_c": -3.28,
+   "snow_hours": 4
+  },
+  {
+   "monday": "2023-03-13",
+   "start_hour": 1708,
+   "mean_wind_mps": 4.82,
+   "max_gust_mps": 18.52,
+   "mean_temp_c": 1.5,
+   "min_temp_c": -7.78,
+   "snow_hours": 16
+  },
+  {
+   "monday": "2023-03-20",
+   "start_hour": 1876,
+   "mean_wind_mps": 4.468,
+   "max_gust_mps": 22.64,
+   "mean_temp_c": 8.47,
+   "min_temp_c": -5.61,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-03-27",
+   "start_hour": 2044,
+   "mean_wind_mps": 3.975,
+   "max_gust_mps": 28.29,
+   "mean_temp_c": 6.96,
+   "min_temp_c": -2.78,
+   "snow_hours": 1
+  },
+  {
+   "monday": "2023-04-03",
+   "start_hour": 2212,
+   "mean_wind_mps": 3.362,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 12.36,
+   "min_temp_c": -1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-04-10",
+   "start_hour": 2380,
+   "mean_wind_mps": 3.142,
+   "max_gust_mps": 15.95,
+   "mean_temp_c": 18.44,
+   "min_temp_c": 4.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-04-17",
+   "start_hour": 2548,
+   "mean_wind_mps": 4.143,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 12.06,
+   "min_temp_c": 2.22,
+   "snow_hours": 1
+  },
+  {
+   "monday": "2023-04-24",
+   "start_hour": 2716,
+   "mean_wind_mps": 2.955,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 10.25,
+   "min_temp_c": -1.72,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-05-01",
+   "start_hour": 2884,
+   "mean_wind_mps": 3.564,
+   "max_gust_mps": 16.46,
+   "mean_temp_c": 10.14,
+   "min_temp_c": 2.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-05-08",
+   "start_hour": 3052,
+   "mean_wind_mps": 1.944,
+   "max_gust_mps": 10.29,
+   "mean_temp_c": 18.24,
+   "min_temp_c": 8.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-05-15",
+   "start_hour": 3220,
+   "mean_wind_mps": 2.979,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 16.28,
+   "min_temp_c": 4.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-05-22",
+   "start_hour": 3388,
+   "mean_wind_mps": 2.324,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 17.71,
+   "min_temp_c": 7.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-05-29",
+   "start_hour": 3556,
+   "mean_wind_mps": 2.441,
+   "max_gust_mps": 9.26,
+   "mean_temp_c": 23.09,
+   "min_temp_c": 13.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-06-05",
+   "start_hour": 3724,
+   "mean_wind_mps": 2.502,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 18.15,
+   "min_temp_c": 9.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-06-12",
+   "start_hour": 3892,
+   "mean_wind_mps": 2.946,
+   "max_gust_mps": 14.4,
+   "mean_temp_c": 16.45,
+   "min_temp_c": 10.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-06-19",
+   "start_hour": 4060,
+   "mean_wind_mps": 2.839,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 21.51,
+   "min_temp_c": 13.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-06-26",
+   "start_hour": 4228,
+   "mean_wind_mps": 2.946,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 21.92,
+   "min_temp_c": 14.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-07-03",
+   "start_hour": 4396,
+   "mean_wind_mps": 2.085,
+   "max_gust_mps": 8.75,
+   "mean_temp_c": 24.02,
+   "min_temp_c": 17.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-07-10",
+   "start_hour": 4564,
+   "mean_wind_mps": 2.897,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 24.14,
+   "min_temp_c": 16.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-07-17",
+   "start_hour": 4732,
+   "mean_wind_mps": 2.535,
+   "max_gust_mps": 9.77,
+   "mean_temp_c": 22.28,
+   "min_temp_c": 16.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-07-24",
+   "start_hour": 4900,
+   "mean_wind_mps": 3.145,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 23.9,
+   "min_temp_c": 17.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-07-31",
+   "start_hour": 5068,
+   "mean_wind_mps": 1.846,
+   "max_gust_mps": 10.29,
+   "mean_temp_c": 22.12,
+   "min_temp_c": 15.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-08-07",
+   "start_hour": 5236,
+   "mean_wind_mps": 3.424,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 22.64,
+   "min_temp_c": 16.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-08-14",
+   "start_hour": 5404,
+   "mean_wind_mps": 2.753,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 20.94,
+   "min_temp_c": 11.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-08-21",
+   "start_hour": 5572,
+   "mean_wind_mps": 2.431,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 22.16,
+   "min_temp_c": 15.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-08-28",
+   "start_hour": 5740,
+   "mean_wind_mps": 2.318,
+   "max_gust_mps": 9.26,
+   "mean_temp_c": 21.24,
+   "min_temp_c": 12.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-09-04",
+   "start_hour": 5908,
+   "mean_wind_mps": 2.211,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 23.48,
+   "min_temp_c": 17.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-09-11",
+   "start_hour": 6076,
+   "mean_wind_mps": 1.62,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 17.57,
+   "min_temp_c": 9.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-09-18",
+   "start_hour": 6244,
+   "mean_wind_mps": 2.202,
+   "max_gust_mps": 9.77,
+   "mean_temp_c": 16.29,
+   "min_temp_c": 11.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-09-25",
+   "start_hour": 6412,
+   "mean_wind_mps": 1.972,
+   "max_gust_mps": 8.75,
+   "mean_temp_c": 17.26,
+   "min_temp_c": 12.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-10-02",
+   "start_hour": 6580,
+   "mean_wind_mps": 2.765,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 17.59,
+   "min_temp_c": 6.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-10-09",
+   "start_hour": 6748,
+   "mean_wind_mps": 3.108,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 11.84,
+   "min_temp_c": 6.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-10-16",
+   "start_hour": 6916,
+   "mean_wind_mps": 2.93,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 10.59,
+   "min_temp_c": 5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-10-23",
+   "start_hour": 7084,
+   "mean_wind_mps": 3.108,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 15.18,
+   "min_temp_c": 0.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-10-30",
+   "start_hour": 7252,
+   "mean_wind_mps": 3.463,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 7.15,
+   "min_temp_c": -3.33,
+   "snow_hours": 2
+  },
+  {
+   "monday": "2023-11-06",
+   "start_hour": 7421,
+   "mean_wind_mps": 3.221,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 10.0,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-11-13",
+   "start_hour": 7589,
+   "mean_wind_mps": 3.479,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 8.88,
+   "min_temp_c": -1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-11-20",
+   "start_hour": 7757,
+   "mean_wind_mps": 3.35,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 4.41,
+   "min_temp_c": -3.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2023-11-27",
+   "start_hour": 7925,
+   "mean_wind_mps": 4.654,
+   "max_gust_mps": 18.52,
+   "mean_temp_c": 4.46,
+   "min_temp_c": -7.78,
+   "snow_hours": 6
+  },
+  {
+   "monday": "2023-12-04",
+   "start_hour": 8093,
+   "mean_wind_mps": 3.408,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 6.2,
+   "min_temp_c": 0.0,
+   "snow_hours": 3
+  },
+  {
+   "monday": "2023-12-11",
+   "start_hour": 8261,
+   "mean_wind_mps": 3.705,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 4.21,
+   "min_temp_c": -2.22,
+   "snow_hours": 3
+  },
+  {
+   "monday": "2023-12-18",
+   "start_hour": 8429,
+   "mean_wind_mps": 2.976,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 3.79,
+   "min_temp_c": -5.56,
+   "snow_hours": 16
+  },
+  {
+   "monday": "2023-12-25",
+   "start_hour": 8597,
+   "mean_wind_mps": 3.362,
+   "max_gust_mps": 9.77,
+   "mean_temp_c": 7.3,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-01-01",
+   "start_hour": 8765,
+   "mean_wind_mps": 3.31,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 0.42,
+   "min_temp_c": -4.44,
+   "snow_hours": 36
+  },
+  {
+   "monday": "2024-01-08",
+   "start_hour": 8933,
+   "mean_wind_mps": 6.036,
+   "max_gust_mps": 26.24,
+   "mean_temp_c": 1.41,
+   "min_temp_c": -11.11,
+   "snow_hours": 20
+  },
+  {
+   "monday": "2024-01-15",
+   "start_hour": 9101,
+   "mean_wind_mps": 3.717,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": -7.54,
+   "min_temp_c": -13.33,
+   "snow_hours": 47
+  },
+  {
+   "monday": "2024-01-22",
+   "start_hour": 9269,
+   "mean_wind_mps": 2.998,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 7.04,
+   "min_temp_c": -12.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-01-29",
+   "start_hour": 9437,
+   "mean_wind_mps": 3.108,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 3.0,
+   "min_temp_c": -2.78,
+   "snow_hours": 5
+  },
+  {
+   "monday": "2024-02-05",
+   "start_hour": 9605,
+   "mean_wind_mps": 2.848,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 6.49,
+   "min_temp_c": -3.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-02-12",
+   "start_hour": 9773,
+   "mean_wind_mps": 4.116,
+   "max_gust_mps": 20.06,
+   "mean_temp_c": 0.09,
+   "min_temp_c": -8.33,
+   "snow_hours": 14
+  },
+  {
+   "monday": "2024-02-19",
+   "start_hour": 9941,
+   "mean_wind_mps": 2.973,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 3.77,
+   "min_temp_c": -6.67,
+   "snow_hours": 2
+  },
+  {
+   "monday": "2024-02-26",
+   "start_hour": 10109,
+   "mean_wind_mps": 3.672,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 8.19,
+   "min_temp_c": -5.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-03-04",
+   "start_hour": 10277,
+   "mean_wind_mps": 3.659,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": 10.79,
+   "min_temp_c": -0.56,
+   "snow_hours": 8
+  },
+  {
+   "monday": "2024-03-11",
+   "start_hour": 10444,
+   "mean_wind_mps": 4.774,
+   "max_gust_mps": 19.03,
+   "mean_temp_c": 10.92,
+   "min_temp_c": -1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-03-18",
+   "start_hour": 10612,
+   "mean_wind_mps": 4.266,
+   "max_gust_mps": 19.03,
+   "mean_temp_c": 2.43,
+   "min_temp_c": -4.44,
+   "snow_hours": 2
+  },
+  {
+   "monday": "2024-03-25",
+   "start_hour": 10780,
+   "mean_wind_mps": 3.338,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 8.97,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-04-01",
+   "start_hour": 10948,
+   "mean_wind_mps": 3.368,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 8.48,
+   "min_temp_c": 2.22,
+   "snow_hours": 7
+  },
+  {
+   "monday": "2024-04-08",
+   "start_hour": 11116,
+   "mean_wind_mps": 4.195,
+   "max_gust_mps": 21.61,
+   "mean_temp_c": 15.73,
+   "min_temp_c": 6.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-04-15",
+   "start_hour": 11284,
+   "mean_wind_mps": 3.28,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 15.46,
+   "min_temp_c": 3.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-04-22",
+   "start_hour": 11452,
+   "mean_wind_mps": 3.656,
+   "max_gust_mps": 14.4,
+   "mean_temp_c": 13.96,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-04-29",
+   "start_hour": 11620,
+   "mean_wind_mps": 2.909,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 20.21,
+   "min_temp_c": 12.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-05-06",
+   "start_hour": 11788,
+   "mean_wind_mps": 2.474,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 16.06,
+   "min_temp_c": 5.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-05-13",
+   "start_hour": 11956,
+   "mean_wind_mps": 2.37,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 19.54,
+   "min_temp_c": 9.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-05-20",
+   "start_hour": 12124,
+   "mean_wind_mps": 2.787,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 22.98,
+   "min_temp_c": 16.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-05-27",
+   "start_hour": 12292,
+   "mean_wind_mps": 3.065,
+   "max_gust_mps": 14.92,
+   "mean_temp_c": 17.71,
+   "min_temp_c": 10.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-06-03",
+   "start_hour": 12460,
+   "mean_wind_mps": 3.212,
+   "max_gust_mps": 14.92,
+   "mean_temp_c": 21.62,
+   "min_temp_c": 13.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-06-10",
+   "start_hour": 12628,
+   "mean_wind_mps": 2.474,
+   "max_gust_mps": 8.23,
+   "mean_temp_c": 20.18,
+   "min_temp_c": 11.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-06-17",
+   "start_hour": 12796,
+   "mean_wind_mps": 2.762,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 27.25,
+   "min_temp_c": 20.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-06-24",
+   "start_hour": 12964,
+   "mean_wind_mps": 3.616,
+   "max_gust_mps": 14.4,
+   "mean_temp_c": 23.57,
+   "min_temp_c": 15.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-07-01",
+   "start_hour": 13132,
+   "mean_wind_mps": 2.934,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 24.48,
+   "min_temp_c": 12.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-07-08",
+   "start_hour": 13300,
+   "mean_wind_mps": 2.686,
+   "max_gust_mps": 21.61,
+   "mean_temp_c": 26.75,
+   "min_temp_c": 18.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-07-15",
+   "start_hour": 13468,
+   "mean_wind_mps": 2.765,
+   "max_gust_mps": 15.95,
+   "mean_temp_c": 24.54,
+   "min_temp_c": 14.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-07-22",
+   "start_hour": 13636,
+   "mean_wind_mps": 2.104,
+   "max_gust_mps": 9.77,
+   "mean_temp_c": 23.46,
+   "min_temp_c": 15.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-07-29",
+   "start_hour": 13804,
+   "mean_wind_mps": 2.918,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 25.43,
+   "min_temp_c": 18.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-08-05",
+   "start_hour": 13972,
+   "mean_wind_mps": 2.762,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 23.65,
+   "min_temp_c": 15.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-08-12",
+   "start_hour": 14140,
+   "mean_wind_mps": 2.532,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 22.55,
+   "min_temp_c": 15.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-08-19",
+   "start_hour": 14308,
+   "mean_wind_mps": 1.99,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 19.92,
+   "min_temp_c": 10.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-08-26",
+   "start_hour": 14476,
+   "mean_wind_mps": 2.061,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 26.23,
+   "min_temp_c": 20.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-09-02",
+   "start_hour": 14644,
+   "mean_wind_mps": 2.725,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 18.03,
+   "min_temp_c": 8.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-09-09",
+   "start_hour": 14812,
+   "mean_wind_mps": 2.646,
+   "max_gust_mps": 10.29,
+   "mean_temp_c": 21.44,
+   "min_temp_c": 8.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-09-16",
+   "start_hour": 14980,
+   "mean_wind_mps": 2.205,
+   "max_gust_mps": 8.75,
+   "mean_temp_c": 21.92,
+   "min_temp_c": 15.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-09-23",
+   "start_hour": 15148,
+   "mean_wind_mps": 2.615,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 21.62,
+   "min_temp_c": 18.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-09-30",
+   "start_hour": 15316,
+   "mean_wind_mps": 1.932,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 18.41,
+   "min_temp_c": 10.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-10-07",
+   "start_hour": 15484,
+   "mean_wind_mps": 2.869,
+   "max_gust_mps": 12.35,
+   "mean_temp_c": 14.73,
+   "min_temp_c": 5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-10-14",
+   "start_hour": 15652,
+   "mean_wind_mps": 2.07,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 11.63,
+   "min_temp_c": 5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-10-21",
+   "start_hour": 15820,
+   "mean_wind_mps": 2.857,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 14.85,
+   "min_temp_c": 3.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-10-28",
+   "start_hour": 15988,
+   "mean_wind_mps": 3.57,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 11.75,
+   "min_temp_c": -17.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-11-04",
+   "start_hour": 16157,
+   "mean_wind_mps": 3.8,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 14.23,
+   "min_temp_c": 3.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-11-11",
+   "start_hour": 16325,
+   "mean_wind_mps": 3.54,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 7.91,
+   "min_temp_c": -1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2024-11-18",
+   "start_hour": 16493,
+   "mean_wind_mps": 3.384,
+   "max_gust_mps": 14.92,
+   "mean_temp_c": 7.25,
+   "min_temp_c": -1.11,
+   "snow_hours": 8
+  },
+  {
+   "monday": "2024-11-25",
+   "start_hour": 16661,
+   "mean_wind_mps": 3.923,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 1.51,
+   "min_temp_c": -6.67,
+   "snow_hours": 7
+  },
+  {
+   "monday": "2024-12-02",
+   "start_hour": 16829,
+   "mean_wind_mps": 5.5,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": -1.26,
+   "min_temp_c": -6.11,
+   "snow_hours": 14
+  },
+  {
+   "monday": "2024-12-09",
+   "start_hour": 16997,
+   "mean_wind_mps": 3.754,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 2.03,
+   "min_temp_c": -7.78,
+   "snow_hours": 11
+  },
+  {
+   "monday": "2024-12-16",
+   "start_hour": 17165,
+   "mean_wind_mps": 3.102,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 1.49,
+   "min_temp_c": -8.33,
+   "snow_hours": 14
+  },
+  {
+   "monday": "2024-12-23",
+   "start_hour": 17333,
+   "mean_wind_mps": 2.921,
+   "max_gust_mps": 24.69,
+   "mean_temp_c": 5.22,
+   "min_temp_c": -10.56,
+   "snow_hours": 2
+  },
+  {
+   "monday": "2024-12-30",
+   "start_hour": 17501,
+   "mean_wind_mps": 5.016,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": -0.89,
+   "min_temp_c": -11.11,
+   "snow_hours": 27
+  },
+  {
+   "monday": "2025-01-06",
+   "start_hour": 17669,
+   "mean_wind_mps": 3.341,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": -6.34,
+   "min_temp_c": -14.44,
+   "snow_hours": 60
+  },
+  {
+   "monday": "2025-01-13",
+   "start_hour": 17837,
+   "mean_wind_mps": 4.29,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": -4.87,
+   "min_temp_c": -13.89,
+   "snow_hours": 33
+  },
+  {
+   "monday": "2025-01-20",
+   "start_hour": 18005,
+   "mean_wind_mps": 3.92,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": -8.63,
+   "min_temp_c": -20.56,
+   "snow_hours": 10
+  },
+  {
+   "monday": "2025-01-27",
+   "start_hour": 18173,
+   "mean_wind_mps": 4.759,
+   "max_gust_mps": 16.98,
+   "mean_temp_c": 1.55,
+   "min_temp_c": -6.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-02-03",
+   "start_hour": 18341,
+   "mean_wind_mps": 3.834,
+   "max_gust_mps": 14.92,
+   "mean_temp_c": 1.52,
+   "min_temp_c": -4.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-02-10",
+   "start_hour": 18509,
+   "mean_wind_mps": 3.509,
+   "max_gust_mps": 18.52,
+   "mean_temp_c": -0.68,
+   "min_temp_c": -8.89,
+   "snow_hours": 21
+  },
+  {
+   "monday": "2025-02-17",
+   "start_hour": 18677,
+   "mean_wind_mps": 3.644,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": -6.55,
+   "min_temp_c": -13.89,
+   "snow_hours": 24
+  },
+  {
+   "monday": "2025-02-24",
+   "start_hour": 18845,
+   "mean_wind_mps": 4.195,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 3.59,
+   "min_temp_c": -8.89,
+   "snow_hours": 4
+  },
+  {
+   "monday": "2025-03-03",
+   "start_hour": 19013,
+   "mean_wind_mps": 4.186,
+   "max_gust_mps": 20.06,
+   "mean_temp_c": 3.98,
+   "min_temp_c": -6.67,
+   "snow_hours": 10
+  },
+  {
+   "monday": "2025-03-10",
+   "start_hour": 19180,
+   "mean_wind_mps": 3.751,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": 13.55,
+   "min_temp_c": 2.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-03-17",
+   "start_hour": 19348,
+   "mean_wind_mps": 4.446,
+   "max_gust_mps": 20.06,
+   "mean_temp_c": 7.5,
+   "min_temp_c": -3.33,
+   "snow_hours": 1
+  },
+  {
+   "monday": "2025-03-24",
+   "start_hour": 19516,
+   "mean_wind_mps": 4.55,
+   "max_gust_mps": 18.52,
+   "mean_temp_c": 10.22,
+   "min_temp_c": -1.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-03-31",
+   "start_hour": 19684,
+   "mean_wind_mps": 4.125,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 11.03,
+   "min_temp_c": 0.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-04-07",
+   "start_hour": 19852,
+   "mean_wind_mps": 3.224,
+   "max_gust_mps": 16.46,
+   "mean_temp_c": 4.69,
+   "min_temp_c": -3.89,
+   "snow_hours": 2
+  },
+  {
+   "monday": "2025-04-14",
+   "start_hour": 20020,
+   "mean_wind_mps": 4.765,
+   "max_gust_mps": 19.03,
+   "mean_temp_c": 14.21,
+   "min_temp_c": 0.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-04-21",
+   "start_hour": 20188,
+   "mean_wind_mps": 3.534,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 16.19,
+   "min_temp_c": 2.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-04-28",
+   "start_hour": 20356,
+   "mean_wind_mps": 3.485,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 17.3,
+   "min_temp_c": 5.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-05-05",
+   "start_hour": 20524,
+   "mean_wind_mps": 2.759,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 14.65,
+   "min_temp_c": 5.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-05-12",
+   "start_hour": 20692,
+   "mean_wind_mps": 3.88,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": 19.48,
+   "min_temp_c": 13.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-05-19",
+   "start_hour": 20860,
+   "mean_wind_mps": 3.252,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 12.47,
+   "min_temp_c": 6.67,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-05-26",
+   "start_hour": 21028,
+   "mean_wind_mps": 3.062,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 13.55,
+   "min_temp_c": 6.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-06-02",
+   "start_hour": 21196,
+   "mean_wind_mps": 2.64,
+   "max_gust_mps": 10.29,
+   "mean_temp_c": 20.28,
+   "min_temp_c": 5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-06-09",
+   "start_hour": 21364,
+   "mean_wind_mps": 2.704,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 21.65,
+   "min_temp_c": 13.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-06-16",
+   "start_hour": 21532,
+   "mean_wind_mps": 3.454,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 22.65,
+   "min_temp_c": 14.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-06-23",
+   "start_hour": 21700,
+   "mean_wind_mps": 2.584,
+   "max_gust_mps": 16.46,
+   "mean_temp_c": 25.92,
+   "min_temp_c": 20.56,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-06-30",
+   "start_hour": 21868,
+   "mean_wind_mps": 2.385,
+   "max_gust_mps": 8.75,
+   "mean_temp_c": 24.23,
+   "min_temp_c": 18.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-07-07",
+   "start_hour": 22036,
+   "mean_wind_mps": 2.144,
+   "max_gust_mps": 15.95,
+   "mean_temp_c": 24.39,
+   "min_temp_c": 18.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-07-14",
+   "start_hour": 22204,
+   "mean_wind_mps": 2.392,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 24.24,
+   "min_temp_c": 20.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-07-21",
+   "start_hour": 22372,
+   "mean_wind_mps": 2.422,
+   "max_gust_mps": 13.89,
+   "mean_temp_c": 24.41,
+   "min_temp_c": 14.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-07-28",
+   "start_hour": 22540,
+   "mean_wind_mps": 2.015,
+   "max_gust_mps": 9.26,
+   "mean_temp_c": 23.01,
+   "min_temp_c": 13.33,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-08-04",
+   "start_hour": 22708,
+   "mean_wind_mps": 2.343,
+   "max_gust_mps": 9.26,
+   "mean_temp_c": 22.74,
+   "min_temp_c": 14.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-08-11",
+   "start_hour": 22876,
+   "mean_wind_mps": 1.911,
+   "max_gust_mps": 10.8,
+   "mean_temp_c": 25.08,
+   "min_temp_c": 17.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-08-18",
+   "start_hour": 23044,
+   "mean_wind_mps": 2.542,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 22.98,
+   "min_temp_c": 17.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-08-25",
+   "start_hour": 23212,
+   "mean_wind_mps": 2.594,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 16.54,
+   "min_temp_c": 8.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-09-01",
+   "start_hour": 23380,
+   "mean_wind_mps": 2.961,
+   "max_gust_mps": 11.83,
+   "mean_temp_c": 17.83,
+   "min_temp_c": 11.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-09-08",
+   "start_hour": 23548,
+   "mean_wind_mps": 1.436,
+   "max_gust_mps": 4.12,
+   "mean_temp_c": 18.69,
+   "min_temp_c": 7.22,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-09-15",
+   "start_hour": 23716,
+   "mean_wind_mps": 1.914,
+   "max_gust_mps": 9.26,
+   "mean_temp_c": 21.91,
+   "min_temp_c": 13.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-09-22",
+   "start_hour": 23884,
+   "mean_wind_mps": 2.07,
+   "max_gust_mps": 11.32,
+   "mean_temp_c": 19.69,
+   "min_temp_c": 13.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-09-29",
+   "start_hour": 24052,
+   "mean_wind_mps": 1.779,
+   "max_gust_mps": 3.6,
+   "mean_temp_c": 18.69,
+   "min_temp_c": 9.44,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-10-06",
+   "start_hour": 24220,
+   "mean_wind_mps": 2.842,
+   "max_gust_mps": 13.38,
+   "mean_temp_c": 14.67,
+   "min_temp_c": 5.0,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-10-13",
+   "start_hour": 24388,
+   "mean_wind_mps": 2.725,
+   "max_gust_mps": 17.49,
+   "mean_temp_c": 13.74,
+   "min_temp_c": 3.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-10-20",
+   "start_hour": 24556,
+   "mean_wind_mps": 3.629,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": 8.21,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-10-27",
+   "start_hour": 24724,
+   "mean_wind_mps": 3.497,
+   "max_gust_mps": 15.95,
+   "mean_temp_c": 7.96,
+   "min_temp_c": 2.78,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-11-03",
+   "start_hour": 24893,
+   "mean_wind_mps": 4.241,
+   "max_gust_mps": 18.52,
+   "mean_temp_c": 9.04,
+   "min_temp_c": 1.11,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-11-10",
+   "start_hour": 25061,
+   "mean_wind_mps": 4.875,
+   "max_gust_mps": 20.06,
+   "mean_temp_c": 5.11,
+   "min_temp_c": -5.0,
+   "snow_hours": 1
+  },
+  {
+   "monday": "2025-11-17",
+   "start_hour": 25229,
+   "mean_wind_mps": 2.416,
+   "max_gust_mps": 12.86,
+   "mean_temp_c": 4.02,
+   "min_temp_c": -3.89,
+   "snow_hours": 0
+  },
+  {
+   "monday": "2025-11-24",
+   "start_hour": 25397,
+   "mean_wind_mps": 5.245,
+   "max_gust_mps": 19.55,
+   "mean_temp_c": 3.43,
+   "min_temp_c": -4.44,
+   "snow_hours": 4
+  },
+  {
+   "monday": "2025-12-01",
+   "start_hour": 25565,
+   "mean_wind_mps": 2.903,
+   "max_gust_mps": 10.29,
+   "mean_temp_c": -2.0,
+   "min_temp_c": -10.0,
+   "snow_hours": 16
+  },
+  {
+   "monday": "2025-12-08",
+   "start_hour": 25733,
+   "mean_wind_mps": 4.315,
+   "max_gust_mps": 15.43,
+   "mean_temp_c": -3.86,
+   "min_temp_c": -12.22,
+   "snow_hours": 32
+  },
+  {
+   "monday": "2025-12-15",
+   "start_hour": 25901,
+   "mean_wind_mps": 4.67,
+   "max_gust_mps": 21.09,
+   "mean_temp_c": -0.07,
+   "min_temp_c": -13.89,
+   "snow_hours": 7
+  },
+  {
+   "monday": "2025-12-22",
+   "start_hour": 26069,
+   "mean_wind_mps": 2.845,
+   "max_gust_mps": 14.92,
+   "mean_temp_c": 3.75,
+   "min_temp_c": -8.33,
+   "snow_hours": 0
+  }
+ ],
+ "policies": {
+  "WAIT": {
+   "per_week": [
+    {
+     "ratio": 0.5768983319855235,
+     "network_s": 1109.7052341088859,
+     "truck_s": 1923.5231916513485,
+     "completed_share": 0.9778586644825656,
+     "flown_truck_s": 1923.5231916513485,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 525.8236530905787,
+      "queue_s": 260.2388568956839,
+      "pad_service_s": 172.15913589005365,
+      "flight_s": 151.48358823256942
+     }
+    },
+    {
+     "ratio": 7.244598981085467,
+     "network_s": 14002.460930678588,
+     "truck_s": 1932.9764975814217,
+     "completed_share": 0.6012587722019891,
+     "flown_truck_s": 1932.9764975814217,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10974.625868705918,
+      "queue_s": 2666.842360426177,
+      "pad_service_s": 208.46254885569854,
+      "flight_s": 152.53015269079523
+     }
+    },
+    {
+     "ratio": 2.366159620091183,
+     "network_s": 4563.728606806976,
+     "truck_s": 1928.5171122582178,
+     "completed_share": 0.8720765564433894,
+     "flown_truck_s": 1928.5171122582178,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 11.666666666666666,
+     "forced_landings": 2.0,
+     "split_s": {
+      "pod_wait_s": 3391.4268524055824,
+      "queue_s": 833.0678738228565,
+      "pad_service_s": 187.9302128383437,
+      "flight_s": 151.30366774019262
+     }
+    },
+    {
+     "ratio": 6.700633811944179,
+     "network_s": 12937.747345682947,
+     "truck_s": 1930.8070815772978,
+     "completed_share": 0.7164728437002136,
+     "flown_truck_s": 1930.8070815772978,
+     "flyable": 0.8982035928143711,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10642.464102911743,
+      "queue_s": 1892.0152760162682,
+      "pad_service_s": 252.6419460974579,
+      "flight_s": 150.62602065747663
+     }
+    },
+    {
+     "ratio": 25.246756580638987,
+     "network_s": 48464.479676594405,
+     "truck_s": 1919.6790281852498,
+     "completed_share": 0.3313718478840835,
+     "flown_truck_s": 1919.6790281852498,
+     "flyable": 0.7664670658682636,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 42162.42449344761,
+      "queue_s": 5871.422458008868,
+      "pad_service_s": 280.4962108048954,
+      "flight_s": 150.1365143330378
+     }
+    },
+    {
+     "ratio": 2.2178228185915905,
+     "network_s": 4242.222246113403,
+     "truck_s": 1912.78667408956,
+     "completed_share": 0.9439104756282233,
+     "flown_truck_s": 1912.78667408956,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 3035.4745002012514,
+      "queue_s": 858.6806530782032,
+      "pad_service_s": 196.26740927659193,
+      "flight_s": 151.79968355735647
+     }
+    },
+    {
+     "ratio": 2.5385761421557027,
+     "network_s": 4865.05611924156,
+     "truck_s": 1916.4805596564963,
+     "completed_share": 0.8719133088341927,
+     "flown_truck_s": 1916.4805596564963,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 3641.757429633201,
+      "queue_s": 873.5868110530749,
+      "pad_service_s": 196.8593837096674,
+      "flight_s": 152.85249484561578
+     }
+    },
+    {
+     "ratio": 2.2598110306747454,
+     "network_s": 4339.354241929935,
+     "truck_s": 1920.0714808547327,
+     "completed_share": 0.9207537136974059,
+     "flown_truck_s": 1920.0714808547327,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 9.666666666666666,
+     "forced_landings": 1.6666666666666667,
+     "split_s": {
+      "pod_wait_s": 2926.8074247055524,
+      "queue_s": 1060.008220558494,
+      "pad_service_s": 201.0445305336705,
+      "flight_s": 151.49406613221723
+     }
+    },
+    {
+     "ratio": 1.6329719124994815,
+     "network_s": 3138.1065516157373,
+     "truck_s": 1921.7292502240064,
+     "completed_share": 0.9350981902656885,
+     "flown_truck_s": 1921.7292502240064,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2115.2081973731974,
+      "queue_s": 663.6511333205657,
+      "pad_service_s": 205.80965834918425,
+      "flight_s": 153.43756257278977
+     }
+    },
+    {
+     "ratio": 3.7797206339799008,
+     "network_s": 7240.85078395867,
+     "truck_s": 1915.6542313219643,
+     "completed_share": 0.8345890885686562,
+     "flown_truck_s": 1915.6542313219643,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 5541.353158550813,
+      "queue_s": 1350.5719181631175,
+      "pad_service_s": 197.83698469878686,
+      "flight_s": 151.08872254595315
+     }
+    },
+    {
+     "ratio": 5.528643830290986,
+     "network_s": 10631.571462755208,
+     "truck_s": 1923.020438812304,
+     "completed_share": 0.6529682095137073,
+     "flown_truck_s": 1923.020438812304,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 8563.705404533517,
+      "queue_s": 1720.1842470647673,
+      "pad_service_s": 196.72856925079853,
+      "flight_s": 150.95324190612516
+     }
+    },
+    {
+     "ratio": 1.8190646684747078,
+     "network_s": 3494.1806430978254,
+     "truck_s": 1920.4899058607832,
+     "completed_share": 0.9292992146401508,
+     "flown_truck_s": 1920.4899058607832,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 9.666666666666666,
+     "forced_landings": 1.6666666666666667,
+     "split_s": {
+      "pod_wait_s": 2562.255133638079,
+      "queue_s": 582.5488263828164,
+      "pad_service_s": 195.20720756560095,
+      "flight_s": 154.16947551132967
+     }
+    },
+    {
+     "ratio": 1.9091974838933183,
+     "network_s": 3661.8875619882906,
+     "truck_s": 1917.5461031377447,
+     "completed_share": 0.945235655380583,
+     "flown_truck_s": 1917.5461031377447,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 8.333333333333334,
+     "forced_landings": 2.3333333333333335,
+     "split_s": {
+      "pod_wait_s": 2545.139987562138,
+      "queue_s": 764.4231804866772,
+      "pad_service_s": 199.40822487861567,
+      "flight_s": 152.9161690608602
+     }
+    },
+    {
+     "ratio": 0.37663329604819334,
+     "network_s": 721.2312913164247,
+     "truck_s": 1914.9388961097168,
+     "completed_share": 0.9838920264199428,
+     "flown_truck_s": 1914.9388961097168,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 203.07552293167421,
+      "queue_s": 210.7340155838066,
+      "pad_service_s": 155.02311080362855,
+      "flight_s": 152.3986419973154
+     }
+    },
+    {
+     "ratio": 0.2605621557093345,
+     "network_s": 498.9649542420477,
+     "truck_s": 1914.9470533693118,
+     "completed_share": 0.9816329012099979,
+     "flown_truck_s": 1914.9470533693118,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 71.84960278371477,
+      "queue_s": 128.97436812980774,
+      "pad_service_s": 146.49644787225662,
+      "flight_s": 151.64453545626853
+     }
+    },
+    {
+     "ratio": 0.32553122049074723,
+     "network_s": 624.434022030956,
+     "truck_s": 1918.1559925444374,
+     "completed_share": 0.9856597517562117,
+     "flown_truck_s": 1918.1559925444374,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 150.87321989701357,
+      "queue_s": 169.74441127042917,
+      "pad_service_s": 151.91230496341382,
+      "flight_s": 151.90408590009943
+     }
+    },
+    {
+     "ratio": 0.27547720485691396,
+     "network_s": 528.5817711878369,
+     "truck_s": 1918.7868855547931,
+     "completed_share": 0.9832662915342887,
+     "flown_truck_s": 1918.7868855547931,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 95.70420436668628,
+      "queue_s": 132.76548257602414,
+      "pad_service_s": 145.92306663833324,
+      "flight_s": 154.1890176067933
+     }
+    },
+    {
+     "ratio": 0.2781810353712741,
+     "network_s": 535.7492403512414,
+     "truck_s": 1925.8807811218624,
+     "completed_share": 0.9817244387213501,
+     "flown_truck_s": 1925.8807811218624,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.21052908592996,
+      "queue_s": 148.27099728534552,
+      "pad_service_s": 153.09153079007186,
+      "flight_s": 151.1761831898941
+     }
+    },
+    {
+     "ratio": 0.25997069495383446,
+     "network_s": 498.2191288621718,
+     "truck_s": 1916.4473266870152,
+     "completed_share": 0.9878157972717251,
+     "flown_truck_s": 1916.4473266870152,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.4258981575484,
+      "queue_s": 121.86684381573347,
+      "pad_service_s": 144.63337714792576,
+      "flight_s": 151.2930097409641
+     }
+    },
+    {
+     "ratio": 0.3151855372827919,
+     "network_s": 603.2445356666134,
+     "truck_s": 1913.8560011740412,
+     "completed_share": 0.9810708197498409,
+     "flown_truck_s": 1913.8560011740412,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 147.32832576452827,
+      "queue_s": 153.39541293933553,
+      "pad_service_s": 150.69224975284533,
+      "flight_s": 151.82854720990431
+     }
+    },
+    {
+     "ratio": 0.24708487443745905,
+     "network_s": 472.70902364085055,
+     "truck_s": 1913.1428238848478,
+     "completed_share": 0.9829069410917831,
+     "flown_truck_s": 1913.1428238848478,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 64.54265769221016,
+      "queue_s": 114.04685804653131,
+      "pad_service_s": 142.37817166441013,
+      "flight_s": 151.741336237699
+     }
+    },
+    {
+     "ratio": 0.2518518524649155,
+     "network_s": 481.8497949231526,
+     "truck_s": 1913.2331471584675,
+     "completed_share": 0.9859039089260045,
+     "flown_truck_s": 1913.2331471584675,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 76.6575999337387,
+      "queue_s": 109.53294772126462,
+      "pad_service_s": 142.8226408543052,
+      "flight_s": 152.83660641384407
+     }
+    },
+    {
+     "ratio": 0.24246905278848874,
+     "network_s": 464.13333988279237,
+     "truck_s": 1914.1953223032422,
+     "completed_share": 0.9864527911569964,
+     "flown_truck_s": 1914.1953223032422,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 65.47460280800924,
+      "queue_s": 104.4827044297549,
+      "pad_service_s": 142.82188380252262,
+      "flight_s": 151.35414884250565
+     }
+    },
+    {
+     "ratio": 2.5466830482784166,
+     "network_s": 4906.970498700332,
+     "truck_s": 1926.8152765580573,
+     "completed_share": 0.837417323399742,
+     "flown_truck_s": 1926.8152765580573,
+     "flyable": 0.7784431137724551,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 4138.160878122664,
+      "queue_s": 424.46568732286005,
+      "pad_service_s": 192.41942088382584,
+      "flight_s": 151.92451237098194
+     }
+    },
+    {
+     "ratio": 0.9529940814664511,
+     "network_s": 1828.6990032612866,
+     "truck_s": 1918.8929100205232,
+     "completed_share": 0.9443214230574649,
+     "flown_truck_s": 1918.8929100205232,
+     "flyable": 0.8682634730538922,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1152.7068257460478,
+      "queue_s": 353.84512329610965,
+      "pad_service_s": 167.98126098045338,
+      "flight_s": 154.165793238676
+     }
+    },
+    {
+     "ratio": 4.076612047666591,
+     "network_s": 7799.950498679481,
+     "truck_s": 1913.3295626796742,
+     "completed_share": 0.8240126776596247,
+     "flown_truck_s": 1913.3295626796742,
+     "flyable": 0.6407185628742516,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 6431.869291940464,
+      "queue_s": 863.8617919930607,
+      "pad_service_s": 353.18378239112013,
+      "flight_s": 151.03563235483549
+     }
+    },
+    {
+     "ratio": 0.260051029816923,
+     "network_s": 498.14286941803374,
+     "truck_s": 1915.5612293682004,
+     "completed_share": 0.980883516402642,
+     "flown_truck_s": 1915.5612293682004,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 82.82035876823026,
+      "queue_s": 121.83892244441381,
+      "pad_service_s": 142.2242845910637,
+      "flight_s": 151.2593036143259
+     }
+    },
+    {
+     "ratio": 0.4451585608169551,
+     "network_s": 851.8109574200771,
+     "truck_s": 1913.516600978802,
+     "completed_share": 0.9790995063031177,
+     "flown_truck_s": 1913.516600978802,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 377.1242594722765,
+      "queue_s": 174.9447388021172,
+      "pad_service_s": 148.4459846863861,
+      "flight_s": 151.29597445929713
+     }
+    },
+    {
+     "ratio": 0.3254123353599481,
+     "network_s": 623.2974707370986,
+     "truck_s": 1915.392985862427,
+     "completed_share": 0.984709864372492,
+     "flown_truck_s": 1915.392985862427,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 163.6245532847088,
+      "queue_s": 159.66831736543907,
+      "pad_service_s": 148.6142706889449,
+      "flight_s": 151.39032939800583
+     }
+    },
+    {
+     "ratio": 0.8526213067098287,
+     "network_s": 1635.3256546868854,
+     "truck_s": 1917.9803727643582,
+     "completed_share": 0.9676289190425565,
+     "flown_truck_s": 1917.9803727643582,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1001.5560697805313,
+      "queue_s": 305.10047471479044,
+      "pad_service_s": 176.77876942035468,
+      "flight_s": 151.89034077120922
+     }
+    },
+    {
+     "ratio": 0.41815636453663046,
+     "network_s": 799.8606815866042,
+     "truck_s": 1912.8520647970993,
+     "completed_share": 0.983250521026715,
+     "flown_truck_s": 1912.8520647970993,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 335.0017914993428,
+      "queue_s": 166.57919230238494,
+      "pad_service_s": 146.71662352388304,
+      "flight_s": 151.56307426099337
+     }
+    },
+    {
+     "ratio": 0.7890758984877358,
+     "network_s": 1512.1707847226653,
+     "truck_s": 1916.3781456678646,
+     "completed_share": 0.9649428473377154,
+     "flown_truck_s": 1916.3781456678646,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 936.8123832783012,
+      "queue_s": 264.34167867091224,
+      "pad_service_s": 159.72280685437613,
+      "flight_s": 151.2939159190756
+     }
+    },
+    {
+     "ratio": 0.8759681118167078,
+     "network_s": 1677.1373267970002,
+     "truck_s": 1914.63308020023,
+     "completed_share": 0.9572591817780699,
+     "flown_truck_s": 1914.63308020023,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1121.905826268461,
+      "queue_s": 248.7552991077209,
+      "pad_service_s": 155.33681501372527,
+      "flight_s": 151.13938640709333
+     }
+    },
+    {
+     "ratio": 0.32498888622492966,
+     "network_s": 623.1241258454129,
+     "truck_s": 1917.3682475497062,
+     "completed_share": 0.9842088650594234,
+     "flown_truck_s": 1917.3682475497062,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 172.59763595773583,
+      "queue_s": 152.12561789919891,
+      "pad_service_s": 146.8076776287995,
+      "flight_s": 151.59319435967862
+     }
+    },
+    {
+     "ratio": 0.2577972764482569,
+     "network_s": 493.1283134177895,
+     "truck_s": 1912.8342485087571,
+     "completed_share": 0.9844299378630574,
+     "flown_truck_s": 1912.8342485087571,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.81399321902252,
+      "queue_s": 111.2131217243943,
+      "pad_service_s": 141.86183101695795,
+      "flight_s": 151.23936745741474
+     }
+    },
+    {
+     "ratio": 0.24408496507916536,
+     "network_s": 467.39754612148835,
+     "truck_s": 1914.9047469501636,
+     "completed_share": 0.9825343342805923,
+     "flown_truck_s": 1914.9047469501636,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 69.57210270090947,
+      "queue_s": 105.37054372803699,
+      "pad_service_s": 141.2227262560663,
+      "flight_s": 151.23217343647553
+     }
+    },
+    {
+     "ratio": 0.27704891534705134,
+     "network_s": 530.5437692736583,
+     "truck_s": 1915.0047618225308,
+     "completed_share": 0.9871942907105654,
+     "flown_truck_s": 1915.0047618225308,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 113.53838345249142,
+      "queue_s": 121.67099738635318,
+      "pad_service_s": 144.05760871674042,
+      "flight_s": 151.2767797180733
+     }
+    },
+    {
+     "ratio": 0.36705751075946846,
+     "network_s": 704.1926875965564,
+     "truck_s": 1918.4529652558049,
+     "completed_share": 0.9845445597405682,
+     "flown_truck_s": 1918.4529652558049,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 233.36336770818835,
+      "queue_s": 168.03494149284856,
+      "pad_service_s": 150.80998212310092,
+      "flight_s": 151.98439627241865
+     }
+    },
+    {
+     "ratio": 0.3893297579229585,
+     "network_s": 746.1540192544671,
+     "truck_s": 1916.4744598528512,
+     "completed_share": 0.9828111752559364,
+     "flown_truck_s": 1916.4744598528512,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 240.65417848337435,
+      "queue_s": 196.34270212508537,
+      "pad_service_s": 156.74025434545035,
+      "flight_s": 152.41688430055714
+     }
+    },
+    {
+     "ratio": 0.311131119895165,
+     "network_s": 595.995239941858,
+     "truck_s": 1915.5352518947705,
+     "completed_share": 0.9845172470499151,
+     "flown_truck_s": 1915.5352518947705,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 141.8844857333817,
+      "queue_s": 154.95851083930356,
+      "pad_service_s": 147.51247231637979,
+      "flight_s": 151.63977105279295
+     }
+    },
+    {
+     "ratio": 1.205959556823176,
+     "network_s": 2315.1010351142763,
+     "truck_s": 1919.6872056987695,
+     "completed_share": 0.9259116981853973,
+     "flown_truck_s": 1919.6872056987695,
+     "flyable": 0.9101796407185628,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1697.9216910360185,
+      "queue_s": 311.8689162118391,
+      "pad_service_s": 153.94287943158477,
+      "flight_s": 151.36754843483388
+     }
+    },
+    {
+     "ratio": 0.2714391968866503,
+     "network_s": 521.0541803839541,
+     "truck_s": 1919.5820346897153,
+     "completed_share": 0.9847335201338527,
+     "flown_truck_s": 1919.5820346897153,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 96.05672621043162,
+      "queue_s": 124.99819609969933,
+      "pad_service_s": 148.0096366269017,
+      "flight_s": 151.98962144692146
+     }
+    },
+    {
+     "ratio": 0.2966218056905375,
+     "network_s": 569.3061463005218,
+     "truck_s": 1919.3125200443483,
+     "completed_share": 0.9078223546030625,
+     "flown_truck_s": 1919.3125200443483,
+     "flyable": 0.9041916167664671,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 107.50386377820973,
+      "queue_s": 160.74357641988001,
+      "pad_service_s": 149.49304495822557,
+      "flight_s": 151.56566114420653
+     }
+    },
+    {
+     "ratio": 1.2694656704527085,
+     "network_s": 2432.3659906302723,
+     "truck_s": 1916.0565869777727,
+     "completed_share": 0.9576596726751158,
+     "flown_truck_s": 1916.0565869777727,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1657.885995538577,
+      "queue_s": 454.2735965728204,
+      "pad_service_s": 168.21668371623707,
+      "flight_s": 151.9897148026381
+     }
+    },
+    {
+     "ratio": 0.2743121108954823,
+     "network_s": 525.0555143868434,
+     "truck_s": 1914.0827675589123,
+     "completed_share": 0.9866654073116417,
+     "flown_truck_s": 1914.0827675589123,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.11183406078372,
+      "queue_s": 118.93270636675823,
+      "pad_service_s": 146.06828163918416,
+      "flight_s": 151.9426923201173
+     }
+    },
+    {
+     "ratio": 0.4457317771975983,
+     "network_s": 853.7060983827586,
+     "truck_s": 1915.3549737408855,
+     "completed_share": 0.9855955269355127,
+     "flown_truck_s": 1915.3549737408855,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 292.2574234263678,
+      "queue_s": 250.76819748763356,
+      "pad_service_s": 158.78331637346324,
+      "flight_s": 151.89716109529397
+     }
+    },
+    {
+     "ratio": 1.3635066249005294,
+     "network_s": 2620.9052996016985,
+     "truck_s": 1922.1254693427811,
+     "completed_share": 0.9297342178073943,
+     "flown_truck_s": 1922.1254693427811,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1733.681828781413,
+      "queue_s": 564.9558317501788,
+      "pad_service_s": 168.43635992941094,
+      "flight_s": 153.83127914069573
+     }
+    },
+    {
+     "ratio": 6.0070115644367235,
+     "network_s": 11527.791449685434,
+     "truck_s": 1918.9266081286526,
+     "completed_share": 0.7055670805967789,
+     "flown_truck_s": 1918.9266081286526,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 9484.446139378351,
+      "queue_s": 1690.1094593513233,
+      "pad_service_s": 201.814731677605,
+      "flight_s": 151.42111927815355
+     }
+    },
+    {
+     "ratio": 0.6516588348589499,
+     "network_s": 1251.691147744212,
+     "truck_s": 1920.8176823268807,
+     "completed_share": 0.9853755969222826,
+     "flown_truck_s": 1920.8176823268807,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 656.128789613368,
+      "queue_s": 281.69167359169614,
+      "pad_service_s": 161.60540674703694,
+      "flight_s": 152.265277792111
+     }
+    },
+    {
+     "ratio": 1.6301825992378458,
+     "network_s": 3123.501209645178,
+     "truck_s": 1916.186846479598,
+     "completed_share": 0.9236504016736852,
+     "flown_truck_s": 1916.186846479598,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2054.92139301569,
+      "queue_s": 731.5415932809798,
+      "pad_service_s": 181.2494924315093,
+      "flight_s": 155.7887309169994
+     }
+    },
+    {
+     "ratio": 3.2805950375592396,
+     "network_s": 6295.855691360234,
+     "truck_s": 1919.1032745351704,
+     "completed_share": 0.8118839002659387,
+     "flown_truck_s": 1919.1032745351704,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 5063.848835605181,
+      "queue_s": 912.527112551102,
+      "pad_service_s": 168.48990174800937,
+      "flight_s": 150.98984145594204
+     }
+    },
+    {
+     "ratio": 0.6294420142569099,
+     "network_s": 1210.9178180964425,
+     "truck_s": 1923.7288218693236,
+     "completed_share": 0.9737949589458261,
+     "flown_truck_s": 1923.7288218693236,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 675.3072196543568,
+      "queue_s": 226.38193378891864,
+      "pad_service_s": 156.22968180056347,
+      "flight_s": 152.99898285260358
+     }
+    },
+    {
+     "ratio": 4.846755821588687,
+     "network_s": 9430.680736711083,
+     "truck_s": 1945.6528084562208,
+     "completed_share": 0.7734812858357643,
+     "flown_truck_s": 1945.6528084562208,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 7613.284713117532,
+      "queue_s": 1458.8011473823806,
+      "pad_service_s": 208.48216094697386,
+      "flight_s": 150.11271526419634
+     }
+    },
+    {
+     "ratio": 11.12636088461924,
+     "network_s": 21390.354559549112,
+     "truck_s": 1922.3197158311568,
+     "completed_share": 0.4016542576770659,
+     "flown_truck_s": 1922.3197158311568,
+     "flyable": 0.7784431137724551,
+     "trucked_share": 0.0,
+     "weather_aborts": 13.333333333333334,
+     "forced_landings": 4.0,
+     "split_s": {
+      "pod_wait_s": 18006.816208691092,
+      "queue_s": 2993.9129055292483,
+      "pad_service_s": 237.06660113447046,
+      "flight_s": 152.5588441943042
+     }
+    },
+    {
+     "ratio": null,
+     "network_s": null,
+     "truck_s": null,
+     "completed_share": 0.0022754671127206173,
+     "flown_truck_s": null,
+     "flyable": 0.718562874251497,
+     "trucked_share": null,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": null,
+      "queue_s": null,
+      "pad_service_s": null,
+      "flight_s": null
+     }
+    },
+    {
+     "ratio": 2.7074376267869416,
+     "network_s": 5214.9598360560385,
+     "truck_s": 1926.1560296850312,
+     "completed_share": 0.8633132967891818,
+     "flown_truck_s": 1926.1560296850312,
+     "flyable": 0.7604790419161677,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 4202.947568778431,
+      "queue_s": 610.0063880004933,
+      "pad_service_s": 249.93143253802762,
+      "flight_s": 152.07444673908745
+     }
+    },
+    {
+     "ratio": 1.7350985443965454,
+     "network_s": 3324.984720272097,
+     "truck_s": 1916.2896018599859,
+     "completed_share": 0.9369838515716395,
+     "flown_truck_s": 1916.2896018599859,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2318.9353038898357,
+      "queue_s": 680.1936601553883,
+      "pad_service_s": 174.75288724301012,
+      "flight_s": 151.1028689838631
+     }
+    },
+    {
+     "ratio": 1.2011290976291011,
+     "network_s": 2295.7850083690373,
+     "truck_s": 1911.3016617506,
+     "completed_share": 0.9588863438946594,
+     "flown_truck_s": 1911.3016617506,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1430.6770614257146,
+      "queue_s": 545.4390365235491,
+      "pad_service_s": 168.3878606224633,
+      "flight_s": 151.28104979731035
+     }
+    },
+    {
+     "ratio": 7.876781066949124,
+     "network_s": 15156.978103392465,
+     "truck_s": 1924.1615184777163,
+     "completed_share": 0.65858393869798,
+     "flown_truck_s": 1924.1615184777163,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 12634.35777649193,
+      "queue_s": 2120.3037086888107,
+      "pad_service_s": 251.46630269259003,
+      "flight_s": 150.85031551913275
+     }
+    },
+    {
+     "ratio": 3.726751089030975,
+     "network_s": 7154.542006539222,
+     "truck_s": 1919.727196380428,
+     "completed_share": 0.8571351433076307,
+     "flown_truck_s": 1919.727196380428,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 5683.2495358148335,
+      "queue_s": 1119.928821201772,
+      "pad_service_s": 200.0398260219549,
+      "flight_s": 151.32382350066135
+     }
+    },
+    {
+     "ratio": 2.650178903950296,
+     "network_s": 5076.028237745275,
+     "truck_s": 1915.3188048173624,
+     "completed_share": 0.8850758544272442,
+     "flown_truck_s": 1915.3188048173624,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 3820.9942767279003,
+      "queue_s": 901.6350327290993,
+      "pad_service_s": 198.2104395413232,
+      "flight_s": 155.18848874695277
+     }
+    },
+    {
+     "ratio": 0.4219920962199885,
+     "network_s": 815.1143733412499,
+     "truck_s": 1931.5447775250905,
+     "completed_share": 0.9603476871236434,
+     "flown_truck_s": 1931.5447775250905,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 244.52433617441002,
+      "queue_s": 248.32566131167462,
+      "pad_service_s": 166.2858653745818,
+      "flight_s": 155.97851048058342
+     }
+    },
+    {
+     "ratio": 0.4747957380449958,
+     "network_s": 908.9417457638098,
+     "truck_s": 1914.3885806569053,
+     "completed_share": 0.9827990616776553,
+     "flown_truck_s": 1914.3885806569053,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 293.9594709244975,
+      "queue_s": 289.54898648710554,
+      "pad_service_s": 173.90950684041061,
+      "flight_s": 151.52378151179616
+     }
+    },
+    {
+     "ratio": 5.133177378678961,
+     "network_s": 9817.396795830775,
+     "truck_s": 1912.5674509604933,
+     "completed_share": 0.8046568366121704,
+     "flown_truck_s": 1912.5674509604933,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 7744.868408820815,
+      "queue_s": 1693.9491595166935,
+      "pad_service_s": 227.8457037054953,
+      "flight_s": 150.73352378777054
+     }
+    },
+    {
+     "ratio": 0.2659600160003885,
+     "network_s": 510.08057669048094,
+     "truck_s": 1917.8783520079912,
+     "completed_share": 0.9804419421905761,
+     "flown_truck_s": 1917.8783520079912,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 72.62577370127082,
+      "queue_s": 133.0353921006756,
+      "pad_service_s": 148.31933511086072,
+      "flight_s": 156.10007577767382
+     }
+    },
+    {
+     "ratio": 0.9756011785996588,
+     "network_s": 1885.2804761245707,
+     "truck_s": 1932.3865720815036,
+     "completed_share": 0.970818561338875,
+     "flown_truck_s": 1932.3865720815036,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1144.273920538421,
+      "queue_s": 404.4035462549937,
+      "pad_service_s": 182.2651855025442,
+      "flight_s": 154.33782382861182
+     }
+    },
+    {
+     "ratio": 3.5448107829338844,
+     "network_s": 6807.877764664063,
+     "truck_s": 1920.564195297664,
+     "completed_share": 0.8063054831883533,
+     "flown_truck_s": 1920.564195297664,
+     "flyable": 0.7125748502994012,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 5691.584556483962,
+      "queue_s": 755.6302509145489,
+      "pad_service_s": 208.2435761914381,
+      "flight_s": 152.41938107411363
+     }
+    },
+    {
+     "ratio": 0.5392667156862516,
+     "network_s": 1032.4705929451234,
+     "truck_s": 1914.5953996241258,
+     "completed_share": 0.9788384358353474,
+     "flown_truck_s": 1914.5953996241258,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 443.72163531065667,
+      "queue_s": 268.2601326357763,
+      "pad_service_s": 169.06988332358597,
+      "flight_s": 151.41894167510438
+     }
+    },
+    {
+     "ratio": 0.2656876746335141,
+     "network_s": 508.566310268664,
+     "truck_s": 1914.1716896013259,
+     "completed_share": 0.9840736729546423,
+     "flown_truck_s": 1914.1716896013259,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 87.02266572984304,
+      "queue_s": 120.14676485418956,
+      "pad_service_s": 147.01207209863222,
+      "flight_s": 154.38480758599917
+     }
+    },
+    {
+     "ratio": 0.26099094239331183,
+     "network_s": 501.16795093331694,
+     "truck_s": 1920.2450113922444,
+     "completed_share": 0.9859833328590754,
+     "flown_truck_s": 1920.2450113922444,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.91756557235738,
+      "queue_s": 119.74839295795776,
+      "pad_service_s": 145.2652512872613,
+      "flight_s": 152.2367411157405
+     }
+    },
+    {
+     "ratio": 1.123224957888537,
+     "network_s": 2159.3593400646964,
+     "truck_s": 1922.439684676878,
+     "completed_share": 0.9637930287728339,
+     "flown_truck_s": 1922.439684676878,
+     "flyable": 0.874251497005988,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1412.8479505595067,
+      "queue_s": 400.18268926456557,
+      "pad_service_s": 194.57672572340957,
+      "flight_s": 151.75197451721456
+     }
+    },
+    {
+     "ratio": 0.28958210728828254,
+     "network_s": 555.4240502241494,
+     "truck_s": 1917.9920911204972,
+     "completed_share": 0.9809398559695542,
+     "flown_truck_s": 1917.9920911204972,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 115.87279891675571,
+      "queue_s": 139.35230989396726,
+      "pad_service_s": 148.68526774052444,
+      "flight_s": 151.513673672902
+     }
+    },
+    {
+     "ratio": 0.6539517749242744,
+     "network_s": 1253.654012234394,
+     "truck_s": 1917.041702172195,
+     "completed_share": 0.9723803558443617,
+     "flown_truck_s": 1917.041702172195,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 726.7665985676458,
+      "queue_s": 221.6826068385965,
+      "pad_service_s": 153.03141679928555,
+      "flight_s": 152.17339002886607
+     }
+    },
+    {
+     "ratio": 0.47432975746451583,
+     "network_s": 909.5363720085057,
+     "truck_s": 1917.552320097476,
+     "completed_share": 0.981183441744145,
+     "flown_truck_s": 1917.552320097476,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 413.22655481077726,
+      "queue_s": 193.54815732483726,
+      "pad_service_s": 150.36032146437012,
+      "flight_s": 152.40133840852118
+     }
+    },
+    {
+     "ratio": 0.25808174208706997,
+     "network_s": 494.17643667321363,
+     "truck_s": 1914.794102739286,
+     "completed_share": 0.9848861397922933,
+     "flown_truck_s": 1914.794102739286,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.57919311504303,
+      "queue_s": 115.22027579927958,
+      "pad_service_s": 143.62708008792006,
+      "flight_s": 151.74988767097094
+     }
+    },
+    {
+     "ratio": 0.2778432851781503,
+     "network_s": 531.6499064677186,
+     "truck_s": 1913.4842328191917,
+     "completed_share": 0.9837757474963462,
+     "flown_truck_s": 1913.4842328191917,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.86389981424624,
+      "queue_s": 127.2494008006061,
+      "pad_service_s": 144.15424831654892,
+      "flight_s": 151.3823575363172
+     }
+    },
+    {
+     "ratio": 0.2967006117722543,
+     "network_s": 568.1073324161049,
+     "truck_s": 1914.7424329151156,
+     "completed_share": 0.9822175527806319,
+     "flown_truck_s": 1914.7424329151156,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.32289360776248,
+      "queue_s": 152.13751001158923,
+      "pad_service_s": 152.1043003113266,
+      "flight_s": 151.54262848542655
+     }
+    },
+    {
+     "ratio": 0.538447869092374,
+     "network_s": 1030.6959688301406,
+     "truck_s": 1914.0705333138092,
+     "completed_share": 0.97961627612376,
+     "flown_truck_s": 1914.0705333138092,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 518.8670588362806,
+      "queue_s": 199.08180530482153,
+      "pad_service_s": 159.65762610965126,
+      "flight_s": 153.0894785793873
+     }
+    },
+    {
+     "ratio": 0.2670575581004236,
+     "network_s": 511.2426918342556,
+     "truck_s": 1914.358447864049,
+     "completed_share": 0.9841767526490739,
+     "flown_truck_s": 1914.358447864049,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 98.99115514645398,
+      "queue_s": 116.88755997539324,
+      "pad_service_s": 143.02297412817651,
+      "flight_s": 152.34100258423183
+     }
+    },
+    {
+     "ratio": 0.6864734039730997,
+     "network_s": 1312.6884624193463,
+     "truck_s": 1912.212737337818,
+     "completed_share": 0.9734696636573567,
+     "flown_truck_s": 1912.212737337818,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 773.8455094876753,
+      "queue_s": 237.16391178450644,
+      "pad_service_s": 150.30414069963138,
+      "flight_s": 151.37490044753318
+     }
+    },
+    {
+     "ratio": 0.3630452948768963,
+     "network_s": 694.839384414138,
+     "truck_s": 1913.8261326314162,
+     "completed_share": 0.9810930470231968,
+     "flown_truck_s": 1913.8261326314162,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 211.31480048968822,
+      "queue_s": 182.48840449254308,
+      "pad_service_s": 149.85034477189606,
+      "flight_s": 151.1858346600106
+     }
+    },
+    {
+     "ratio": 0.5379252819167055,
+     "network_s": 1030.6506444010677,
+     "truck_s": 1915.9986924818434,
+     "completed_share": 0.9782517843815065,
+     "flown_truck_s": 1915.9986924818434,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 531.7346683172987,
+      "queue_s": 193.73542234066758,
+      "pad_service_s": 153.72759814521527,
+      "flight_s": 151.45295559788616
+     }
+    },
+    {
+     "ratio": 0.459627752433647,
+     "network_s": 881.5730240074896,
+     "truck_s": 1917.9170049801814,
+     "completed_share": 0.9809477412233413,
+     "flown_truck_s": 1917.9170049801814,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 359.61117652850226,
+      "queue_s": 221.88425829868947,
+      "pad_service_s": 148.76776361167524,
+      "flight_s": 151.30982556862256
+     }
+    },
+    {
+     "ratio": 0.6279697279223045,
+     "network_s": 1202.2454109594316,
+     "truck_s": 1914.4646488644437,
+     "completed_share": 0.9732333917413509,
+     "flown_truck_s": 1914.4646488644437,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 701.0652475182934,
+      "queue_s": 199.55035410031624,
+      "pad_service_s": 149.69994944853275,
+      "flight_s": 151.92985989228896
+     }
+    },
+    {
+     "ratio": 0.25994034390145576,
+     "network_s": 497.5366385898927,
+     "truck_s": 1914.0410044840073,
+     "completed_share": 0.9820480198242137,
+     "flown_truck_s": 1914.0410044840073,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.08368013202772,
+      "queue_s": 121.77454495329634,
+      "pad_service_s": 143.804706882614,
+      "flight_s": 151.87370662195463
+     }
+    },
+    {
+     "ratio": 0.26616275899399966,
+     "network_s": 509.51476404895305,
+     "truck_s": 1914.3017450225561,
+     "completed_share": 0.986669064240934,
+     "flown_truck_s": 1914.3017450225561,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 93.61412585382106,
+      "queue_s": 118.57269395608887,
+      "pad_service_s": 146.0373364528435,
+      "flight_s": 151.29060778619956
+     }
+    },
+    {
+     "ratio": 0.3285502993284572,
+     "network_s": 629.5079627377478,
+     "truck_s": 1915.9719115880896,
+     "completed_share": 0.980813977606565,
+     "flown_truck_s": 1915.9719115880896,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 166.88780144989562,
+      "queue_s": 162.3035171776196,
+      "pad_service_s": 148.89560365365224,
+      "flight_s": 151.4210404565803
+     }
+    },
+    {
+     "ratio": 0.2993857332667586,
+     "network_s": 573.3140428117896,
+     "truck_s": 1914.9260504943843,
+     "completed_share": 0.985009789713995,
+     "flown_truck_s": 1914.9260504943843,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 140.51398358292116,
+      "queue_s": 135.29096461508357,
+      "pad_service_s": 146.0214967728224,
+      "flight_s": 151.4875978409625
+     }
+    },
+    {
+     "ratio": 0.25150309582357244,
+     "network_s": 480.97214269929077,
+     "truck_s": 1912.4392101297497,
+     "completed_share": 0.9847929452348554,
+     "flown_truck_s": 1912.4392101297497,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 79.50641335021616,
+      "queue_s": 106.89444618774137,
+      "pad_service_s": 141.1736800060581,
+      "flight_s": 153.3976031552751
+     }
+    },
+    {
+     "ratio": 0.4245443560517135,
+     "network_s": 812.5053663618465,
+     "truck_s": 1913.856048664766,
+     "completed_share": 0.9807739799424285,
+     "flown_truck_s": 1913.856048664766,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 355.35435757368697,
+      "queue_s": 159.63518901185307,
+      "pad_service_s": 145.32777446569034,
+      "flight_s": 152.18804531061622
+     }
+    },
+    {
+     "ratio": 0.30119415944417,
+     "network_s": 578.0798375082272,
+     "truck_s": 1919.3234424935354,
+     "completed_share": 0.9809235140667786,
+     "flown_truck_s": 1919.3234424935354,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 129.73802995045395,
+      "queue_s": 145.308108842275,
+      "pad_service_s": 149.28416223666474,
+      "flight_s": 153.74953647883345
+     }
+    },
+    {
+     "ratio": 0.5405526032868845,
+     "network_s": 1038.3916934960296,
+     "truck_s": 1921.0781247951454,
+     "completed_share": 0.9786559322078449,
+     "flown_truck_s": 1921.0781247951454,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 519.0374651554854,
+      "queue_s": 211.57662193501812,
+      "pad_service_s": 156.45260058165778,
+      "flight_s": 151.32500582386808
+     }
+    },
+    {
+     "ratio": 0.25435001385640654,
+     "network_s": 486.6551132143352,
+     "truck_s": 1913.3424971506158,
+     "completed_share": 0.9848087157424291,
+     "flown_truck_s": 1913.3424971506158,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 74.31838219169174,
+      "queue_s": 115.77326717738704,
+      "pad_service_s": 145.1426807365319,
+      "flight_s": 151.42078310872452
+     }
+    },
+    {
+     "ratio": 0.2775577051515569,
+     "network_s": 531.3454865517136,
+     "truck_s": 1914.362489128607,
+     "completed_share": 0.9851272114279954,
+     "flown_truck_s": 1914.362489128607,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 100.90298782977162,
+      "queue_s": 129.7332469254974,
+      "pad_service_s": 149.50259833220449,
+      "flight_s": 151.20665346424008
+     }
+    },
+    {
+     "ratio": 0.26777627288621686,
+     "network_s": 512.232348250413,
+     "truck_s": 1912.9244608624022,
+     "completed_share": 0.984268290160426,
+     "flown_truck_s": 1912.9244608624022,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.94042435377341,
+      "queue_s": 130.95314481639727,
+      "pad_service_s": 145.80189468371884,
+      "flight_s": 151.53688439652353
+     }
+    },
+    {
+     "ratio": 1.0650905220600189,
+     "network_s": 2036.6933929498343,
+     "truck_s": 1912.0580583345163,
+     "completed_share": 0.9286786794508344,
+     "flown_truck_s": 1912.0580583345163,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1455.663041861699,
+      "queue_s": 265.7272818072317,
+      "pad_service_s": 162.65782608678646,
+      "flight_s": 152.64524319411726
+     }
+    },
+    {
+     "ratio": 0.2788673562723348,
+     "network_s": 534.2837593420094,
+     "truck_s": 1915.930714391351,
+     "completed_share": 0.9849993331817993,
+     "flown_truck_s": 1915.930714391351,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 97.40303012566257,
+      "queue_s": 135.2034337307496,
+      "pad_service_s": 147.958533104087,
+      "flight_s": 153.7187623815102
+     }
+    },
+    {
+     "ratio": 0.9163448893406736,
+     "network_s": 1756.6274612464306,
+     "truck_s": 1916.9804105554106,
+     "completed_share": 0.9681488315368098,
+     "flown_truck_s": 1916.9804105554106,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1062.2258862898473,
+      "queue_s": 356.3556531451991,
+      "pad_service_s": 183.09461955892618,
+      "flight_s": 154.95130225245808
+     }
+    },
+    {
+     "ratio": 1.027614944281751,
+     "network_s": 1981.0782351882333,
+     "truck_s": 1927.3555840523823,
+     "completed_share": 0.9528870942508386,
+     "flown_truck_s": 1927.3555840523823,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 1267.3581321710378,
+      "queue_s": 394.61099698879383,
+      "pad_service_s": 168.09709862207094,
+      "flight_s": 151.0120074063304
+     }
+    },
+    {
+     "ratio": 0.6891259321466219,
+     "network_s": 1334.9446471676722,
+     "truck_s": 1937.3133974615864,
+     "completed_share": 0.6151996723391354,
+     "flown_truck_s": 1937.3133974615864,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 596.8984458138615,
+      "queue_s": 416.64256099716107,
+      "pad_service_s": 170.5023863464057,
+      "flight_s": 150.90125401024406
+     }
+    },
+    {
+     "ratio": 21.49192591926422,
+     "network_s": 40725.00460999832,
+     "truck_s": 1894.8765368821212,
+     "completed_share": 0.3748818783268771,
+     "flown_truck_s": 1894.8765368821212,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 35385.05767128028,
+      "queue_s": 4947.065650642335,
+      "pad_service_s": 242.30277898979787,
+      "flight_s": 150.57850908592172
+     }
+    },
+    {
+     "ratio": 9.52298912290694,
+     "network_s": 18387.411962007624,
+     "truck_s": 1930.860034741494,
+     "completed_share": 0.5600542071200185,
+     "flown_truck_s": 1930.860034741494,
+     "flyable": 0.9221556886227545,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 15679.492851676054,
+      "queue_s": 2383.857386733765,
+      "pad_service_s": 172.16781069020718,
+      "flight_s": 151.8939129075998
+     }
+    },
+    {
+     "ratio": 1.4455873074318368,
+     "network_s": 2793.697243110979,
+     "truck_s": 1932.37244794224,
+     "completed_share": 0.6310880016035635,
+     "flown_truck_s": 1932.37244794224,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 2044.0881165810872,
+      "queue_s": 436.50169381236583,
+      "pad_service_s": 162.12528781915856,
+      "flight_s": 150.9821448983671
+     }
+    },
+    {
+     "ratio": 1.0464827159114412,
+     "network_s": 2007.8704010872352,
+     "truck_s": 1918.678467873139,
+     "completed_share": 0.9183841377949241,
+     "flown_truck_s": 1918.678467873139,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 13.666666666666666,
+     "forced_landings": 3.3333333333333335,
+     "split_s": {
+      "pod_wait_s": 1413.9380687120708,
+      "queue_s": 280.9079540489256,
+      "pad_service_s": 159.3174096581876,
+      "flight_s": 153.70696866805136
+     }
+    },
+    {
+     "ratio": 0.744167230083996,
+     "network_s": 1449.6745909779045,
+     "truck_s": 1947.7313008288768,
+     "completed_share": 0.38236978389033505,
+     "flown_truck_s": 1947.7313008288768,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 763.5816129359647,
+      "queue_s": 357.91973022134795,
+      "pad_service_s": 176.32655103717548,
+      "flight_s": 151.84669678341606
+     }
+    },
+    {
+     "ratio": null,
+     "network_s": null,
+     "truck_s": null,
+     "completed_share": 0.0022754671127206173,
+     "flown_truck_s": null,
+     "flyable": 0.7964071856287425,
+     "trucked_share": null,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": null,
+      "queue_s": null,
+      "pad_service_s": null,
+      "flight_s": null
+     }
+    },
+    {
+     "ratio": 52.41385072976467,
+     "network_s": 100164.90265466941,
+     "truck_s": 1911.3560927763149,
+     "completed_share": 0.1490579807282112,
+     "flown_truck_s": 1911.3560927763149,
+     "flyable": 0.6227544910179641,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 87773.08236525206,
+      "queue_s": 11991.052610086956,
+      "pad_service_s": 254.15947050517755,
+      "flight_s": 146.60820882521216
+     }
+    },
+    {
+     "ratio": 40.719800247395526,
+     "network_s": 77039.05752006566,
+     "truck_s": 1891.6085608255255,
+     "completed_share": 0.18475075341314354,
+     "flown_truck_s": 1891.6085608255255,
+     "flyable": 0.5089820359281437,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 73541.42983618382,
+      "queue_s": 3149.22825432958,
+      "pad_service_s": 199.71840889122885,
+      "flight_s": 148.68102066104044
+     }
+    },
+    {
+     "ratio": 7.2253177154934605,
+     "network_s": 13891.860613554147,
+     "truck_s": 1922.6196851927823,
+     "completed_share": 0.7102994327988389,
+     "flown_truck_s": 1922.6196851927823,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 11173.681213692384,
+      "queue_s": 2261.113260964055,
+      "pad_service_s": 305.975094524882,
+      "flight_s": 151.09104437282406
+     }
+    },
+    {
+     "ratio": 7.669511974900137,
+     "network_s": 14720.7154436168,
+     "truck_s": 1919.335381556356,
+     "completed_share": 0.5506498420492243,
+     "flown_truck_s": 1919.335381556356,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 12124.712046586103,
+      "queue_s": 2202.049182504581,
+      "pad_service_s": 243.3714297562908,
+      "flight_s": 150.5827847698275
+     }
+    },
+    {
+     "ratio": 31.90997594924097,
+     "network_s": 61490.93563099675,
+     "truck_s": 1926.868538715273,
+     "completed_share": 0.2560471611315042,
+     "flown_truck_s": 1926.868538715273,
+     "flyable": 0.7964071856287425,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 53706.59972023309,
+      "queue_s": 6901.641168891902,
+      "pad_service_s": 732.6519945548083,
+      "flight_s": 150.04274731694852
+     }
+    },
+    {
+     "ratio": 48.65002848446966,
+     "network_s": 92155.58922523755,
+     "truck_s": 1894.032232640781,
+     "completed_share": 0.174217425702339,
+     "flown_truck_s": 1894.032232640781,
+     "flyable": 0.7365269461077845,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 86806.89350501543,
+      "queue_s": 4965.315714597448,
+      "pad_service_s": 234.75942515852898,
+      "flight_s": 148.620580466158
+     }
+    },
+    {
+     "ratio": 1.2399012338525683,
+     "network_s": 2390.7770040281516,
+     "truck_s": 1927.8337103538804,
+     "completed_share": 0.739266883956834,
+     "flown_truck_s": 1927.8337103538804,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1545.206053971992,
+      "queue_s": 515.6466489035475,
+      "pad_service_s": 176.37605670312084,
+      "flight_s": 153.5482444494913
+     }
+    },
+    {
+     "ratio": 4.698392492227896,
+     "network_s": 9016.25707445036,
+     "truck_s": 1918.916335737131,
+     "completed_share": 0.7948864929145282,
+     "flown_truck_s": 1918.916335737131,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.0,
+     "weather_aborts": 1.0,
+     "forced_landings": 1.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 7237.836807433265,
+      "queue_s": 1410.1449576617576,
+      "pad_service_s": 214.83775040177338,
+      "flight_s": 153.43755895356344
+     }
+    },
+    {
+     "ratio": 0.28960230120079183,
+     "network_s": 554.8301504273053,
+     "truck_s": 1915.8423623174801,
+     "completed_share": 0.9862165192409905,
+     "flown_truck_s": 1915.8423623174801,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 102.35623414936998,
+      "queue_s": 145.41689816611952,
+      "pad_service_s": 147.92438303256384,
+      "flight_s": 159.13263507925186
+     }
+    },
+    {
+     "ratio": 2.3500672838771997,
+     "network_s": 4507.769839785396,
+     "truck_s": 1918.2050021505772,
+     "completed_share": 0.9213373367566763,
+     "flown_truck_s": 1918.2050021505772,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 11.0,
+     "forced_landings": 2.6666666666666665,
+     "split_s": {
+      "pod_wait_s": 3124.5609359330197,
+      "queue_s": 1035.769231336639,
+      "pad_service_s": 193.13128879430602,
+      "flight_s": 154.30838372143134
+     }
+    },
+    {
+     "ratio": 1.029769874719902,
+     "network_s": 1971.0999343562441,
+     "truck_s": 1914.1366984880867,
+     "completed_share": 0.9656933749354751,
+     "flown_truck_s": 1914.1366984880867,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1201.8565869082192,
+      "queue_s": 436.162230706645,
+      "pad_service_s": 180.88367058364304,
+      "flight_s": 152.19744615773675
+     }
+    },
+    {
+     "ratio": 0.8616397049312733,
+     "network_s": 1659.6241929993666,
+     "truck_s": 1926.143475338579,
+     "completed_share": 0.9805151379159457,
+     "flown_truck_s": 1926.143475338579,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 828.0388060623981,
+      "queue_s": 491.752080963996,
+      "pad_service_s": 182.14735451420668,
+      "flight_s": 157.68595145876603
+     }
+    },
+    {
+     "ratio": 1.7754747965074158,
+     "network_s": 3399.4526410942594,
+     "truck_s": 1914.7998722144664,
+     "completed_share": 0.9270731160728785,
+     "flown_truck_s": 1914.7998722144664,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2469.6828368483984,
+      "queue_s": 604.2726348833241,
+      "pad_service_s": 174.3731668367296,
+      "flight_s": 151.124002525807
+     }
+    },
+    {
+     "ratio": 0.4842664791634755,
+     "network_s": 927.3956270080857,
+     "truck_s": 1915.0973500115188,
+     "completed_share": 0.980078363423576,
+     "flown_truck_s": 1915.0973500115188,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 350.46115385562024,
+      "queue_s": 257.55089767034514,
+      "pad_service_s": 167.38651005517855,
+      "flight_s": 151.9970654269418
+     }
+    },
+    {
+     "ratio": 0.35399667466586,
+     "network_s": 679.048652341541,
+     "truck_s": 1918.2030180540003,
+     "completed_share": 0.9828137465343453,
+     "flown_truck_s": 1918.2030180540003,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 172.63441837439154,
+      "queue_s": 195.235178594201,
+      "pad_service_s": 158.15735563452253,
+      "flight_s": 153.02169973842592
+     }
+    },
+    {
+     "ratio": 0.3110099330199683,
+     "network_s": 597.2964335005798,
+     "truck_s": 1920.4864590869522,
+     "completed_share": 0.9864685616645702,
+     "flown_truck_s": 1920.4864590869522,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 136.96541468999496,
+      "queue_s": 156.8278391271895,
+      "pad_service_s": 151.52452115097006,
+      "flight_s": 151.97865853242527
+     }
+    },
+    {
+     "ratio": 0.473975042873182,
+     "network_s": 909.161812384757,
+     "truck_s": 1918.1684605958799,
+     "completed_share": 0.9811761278855601,
+     "flown_truck_s": 1918.1684605958799,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 415.5925424503798,
+      "queue_s": 192.4578413832178,
+      "pad_service_s": 148.94059385168168,
+      "flight_s": 152.17083469947758
+     }
+    },
+    {
+     "ratio": 0.7914513840308066,
+     "network_s": 1518.8516034371569,
+     "truck_s": 1919.0802332331778,
+     "completed_share": 0.9825227920975129,
+     "flown_truck_s": 1919.0802332331778,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 879.7344318722945,
+      "queue_s": 298.2626294953216,
+      "pad_service_s": 188.70660966899604,
+      "flight_s": 152.14793240054473
+     }
+    },
+    {
+     "ratio": 0.35892530721463806,
+     "network_s": 690.6124709096033,
+     "truck_s": 1924.0562866587227,
+     "completed_share": 0.9864727899890647,
+     "flown_truck_s": 1924.0562866587227,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 201.9378489282228,
+      "queue_s": 183.9293234364243,
+      "pad_service_s": 152.9358252867358,
+      "flight_s": 151.80947325822038
+     }
+    },
+    {
+     "ratio": 0.2912038367935366,
+     "network_s": 559.5643230067002,
+     "truck_s": 1921.5450858627785,
+     "completed_share": 0.9847298632045604,
+     "flown_truck_s": 1921.5450858627785,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.77185332833558,
+      "queue_s": 146.60930963989816,
+      "pad_service_s": 149.91142516965422,
+      "flight_s": 154.27173486881216
+     }
+    },
+    {
+     "ratio": 0.7376151943913841,
+     "network_s": 1415.8291051684675,
+     "truck_s": 1919.4239763800024,
+     "completed_share": 0.9619022249100652,
+     "flown_truck_s": 1919.4239763800024,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 856.7042656633334,
+      "queue_s": 249.69316744208496,
+      "pad_service_s": 157.67721355706047,
+      "flight_s": 151.75445850598896
+     }
+    },
+    {
+     "ratio": 0.9137325370931842,
+     "network_s": 1754.4318317239465,
+     "truck_s": 1920.025869549798,
+     "completed_share": 0.9621548387288468,
+     "flown_truck_s": 1920.025869549798,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 1123.3730487126509,
+      "queue_s": 323.6250436936247,
+      "pad_service_s": 155.68772601576347,
+      "flight_s": 151.7460133019073
+     }
+    },
+    {
+     "ratio": 0.26741313830904906,
+     "network_s": 512.5992038842537,
+     "truck_s": 1916.8785386891832,
+     "completed_share": 0.9832153230822748,
+     "flown_truck_s": 1916.8785386891832,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.05642211343832,
+      "queue_s": 134.83399694161469,
+      "pad_service_s": 145.30501668261968,
+      "flight_s": 151.403768146581
+     }
+    },
+    {
+     "ratio": 0.32126457934444347,
+     "network_s": 615.4671898561559,
+     "truck_s": 1915.7531488378672,
+     "completed_share": 0.9831989811794991,
+     "flown_truck_s": 1915.7531488378672,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 164.1461213142184,
+      "queue_s": 149.5881707482893,
+      "pad_service_s": 150.42719416116265,
+      "flight_s": 151.3057036324855
+     }
+    },
+    {
+     "ratio": 0.3675065235952038,
+     "network_s": 703.9884946959611,
+     "truck_s": 1915.5739548938736,
+     "completed_share": 0.982430740330479,
+     "flown_truck_s": 1915.5739548938736,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 226.92346040256646,
+      "queue_s": 175.0136380334229,
+      "pad_service_s": 150.74597513707465,
+      "flight_s": 151.30542112289717
+     }
+    },
+    {
+     "ratio": 0.5874400981393713,
+     "network_s": 1126.7676131384844,
+     "truck_s": 1918.0470983545113,
+     "completed_share": 0.9843246297273383,
+     "flown_truck_s": 1918.0470983545113,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 560.6429554923355,
+      "queue_s": 256.2092939366009,
+      "pad_service_s": 158.50438978367706,
+      "flight_s": 151.41097392587122
+     }
+    },
+    {
+     "ratio": 0.402088689289372,
+     "network_s": 771.6925163665437,
+     "truck_s": 1919.2422802845892,
+     "completed_share": 0.9842646332311337,
+     "flown_truck_s": 1919.2422802845892,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 266.55852736018966,
+      "queue_s": 202.60370762591802,
+      "pad_service_s": 150.99347900880795,
+      "flight_s": 151.5368023716282
+     }
+    },
+    {
+     "ratio": 0.2658396730163359,
+     "network_s": 508.79615585090784,
+     "truck_s": 1913.9586344935387,
+     "completed_share": 0.9815312500035712,
+     "flown_truck_s": 1913.9586344935387,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 89.75384106428184,
+      "queue_s": 121.73215573785944,
+      "pad_service_s": 146.1141166172413,
+      "flight_s": 151.19604243152523
+     }
+    },
+    {
+     "ratio": 0.3279107345793335,
+     "network_s": 627.6888211885883,
+     "truck_s": 1914.2205174470782,
+     "completed_share": 0.9822690926278477,
+     "flown_truck_s": 1914.2205174470782,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 188.96758380717117,
+      "queue_s": 143.05046451216302,
+      "pad_service_s": 144.42618242079462,
+      "flight_s": 151.24459044845958
+     }
+    },
+    {
+     "ratio": 0.25507030369047506,
+     "network_s": 487.9355842101118,
+     "truck_s": 1912.943358516896,
+     "completed_share": 0.9811924697883359,
+     "flown_truck_s": 1912.943358516896,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 85.97570129135123,
+      "queue_s": 107.64808283510224,
+      "pad_service_s": 141.4562772358852,
+      "flight_s": 152.85552284777313
+     }
+    },
+    {
+     "ratio": 0.39112095856654755,
+     "network_s": 749.2232612538234,
+     "truck_s": 1915.6096639361942,
+     "completed_share": 0.9854192515157115,
+     "flown_truck_s": 1915.6096639361942,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 266.1351971421869,
+      "queue_s": 183.05320912228035,
+      "pad_service_s": 148.77511884019395,
+      "flight_s": 151.25973614916217
+     }
+    },
+    {
+     "ratio": 0.27081275868469007,
+     "network_s": 518.3584628996211,
+     "truck_s": 1914.08695116077,
+     "completed_share": 0.9847535189659209,
+     "flown_truck_s": 1914.08695116077,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 96.15257665832064,
+      "queue_s": 125.71091589930857,
+      "pad_service_s": 144.7003153313898,
+      "flight_s": 151.79465501060213
+     }
+    },
+    {
+     "ratio": 0.255388334215438,
+     "network_s": 488.6268987248789,
+     "truck_s": 1913.2855295077663,
+     "completed_share": 0.9862044056627092,
+     "flown_truck_s": 1913.2855295077663,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.41345253029012,
+      "queue_s": 112.53935182325426,
+      "pad_service_s": 144.2932629148138,
+      "flight_s": 151.38083145652078
+     }
+    },
+    {
+     "ratio": 0.7430417011690654,
+     "network_s": 1425.1905342321625,
+     "truck_s": 1918.0218181412238,
+     "completed_share": 0.9720604316707905,
+     "flown_truck_s": 1918.0218181412238,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 864.6227751435308,
+      "queue_s": 248.3876966666337,
+      "pad_service_s": 160.5967689047994,
+      "flight_s": 151.58329351719877
+     }
+    },
+    {
+     "ratio": 0.2549745843603317,
+     "network_s": 487.6451468988278,
+     "truck_s": 1912.5183324604338,
+     "completed_share": 0.9859602484929165,
+     "flown_truck_s": 1912.5183324604338,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.75628195859134,
+      "queue_s": 105.59963321298135,
+      "pad_service_s": 142.0527452637879,
+      "flight_s": 151.23648646346726
+     }
+    },
+    {
+     "ratio": 0.26245875854662776,
+     "network_s": 501.97716364203325,
+     "truck_s": 1912.6074029879353,
+     "completed_share": 0.9851666376969299,
+     "flown_truck_s": 1912.6074029879353,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 94.36688429969547,
+      "queue_s": 113.7409022597834,
+      "pad_service_s": 141.52337884185144,
+      "flight_s": 152.34599824070295
+     }
+    },
+    {
+     "ratio": 1.5240474826961081,
+     "network_s": 2932.8234048333093,
+     "truck_s": 1924.222073209401,
+     "completed_share": 0.9410912688413283,
+     "flown_truck_s": 1924.222073209401,
+     "flyable": 0.8323353293413174,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 2138.2827192594254,
+      "queue_s": 460.2869242972476,
+      "pad_service_s": 182.8815582017435,
+      "flight_s": 151.3722030748925
+     }
+    },
+    {
+     "ratio": 0.24288167368375344,
+     "network_s": 464.5066099686401,
+     "truck_s": 1912.4786141920322,
+     "completed_share": 0.984268861555628,
+     "flown_truck_s": 1912.4786141920322,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 64.63855595298183,
+      "queue_s": 106.82666821596221,
+      "pad_service_s": 141.7677077040507,
+      "flight_s": 151.27367809564532
+     }
+    },
+    {
+     "ratio": 0.25506196374995005,
+     "network_s": 489.10487363240986,
+     "truck_s": 1917.5984339919335,
+     "completed_share": 0.9836599828284314,
+     "flown_truck_s": 1917.5984339919335,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.74040960821469,
+      "queue_s": 111.12785538769396,
+      "pad_service_s": 144.5169926212899,
+      "flight_s": 151.7196160152113
+     }
+    },
+    {
+     "ratio": 0.38614419813078604,
+     "network_s": 739.3884235760147,
+     "truck_s": 1914.8235210770636,
+     "completed_share": 0.9856282107410642,
+     "flown_truck_s": 1914.8235210770636,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 244.1539144569732,
+      "queue_s": 192.72401297231886,
+      "pad_service_s": 149.72683868721342,
+      "flight_s": 152.78365745950921
+     }
+    },
+    {
+     "ratio": 0.2966823556440394,
+     "network_s": 568.5078186080274,
+     "truck_s": 1916.1682892041888,
+     "completed_share": 0.9837157510001416,
+     "flown_truck_s": 1916.1682892041888,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 116.72542701114429,
+      "queue_s": 148.0462344286321,
+      "pad_service_s": 152.03950851258793,
+      "flight_s": 151.6966486556631
+     }
+    },
+    {
+     "ratio": 0.35417185555482184,
+     "network_s": 679.7763087744252,
+     "truck_s": 1919.3720047652175,
+     "completed_share": 0.9853350278629444,
+     "flown_truck_s": 1919.3720047652175,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 178.3118819099523,
+      "queue_s": 183.73017622885058,
+      "pad_service_s": 164.57801119564792,
+      "flight_s": 153.15623943997434
+     }
+    },
+    {
+     "ratio": 0.67087317509219,
+     "network_s": 1286.6451042942444,
+     "truck_s": 1917.8169483024383,
+     "completed_share": 0.9775623960703553,
+     "flown_truck_s": 1917.8169483024383,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 595.68796087825,
+      "queue_s": 354.8913239723902,
+      "pad_service_s": 184.08749801458825,
+      "flight_s": 151.97832142901598
+     }
+    },
+    {
+     "ratio": 2.8025795687208226,
+     "network_s": 5366.045671977067,
+     "truck_s": 1914.6136125315159,
+     "completed_share": 0.8703328297056023,
+     "flown_truck_s": 1914.6136125315159,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.0,
+     "weather_aborts": 10.0,
+     "forced_landings": 2.0,
+     "split_s": {
+      "pod_wait_s": 3923.281461315357,
+      "queue_s": 1089.3025581788916,
+      "pad_service_s": 201.91154610075708,
+      "flight_s": 151.5501063820626
+     }
+    },
+    {
+     "ratio": 5.004885374811405,
+     "network_s": 9611.215229367064,
+     "truck_s": 1920.3853620322122,
+     "completed_share": 0.7852354565350526,
+     "flown_truck_s": 1920.3853620322122,
+     "flyable": 0.6946107784431138,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 7737.806614702348,
+      "queue_s": 1412.635027478742,
+      "pad_service_s": 309.61410127785274,
+      "flight_s": 151.1594859081208
+     }
+    },
+    {
+     "ratio": 6.527081101188681,
+     "network_s": 12507.87061083466,
+     "truck_s": 1916.292125490622,
+     "completed_share": 0.6729621275831777,
+     "flown_truck_s": 1916.292125490622,
+     "flyable": 0.9101796407185628,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10242.878338746666,
+      "queue_s": 1854.6145100255371,
+      "pad_service_s": 259.79260551900416,
+      "flight_s": 150.58515654345405
+     }
+    },
+    {
+     "ratio": 33.34114938805275,
+     "network_s": 63554.03296059084,
+     "truck_s": 1906.2145255529201,
+     "completed_share": 0.2588100854910073,
+     "flown_truck_s": 1906.2145255529201,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 55531.13857198037,
+      "queue_s": 7638.078693709261,
+      "pad_service_s": 238.9727464311695,
+      "flight_s": 145.84294847004313
+     }
+    },
+    {
+     "ratio": 23.87148772634157,
+     "network_s": 46037.03859558426,
+     "truck_s": 1928.7110850323722,
+     "completed_share": 0.20486814998575512,
+     "flown_truck_s": 1928.7110850323722,
+     "flyable": 0.8023952095808383,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 39071.31229507438,
+      "queue_s": 6541.615858850448,
+      "pad_service_s": 272.6547947843228,
+      "flight_s": 151.45564687509992
+     }
+    },
+    {
+     "ratio": 6.3593708417715,
+     "network_s": 12230.144898129047,
+     "truck_s": 1923.261291422403,
+     "completed_share": 0.6441696947755394,
+     "flown_truck_s": 1923.261291422403,
+     "flyable": 0.8802395209580839,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.3333333333333333,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10603.02208629119,
+      "queue_s": 1273.7947469242042,
+      "pad_service_s": 196.8219877419335,
+      "flight_s": 156.50607717171917
+     }
+    },
+    {
+     "ratio": 2.2424691917089485,
+     "network_s": 4299.661808867563,
+     "truck_s": 1917.3943033133148,
+     "completed_share": 0.9099294886892891,
+     "flown_truck_s": 1917.3943033133148,
+     "flyable": 0.9221556886227545,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 3322.541898491459,
+      "queue_s": 637.1668985534764,
+      "pad_service_s": 188.05626732388365,
+      "flight_s": 151.89674449874437
+     }
+    }
+   ],
+   "ratio": {
+    "mean": 3.171437510751765,
+    "p10": 0.26001086238537874,
+    "p50": 0.558725467636204,
+    "p90": 6.61385745656643,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "flyable": {
+    "mean": 0.9400813757101182,
+    "p10": 0.8574850299401199,
+    "p50": 0.9640718562874252,
+    "p90": 1.0,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "trucked_share": {
+    "mean": 0.0,
+    "p10": 0.0,
+    "p50": 0.0,
+    "p90": 0.0,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "completed_share": {
+    "mean": 0.8749209115784709,
+    "p10": 0.6110174022979915,
+    "p50": 0.9784538582946756,
+    "p90": 0.9854721341416518,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "forced_landings_total": 188.0
+  },
+  "TRUCK_FALLBACK": {
+   "per_week": [
+    {
+     "ratio": 0.5255162483133936,
+     "network_s": 1011.1495999976261,
+     "truck_s": 1924.0637601198596,
+     "completed_share": 0.9782717832135747,
+     "flown_truck_s": 1923.1555090353816,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.017086949253613322,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 405.17488147859143,
+      "queue_s": 201.1204289995619,
+      "pad_service_s": 171.89756747353226,
+      "flight_s": 151.48912872689326
+     }
+    },
+    {
+     "ratio": 7.160966350222513,
+     "network_s": 13841.385869089849,
+     "truck_s": 1932.9583266878901,
+     "completed_share": 0.603190659379778,
+     "flown_truck_s": 1932.3374811886936,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.03130143558250326,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 11155.354848727698,
+      "queue_s": 2600.469913632711,
+      "pad_service_s": 204.03629902020725,
+      "flight_s": 152.28773114618173
+     }
+    },
+    {
+     "ratio": 2.3146329236611063,
+     "network_s": 4462.086403965594,
+     "truck_s": 1927.7747707166188,
+     "completed_share": 0.9144279688351915,
+     "flown_truck_s": 1924.5847351043749,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.07082843115609255,
+     "weather_aborts": 10.666666666666666,
+     "forced_landings": 2.0,
+     "split_s": {
+      "pod_wait_s": 3081.6963181153224,
+      "queue_s": 849.0548396752105,
+      "pad_service_s": 189.6800522211039,
+      "flight_s": 151.27004655759188
+     }
+    },
+    {
+     "ratio": 5.6854945024819825,
+     "network_s": 11000.285257578433,
+     "truck_s": 1934.8710865755029,
+     "completed_share": 0.7464405792987403,
+     "flown_truck_s": 1928.0039165543487,
+     "flyable": 0.8982035928143711,
+     "trucked_share": 0.08344005546211004,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 9203.234535836908,
+      "queue_s": 1852.037950935186,
+      "pad_service_s": 212.61637905169223,
+      "flight_s": 150.8526380164749
+     }
+    },
+    {
+     "ratio": 11.949630966923086,
+     "network_s": 23008.87930755498,
+     "truck_s": 1925.380055853407,
+     "completed_share": 0.5396601981301435,
+     "flown_truck_s": 1916.3812389126044,
+     "flyable": 0.7664670658682636,
+     "trucked_share": 0.3877568191313514,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 22450.523725491013,
+      "queue_s": 3948.7516647461366,
+      "pad_service_s": 253.3149841575532,
+      "flight_s": 149.28437725226328
+     }
+    },
+    {
+     "ratio": 1.9143995696755274,
+     "network_s": 3662.498822842566,
+     "truck_s": 1913.1130820275055,
+     "completed_share": 0.9469316706190073,
+     "flown_truck_s": 1914.4313792712528,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.031142489981743505,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2499.8813553116756,
+      "queue_s": 764.2521063793711,
+      "pad_service_s": 187.05284434010193,
+      "flight_s": 151.80977692457566
+     }
+    },
+    {
+     "ratio": 2.4482340794938926,
+     "network_s": 4692.455309870806,
+     "truck_s": 1916.6826291406671,
+     "completed_share": 0.8723022004086389,
+     "flown_truck_s": 1916.618973022617,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.026515549388535006,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 3511.6089938829355,
+      "queue_s": 816.3145379231906,
+      "pad_service_s": 187.11179874096948,
+      "flight_s": 152.865799667356
+     }
+    },
+    {
+     "ratio": 2.195076426112263,
+     "network_s": 4215.622668465693,
+     "truck_s": 1920.3349903605151,
+     "completed_share": 0.9199291332814735,
+     "flown_truck_s": 1920.40948490292,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.00535881783377128,
+     "weather_aborts": 9.666666666666666,
+     "forced_landings": 1.6666666666666667,
+     "split_s": {
+      "pod_wait_s": 2796.997910631139,
+      "queue_s": 1056.0731038114545,
+      "pad_service_s": 205.37903940694278,
+      "flight_s": 151.41127782917894
+     }
+    },
+    {
+     "ratio": 0.961882448793823,
+     "network_s": 1847.6601486407628,
+     "truck_s": 1920.9726758086215,
+     "completed_share": 0.9756735920907933,
+     "flown_truck_s": 1918.2075205823512,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.06648921208835636,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 546.2751996025871,
+      "queue_s": 472.5223270289876,
+      "pad_service_s": 186.11010710785533,
+      "flight_s": 153.18141687083283
+     }
+    },
+    {
+     "ratio": 3.7797206339799008,
+     "network_s": 7240.85078395867,
+     "truck_s": 1915.6542313219643,
+     "completed_share": 0.8345890885686562,
+     "flown_truck_s": 1915.6542313219643,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 5541.353158550813,
+      "queue_s": 1350.5719181631175,
+      "pad_service_s": 197.83698469878686,
+      "flight_s": 151.08872254595315
+     }
+    },
+    {
+     "ratio": 5.157406715621858,
+     "network_s": 9931.129125998532,
+     "truck_s": 1925.5262139586303,
+     "completed_share": 0.6853691744402127,
+     "flown_truck_s": 1923.1561973221912,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.035449316598765324,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 7803.239474606995,
+      "queue_s": 1593.0107050642011,
+      "pad_service_s": 203.79844016981542,
+      "flight_s": 151.01094045540148
+     }
+    },
+    {
+     "ratio": 1.5086018201233902,
+     "network_s": 2901.901041176057,
+     "truck_s": 1922.6893354061128,
+     "completed_share": 0.9142179239589551,
+     "flown_truck_s": 1922.686461933774,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.04887294540272704,
+     "weather_aborts": 13.333333333333334,
+     "forced_landings": 2.3333333333333335,
+     "split_s": {
+      "pod_wait_s": 1949.229197667335,
+      "queue_s": 481.6202475971579,
+      "pad_service_s": 179.92197654114872,
+      "flight_s": 155.04351633121755
+     }
+    },
+    {
+     "ratio": 1.2752221998475222,
+     "network_s": 2448.4212103346213,
+     "truck_s": 1920.0112274524406,
+     "completed_share": 0.9181818067539141,
+     "flown_truck_s": 1919.3404649674715,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.042084838731838464,
+     "weather_aborts": 10.0,
+     "forced_landings": 3.0,
+     "split_s": {
+      "pod_wait_s": 1298.379812018626,
+      "queue_s": 623.3033836529258,
+      "pad_service_s": 187.85620250345414,
+      "flight_s": 153.38743726194755
+     }
+    },
+    {
+     "ratio": 0.37663329604819334,
+     "network_s": 721.2312913164247,
+     "truck_s": 1914.9388961097168,
+     "completed_share": 0.9838920264199428,
+     "flown_truck_s": 1914.9388961097168,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 203.07552293167421,
+      "queue_s": 210.7340155838066,
+      "pad_service_s": 155.02311080362855,
+      "flight_s": 152.3986419973154
+     }
+    },
+    {
+     "ratio": 0.2605621557093345,
+     "network_s": 498.9649542420477,
+     "truck_s": 1914.9470533693118,
+     "completed_share": 0.9816329012099979,
+     "flown_truck_s": 1914.9470533693118,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 71.84960278371477,
+      "queue_s": 128.97436812980774,
+      "pad_service_s": 146.49644787225662,
+      "flight_s": 151.64453545626853
+     }
+    },
+    {
+     "ratio": 0.3116597436724921,
+     "network_s": 597.7730173821747,
+     "truck_s": 1918.0356723739267,
+     "completed_share": 0.9884283329282141,
+     "flown_truck_s": 1917.8999538825376,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.007390003516828342,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.59402794104979,
+      "queue_s": 145.0122920255005,
+      "pad_service_s": 150.86557155089173,
+      "flight_s": 151.87657752382745
+     }
+    },
+    {
+     "ratio": 0.27547720485691396,
+     "network_s": 528.5817711878369,
+     "truck_s": 1918.7868855547931,
+     "completed_share": 0.9832662915342887,
+     "flown_truck_s": 1918.7868855547931,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 95.70420436668628,
+      "queue_s": 132.76548257602414,
+      "pad_service_s": 145.92306663833324,
+      "flight_s": 154.1890176067933
+     }
+    },
+    {
+     "ratio": 0.2781810353712741,
+     "network_s": 535.7492403512414,
+     "truck_s": 1925.8807811218624,
+     "completed_share": 0.9817244387213501,
+     "flown_truck_s": 1925.8807811218624,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.21052908592996,
+      "queue_s": 148.27099728534552,
+      "pad_service_s": 153.09153079007186,
+      "flight_s": 151.1761831898941
+     }
+    },
+    {
+     "ratio": 0.25997069495383446,
+     "network_s": 498.2191288621718,
+     "truck_s": 1916.4473266870152,
+     "completed_share": 0.9878157972717251,
+     "flown_truck_s": 1916.4473266870152,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.4258981575484,
+      "queue_s": 121.86684381573347,
+      "pad_service_s": 144.63337714792576,
+      "flight_s": 151.2930097409641
+     }
+    },
+    {
+     "ratio": 0.28248476605317907,
+     "network_s": 540.6852543858316,
+     "truck_s": 1913.9943968507732,
+     "completed_share": 0.9795641648813423,
+     "flown_truck_s": 1913.7506290982546,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.007638644961658054,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.3888676947953,
+      "queue_s": 124.44056681549495,
+      "pad_service_s": 144.6423018615869,
+      "flight_s": 151.84575177885964
+     }
+    },
+    {
+     "ratio": 0.24708487443745905,
+     "network_s": 472.70902364085055,
+     "truck_s": 1913.1428238848478,
+     "completed_share": 0.9829069410917831,
+     "flown_truck_s": 1913.1428238848478,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 64.54265769221016,
+      "queue_s": 114.04685804653131,
+      "pad_service_s": 142.37817166441013,
+      "flight_s": 151.741336237699
+     }
+    },
+    {
+     "ratio": 0.2518518524649155,
+     "network_s": 481.8497949231526,
+     "truck_s": 1913.2331471584675,
+     "completed_share": 0.9859039089260045,
+     "flown_truck_s": 1913.2331471584675,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 76.6575999337387,
+      "queue_s": 109.53294772126462,
+      "pad_service_s": 142.8226408543052,
+      "flight_s": 152.83660641384407
+     }
+    },
+    {
+     "ratio": 0.24246905278848874,
+     "network_s": 464.13333988279237,
+     "truck_s": 1914.1953223032422,
+     "completed_share": 0.9864527911569964,
+     "flown_truck_s": 1914.1953223032422,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 65.47460280800924,
+      "queue_s": 104.4827044297549,
+      "pad_service_s": 142.82188380252262,
+      "flight_s": 151.35414884250565
+     }
+    },
+    {
+     "ratio": 0.8423925284177151,
+     "network_s": 1618.8194009799292,
+     "truck_s": 1921.6913342107046,
+     "completed_share": 0.9883883352640778,
+     "flown_truck_s": 1927.3958956546521,
+     "flyable": 0.7784431137724551,
+     "trucked_share": 0.20135344953642506,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 131.69147091738196,
+      "queue_s": 157.95620845303358,
+      "pad_service_s": 184.22805400117466,
+      "flight_s": 152.13125931171365
+     }
+    },
+    {
+     "ratio": 0.5871543452022698,
+     "network_s": 1125.9978458074456,
+     "truck_s": 1917.7099213742858,
+     "completed_share": 0.9765088575970021,
+     "flown_truck_s": 1920.6998667469704,
+     "flyable": 0.8682634730538922,
+     "trucked_share": 0.08412193362193361,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 219.61771298618166,
+      "queue_s": 182.47931755255226,
+      "pad_service_s": 161.4017858223193,
+      "flight_s": 154.37480020907273
+     }
+    },
+    {
+     "ratio": 1.169804777150571,
+     "network_s": 2245.4532490432193,
+     "truck_s": 1919.5109247815988,
+     "completed_share": 0.9863885663362973,
+     "flown_truck_s": 1916.3433866206512,
+     "flyable": 0.6407185628742516,
+     "trucked_share": 0.2965976176712239,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 205.51841330724957,
+      "queue_s": 243.4149785682192,
+      "pad_service_s": 235.95102911182687,
+      "flight_s": 150.8369580445739
+     }
+    },
+    {
+     "ratio": 0.260051029816923,
+     "network_s": 498.14286941803374,
+     "truck_s": 1915.5612293682004,
+     "completed_share": 0.980883516402642,
+     "flown_truck_s": 1915.5612293682004,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 82.82035876823026,
+      "queue_s": 121.83892244441381,
+      "pad_service_s": 142.2242845910637,
+      "flight_s": 151.2593036143259
+     }
+    },
+    {
+     "ratio": 0.3180707588160297,
+     "network_s": 608.6470702228006,
+     "truck_s": 1913.5601173092934,
+     "completed_share": 0.9831401274736984,
+     "flown_truck_s": 1910.7633382248707,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.021042811382554483,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.40611295737045,
+      "queue_s": 116.75813093498157,
+      "pad_service_s": 143.7974054574304,
+      "flight_s": 151.27962202987808
+     }
+    },
+    {
+     "ratio": 0.2943895050174181,
+     "network_s": 563.8507658069408,
+     "truck_s": 1915.3203393854194,
+     "completed_share": 0.981960710637356,
+     "flown_truck_s": 1914.1071094238207,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0076052693902823225,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 93.70010522133327,
+      "queue_s": 133.06947076065384,
+      "pad_service_s": 146.87248777256028,
+      "flight_s": 151.29469836927967
+     }
+    },
+    {
+     "ratio": 0.4926441214310413,
+     "network_s": 944.7089551014209,
+     "truck_s": 1917.6137324812978,
+     "completed_share": 0.9818770583797907,
+     "flown_truck_s": 1916.538332813597,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.05834248933826484,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 152.40424664676755,
+      "queue_s": 181.65476219180812,
+      "pad_service_s": 169.87353884329724,
+      "flight_s": 151.91013341230118
+     }
+    },
+    {
+     "ratio": 0.3124527195336904,
+     "network_s": 597.6450620329746,
+     "truck_s": 1912.7603496078398,
+     "completed_share": 0.985045559053637,
+     "flown_truck_s": 1913.6256091211242,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.01636017173715183,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 92.78345787774818,
+      "queue_s": 127.93264729575952,
+      "pad_service_s": 143.28060260670665,
+      "flight_s": 151.4597285560008
+     }
+    },
+    {
+     "ratio": 0.4279564419277028,
+     "network_s": 820.4478839636822,
+     "truck_s": 1917.1383499405447,
+     "completed_share": 0.9846977507942108,
+     "flown_truck_s": 1916.4529309252996,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.04001507504696721,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 149.89689640030215,
+      "queue_s": 167.38261623484095,
+      "pad_service_s": 151.8123857683689,
+      "flight_s": 151.36137599627781
+     }
+    },
+    {
+     "ratio": 0.46037891298764083,
+     "network_s": 883.1173394739968,
+     "truck_s": 1918.244644232025,
+     "completed_share": 0.9851745229507168,
+     "flown_truck_s": 1916.8376872678466,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0500900010526471,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 159.31997404857836,
+      "queue_s": 167.55187443964982,
+      "pad_service_s": 153.5524615210105,
+      "flight_s": 151.3699742546758
+     }
+    },
+    {
+     "ratio": 0.30654852387952225,
+     "network_s": 587.8536865037798,
+     "truck_s": 1917.6576311155713,
+     "completed_share": 0.9854113662619245,
+     "flown_truck_s": 1917.7227006738296,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.009330566677942027,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 110.82723437246625,
+      "queue_s": 132.01963596627743,
+      "pad_service_s": 146.41558105183242,
+      "flight_s": 151.57875246488888
+     }
+    },
+    {
+     "ratio": 0.2577972764482569,
+     "network_s": 493.1283134177895,
+     "truck_s": 1912.8342485087571,
+     "completed_share": 0.9844299378630574,
+     "flown_truck_s": 1912.8342485087571,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.81399321902252,
+      "queue_s": 111.2131217243943,
+      "pad_service_s": 141.86183101695795,
+      "flight_s": 151.23936745741474
+     }
+    },
+    {
+     "ratio": 0.24408496507916536,
+     "network_s": 467.39754612148835,
+     "truck_s": 1914.9047469501636,
+     "completed_share": 0.9825343342805923,
+     "flown_truck_s": 1914.9047469501636,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 69.57210270090947,
+      "queue_s": 105.37054372803699,
+      "pad_service_s": 141.2227262560663,
+      "flight_s": 151.23217343647553
+     }
+    },
+    {
+     "ratio": 0.27704891534705134,
+     "network_s": 530.5437692736583,
+     "truck_s": 1915.0047618225308,
+     "completed_share": 0.9871942907105654,
+     "flown_truck_s": 1915.0047618225308,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 113.53838345249142,
+      "queue_s": 121.67099738635318,
+      "pad_service_s": 144.05760871674042,
+      "flight_s": 151.2767797180733
+     }
+    },
+    {
+     "ratio": 0.32043383439657797,
+     "network_s": 614.7472700340508,
+     "truck_s": 1918.4789107284234,
+     "completed_share": 0.9840714445133547,
+     "flown_truck_s": 1918.1736749317142,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.012402121535404423,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.90912328119077,
+      "queue_s": 138.15236528953335,
+      "pad_service_s": 148.80824481103215,
+      "flight_s": 152.04042402982046
+     }
+    },
+    {
+     "ratio": 0.3424291381620392,
+     "network_s": 656.2212354609496,
+     "truck_s": 1916.337377826502,
+     "completed_share": 0.9848545987771457,
+     "flown_truck_s": 1916.4457809216528,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.01264204509269507,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 126.21965878809637,
+      "queue_s": 159.10843004123964,
+      "pad_service_s": 154.87160050670752,
+      "flight_s": 152.45692001861508
+     }
+    },
+    {
+     "ratio": 0.28041594461406444,
+     "network_s": 537.1899784141314,
+     "truck_s": 1915.6862407649378,
+     "completed_share": 0.9831989811794991,
+     "flown_truck_s": 1915.2686132800025,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.005486235571501137,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.5706154386229,
+      "queue_s": 129.55730492036207,
+      "pad_service_s": 146.45820292692312,
+      "flight_s": 151.57957979498914
+     }
+    },
+    {
+     "ratio": 0.5080043816921654,
+     "network_s": 976.1653858064248,
+     "truck_s": 1921.5417352439451,
+     "completed_share": 0.9861165250806496,
+     "flown_truck_s": 1916.5892604555502,
+     "flyable": 0.9101796407185628,
+     "trucked_share": 0.0869792776190159,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.85735933621515,
+      "queue_s": 124.84038297247965,
+      "pad_service_s": 147.4518130824665,
+      "flight_s": 151.41025776986226
+     }
+    },
+    {
+     "ratio": 0.2714391968866503,
+     "network_s": 521.0541803839541,
+     "truck_s": 1919.5820346897153,
+     "completed_share": 0.9847335201338527,
+     "flown_truck_s": 1919.5820346897153,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 96.05672621043162,
+      "queue_s": 124.99819609969933,
+      "pad_service_s": 148.0096366269017,
+      "flight_s": 151.98962144692146
+     }
+    },
+    {
+     "ratio": 0.4794234283871012,
+     "network_s": 919.8344494775778,
+     "truck_s": 1918.6229317579403,
+     "completed_share": 0.9770676249649878,
+     "flown_truck_s": 1919.3125200443483,
+     "flyable": 0.9041916167664671,
+     "trucked_share": 0.06984339892503158,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 107.50386377820973,
+      "queue_s": 160.74357641988001,
+      "pad_service_s": 149.49304495822557,
+      "flight_s": 151.56566114420653
+     }
+    },
+    {
+     "ratio": 1.0659070701646736,
+     "network_s": 2042.731571898017,
+     "truck_s": 1916.383949897673,
+     "completed_share": 0.9584600259344854,
+     "flown_truck_s": 1916.5414668182348,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.023389940431867137,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 1232.8819717112563,
+      "queue_s": 410.224266844915,
+      "pad_service_s": 162.8479981646883,
+      "flight_s": 151.94383178980516
+     }
+    },
+    {
+     "ratio": 0.2743121108954823,
+     "network_s": 525.0555143868434,
+     "truck_s": 1914.0827675589123,
+     "completed_share": 0.9866654073116417,
+     "flown_truck_s": 1914.0827675589123,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.11183406078372,
+      "queue_s": 118.93270636675823,
+      "pad_service_s": 146.06828163918416,
+      "flight_s": 151.9426923201173
+     }
+    },
+    {
+     "ratio": 0.4457317771975983,
+     "network_s": 853.7060983827586,
+     "truck_s": 1915.3549737408855,
+     "completed_share": 0.9855955269355127,
+     "flown_truck_s": 1915.3549737408855,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 292.2574234263678,
+      "queue_s": 250.76819748763356,
+      "pad_service_s": 158.78331637346324,
+      "flight_s": 151.89716109529397
+     }
+    },
+    {
+     "ratio": 1.3635066249005294,
+     "network_s": 2620.9052996016985,
+     "truck_s": 1922.1254693427811,
+     "completed_share": 0.9297342178073943,
+     "flown_truck_s": 1922.1254693427811,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1733.681828781413,
+      "queue_s": 564.9558317501788,
+      "pad_service_s": 168.43635992941094,
+      "flight_s": 153.83127914069573
+     }
+    },
+    {
+     "ratio": 5.165495524661686,
+     "network_s": 9922.788384112071,
+     "truck_s": 1920.8526643613968,
+     "completed_share": 0.7445989725628595,
+     "flown_truck_s": 1921.1472525463005,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.08983694871360604,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 8216.788424534594,
+      "queue_s": 1561.4312182630763,
+      "pad_service_s": 189.39358734814368,
+      "flight_s": 151.48375665391035
+     }
+    },
+    {
+     "ratio": 0.4329359898851956,
+     "network_s": 831.341422812193,
+     "truck_s": 1920.2658592368527,
+     "completed_share": 0.9823144042673623,
+     "flown_truck_s": 1920.421850620467,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.03763671908219899,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 170.33415304722982,
+      "queue_s": 169.73788880901805,
+      "pad_service_s": 153.10707562521077,
+      "flight_s": 152.01675034294172
+     }
+    },
+    {
+     "ratio": 1.6655578203264902,
+     "network_s": 3191.766791533757,
+     "truck_s": 1916.4589397255165,
+     "completed_share": 0.9507684751210529,
+     "flown_truck_s": 1916.186846479598,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.028031538852691634,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2054.92139301569,
+      "queue_s": 731.5415932809798,
+      "pad_service_s": 181.2494924315093,
+      "flight_s": 155.7887309169994
+     }
+    },
+    {
+     "ratio": 2.734922464781018,
+     "network_s": 5255.268280468993,
+     "truck_s": 1921.5145462968055,
+     "completed_share": 0.864621334685483,
+     "flown_truck_s": 1916.4870214824343,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.05718288727148658,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 2617.739466078549,
+      "queue_s": 662.0561960284035,
+      "pad_service_s": 167.41363565739562,
+      "flight_s": 151.1378306981468
+     }
+    },
+    {
+     "ratio": 0.3932504609696334,
+     "network_s": 756.6636768869935,
+     "truck_s": 1924.1299566585064,
+     "completed_share": 0.9809471698281392,
+     "flown_truck_s": 1924.4614499828795,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.039092967303642256,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 111.36871911453171,
+      "queue_s": 145.06214262522863,
+      "pad_service_s": 149.53134887866761,
+      "flight_s": 153.17701889904404
+     }
+    },
+    {
+     "ratio": 4.196370230310507,
+     "network_s": 8172.270536545828,
+     "truck_s": 1947.4597151603757,
+     "completed_share": 0.7919308940929278,
+     "flown_truck_s": 1943.747266547591,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.05717072256075415,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 5994.201479239332,
+      "queue_s": 1345.605917242098,
+      "pad_service_s": 198.78289585154627,
+      "flight_s": 149.87024597216205
+     }
+    },
+    {
+     "ratio": 12.81076089277174,
+     "network_s": 24915.40184037473,
+     "truck_s": 1944.6317913924067,
+     "completed_share": 0.5556349794886265,
+     "flown_truck_s": 1950.3888245140479,
+     "flyable": 0.7784431137724551,
+     "trucked_share": 0.5020153754025158,
+     "weather_aborts": 15.333333333333334,
+     "forced_landings": 4.666666666666667,
+     "split_s": {
+      "pod_wait_s": 10785.210645482839,
+      "queue_s": 2681.869279304247,
+      "pad_service_s": 232.01260527544346,
+      "flight_s": 151.7587244291656
+     }
+    },
+    {
+     "ratio": 16.072588941818946,
+     "network_s": 31809.40988524046,
+     "truck_s": 1979.0879021099743,
+     "completed_share": 0.35711005905826526,
+     "flown_truck_s": 1920.1325,
+     "flyable": 0.718562874251497,
+     "trucked_share": 0.9710337956243068,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 22952.1315875,
+      "queue_s": 33049.48310138888,
+      "pad_service_s": 341.4634902777778,
+      "flight_s": 128.49795972222222
+     }
+    },
+    {
+     "ratio": 1.0873328357161518,
+     "network_s": 2100.7864804828823,
+     "truck_s": 1932.0080839416623,
+     "completed_share": 0.9825354770709961,
+     "flown_truck_s": 1924.8323295209582,
+     "flyable": 0.7604790419161677,
+     "trucked_share": 0.18198231130510525,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 595.464093931883,
+      "queue_s": 341.26813750314403,
+      "pad_service_s": 204.60190455756424,
+      "flight_s": 151.7581809977652
+     }
+    },
+    {
+     "ratio": 1.6687157044094743,
+     "network_s": 3198.193155494966,
+     "truck_s": 1916.5635559373084,
+     "completed_share": 0.9380768163139273,
+     "flown_truck_s": 1916.752263655765,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.012259302439431246,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2203.0625443479325,
+      "queue_s": 642.8823058947573,
+      "pad_service_s": 172.10029104983667,
+      "flight_s": 151.0351250898052
+     }
+    },
+    {
+     "ratio": 1.2011290976291011,
+     "network_s": 2295.7850083690373,
+     "truck_s": 1911.3016617506,
+     "completed_share": 0.9588863438946594,
+     "flown_truck_s": 1911.3016617506,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1430.6770614257146,
+      "queue_s": 545.4390365235491,
+      "pad_service_s": 168.3878606224633,
+      "flight_s": 151.28104979731035
+     }
+    },
+    {
+     "ratio": 6.59584918207135,
+     "network_s": 12716.214451442263,
+     "truck_s": 1927.8104818307595,
+     "completed_share": 0.700158596452253,
+     "flown_truck_s": 1920.8742126874588,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.09555705549462053,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10533.723621741696,
+      "queue_s": 2219.5398539722787,
+      "pad_service_s": 230.87353759979553,
+      "flight_s": 151.24937002028355
+     }
+    },
+    {
+     "ratio": 3.2413693615057575,
+     "network_s": 6223.780695551453,
+     "truck_s": 1920.0416550056773,
+     "completed_share": 0.8687095530763861,
+     "flown_truck_s": 1918.3292773692094,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.0459078295834049,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 4842.6372093495675,
+      "queue_s": 1017.1631214834982,
+      "pad_service_s": 193.11004726971,
+      "flight_s": 151.4799285098067
+     }
+    },
+    {
+     "ratio": 2.2259396233222644,
+     "network_s": 4262.809535954584,
+     "truck_s": 1915.0713999786278,
+     "completed_share": 0.8934621075272061,
+     "flown_truck_s": 1914.5041231851199,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.032380767299484345,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 3093.322675610216,
+      "queue_s": 779.9335532923019,
+      "pad_service_s": 184.990844158638,
+      "flight_s": 155.29982392872418
+     }
+    },
+    {
+     "ratio": 0.3752292903744239,
+     "network_s": 724.7764624651668,
+     "truck_s": 1931.5262927457727,
+     "completed_share": 0.9603719142802061,
+     "flown_truck_s": 1930.9933095424092,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.006875641290895,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 146.455751684088,
+      "queue_s": 224.4748936997233,
+      "pad_service_s": 164.08707402617006,
+      "flight_s": 156.01144446254398
+     }
+    },
+    {
+     "ratio": 0.4747957380449958,
+     "network_s": 908.9417457638098,
+     "truck_s": 1914.3885806569053,
+     "completed_share": 0.9827990616776553,
+     "flown_truck_s": 1914.3885806569053,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 293.9594709244975,
+      "queue_s": 289.54898648710554,
+      "pad_service_s": 173.90950684041061,
+      "flight_s": 151.52378151179616
+     }
+    },
+    {
+     "ratio": 4.928245232629486,
+     "network_s": 9424.965201785524,
+     "truck_s": 1912.4649938648417,
+     "completed_share": 0.8098420195117747,
+     "flown_truck_s": 1912.5198512769819,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.01643934126625163,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 7460.923515137336,
+      "queue_s": 1652.9972063024404,
+      "pad_service_s": 225.9704042707293,
+      "flight_s": 150.6708290772909
+     }
+    },
+    {
+     "ratio": 0.2659600160003885,
+     "network_s": 510.08057669048094,
+     "truck_s": 1917.8783520079912,
+     "completed_share": 0.9804419421905761,
+     "flown_truck_s": 1917.8783520079912,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 72.62577370127082,
+      "queue_s": 133.0353921006756,
+      "pad_service_s": 148.31933511086072,
+      "flight_s": 156.10007577767382
+     }
+    },
+    {
+     "ratio": 0.5081685398022672,
+     "network_s": 982.2925550238557,
+     "truck_s": 1933.0014071750866,
+     "completed_share": 0.9813476607251851,
+     "flown_truck_s": 1930.2178101809138,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.07000773121182587,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 133.68283483522205,
+      "queue_s": 182.72565110286965,
+      "pad_service_s": 160.47142303242435,
+      "flight_s": 153.68889889614243
+     }
+    },
+    {
+     "ratio": 1.0077388326799033,
+     "network_s": 1942.127930810836,
+     "truck_s": 1927.196462334288,
+     "completed_share": 0.9856839789127744,
+     "flown_truck_s": 1917.147063736471,
+     "flyable": 0.7125748502994012,
+     "trucked_share": 0.2510315146103593,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 178.11997516001247,
+      "queue_s": 218.94825859040733,
+      "pad_service_s": 162.89790162137695,
+      "flight_s": 152.40706372800256
+     }
+    },
+    {
+     "ratio": 0.4190945913589686,
+     "network_s": 802.6090621874138,
+     "truck_s": 1915.0932421264436,
+     "completed_share": 0.9852902876186316,
+     "flown_truck_s": 1914.0998921912662,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.036140194298053076,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 135.57346271704708,
+      "queue_s": 167.87211959255055,
+      "pad_service_s": 167.56762591119394,
+      "flight_s": 151.54983074354757
+     }
+    },
+    {
+     "ratio": 0.2656876746335141,
+     "network_s": 508.566310268664,
+     "truck_s": 1914.1716896013259,
+     "completed_share": 0.9840736729546423,
+     "flown_truck_s": 1914.1716896013259,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 87.02266572984304,
+      "queue_s": 120.14676485418956,
+      "pad_service_s": 147.01207209863222,
+      "flight_s": 154.38480758599917
+     }
+    },
+    {
+     "ratio": 0.26099094239331183,
+     "network_s": 501.16795093331694,
+     "truck_s": 1920.2450113922444,
+     "completed_share": 0.9859833328590754,
+     "flown_truck_s": 1920.2450113922444,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.91756557235738,
+      "queue_s": 119.74839295795776,
+      "pad_service_s": 145.2652512872613,
+      "flight_s": 152.2367411157405
+     }
+    },
+    {
+     "ratio": 0.5380069057614406,
+     "network_s": 1034.4761854456376,
+     "truck_s": 1922.7571614326537,
+     "completed_share": 0.9826864396833511,
+     "flown_truck_s": 1921.9909023546254,
+     "flyable": 0.874251497005988,
+     "trucked_share": 0.06953783166115186,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 169.3305413523001,
+      "queue_s": 197.76437725514845,
+      "pad_service_s": 173.6399911127703,
+      "flight_s": 151.61418292179914
+     }
+    },
+    {
+     "ratio": 0.28958210728828254,
+     "network_s": 555.4240502241494,
+     "truck_s": 1917.9920911204972,
+     "completed_share": 0.9809398559695542,
+     "flown_truck_s": 1917.9920911204972,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 115.87279891675571,
+      "queue_s": 139.35230989396726,
+      "pad_service_s": 148.68526774052444,
+      "flight_s": 151.513673672902
+     }
+    },
+    {
+     "ratio": 0.3913969264176836,
+     "network_s": 750.2944125479347,
+     "truck_s": 1916.9681067051915,
+     "completed_share": 0.9820164788090661,
+     "flown_truck_s": 1916.899073340281,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.03673624500557323,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 109.50534466162874,
+      "queue_s": 155.6242350903941,
+      "pad_service_s": 147.51330971714842,
+      "flight_s": 152.19276155588366
+     }
+    },
+    {
+     "ratio": 0.34407054011430915,
+     "network_s": 659.8710882253459,
+     "truck_s": 1917.8654098841155,
+     "completed_share": 0.9855918700062203,
+     "flown_truck_s": 1916.0182625389004,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.022351726949216267,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 102.52369793497688,
+      "queue_s": 143.91009246164904,
+      "pad_service_s": 146.65434416054188,
+      "flight_s": 152.4872464648595
+     }
+    },
+    {
+     "ratio": 0.25808174208706997,
+     "network_s": 494.17643667321363,
+     "truck_s": 1914.794102739286,
+     "completed_share": 0.9848861397922933,
+     "flown_truck_s": 1914.794102739286,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.57919311504303,
+      "queue_s": 115.22027579927958,
+      "pad_service_s": 143.62708008792006,
+      "flight_s": 151.74988767097094
+     }
+    },
+    {
+     "ratio": 0.2807107448208607,
+     "network_s": 537.1898072256796,
+     "truck_s": 1913.6635954742849,
+     "completed_share": 0.9830069352521241,
+     "flown_truck_s": 1912.505234274897,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.006214829943259361,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 92.50031772614521,
+      "queue_s": 117.25508511230443,
+      "pad_service_s": 143.91472508255822,
+      "flight_s": 151.39500443388536
+     }
+    },
+    {
+     "ratio": 0.2967006117722543,
+     "network_s": 568.1073324161049,
+     "truck_s": 1914.7424329151156,
+     "completed_share": 0.9822175527806319,
+     "flown_truck_s": 1914.7424329151156,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.32289360776248,
+      "queue_s": 152.13751001158923,
+      "pad_service_s": 152.1043003113266,
+      "flight_s": 151.54262848542655
+     }
+    },
+    {
+     "ratio": 0.3417840057444728,
+     "network_s": 654.1381326694176,
+     "truck_s": 1913.8378909203122,
+     "completed_share": 0.982758549757837,
+     "flown_truck_s": 1915.1852888519982,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.025054120871580886,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 91.60336331432988,
+      "queue_s": 129.20357122937,
+      "pad_service_s": 154.62960411080132,
+      "flight_s": 153.13105385951917
+     }
+    },
+    {
+     "ratio": 0.2670575581004236,
+     "network_s": 511.2426918342556,
+     "truck_s": 1914.358447864049,
+     "completed_share": 0.9841767526490739,
+     "flown_truck_s": 1914.358447864049,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 98.99115514645398,
+      "queue_s": 116.88755997539324,
+      "pad_service_s": 143.02297412817651,
+      "flight_s": 152.34100258423183
+     }
+    },
+    {
+     "ratio": 0.3798036193641532,
+     "network_s": 726.5386540735714,
+     "truck_s": 1912.9411231326021,
+     "completed_share": 0.9856639800807061,
+     "flown_truck_s": 1911.391527620559,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.038613183649358986,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 96.28601836325254,
+      "queue_s": 138.40233490109492,
+      "pad_service_s": 143.23019955227736,
+      "flight_s": 151.39214440905937
+     }
+    },
+    {
+     "ratio": 0.3334622429156717,
+     "network_s": 638.6432608634035,
+     "truck_s": 1915.187340780357,
+     "completed_share": 0.9820781323513564,
+     "flown_truck_s": 1915.3274272113038,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.011113553220416487,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 124.58583586583762,
+      "queue_s": 156.70221620947402,
+      "pad_service_s": 149.85307075378918,
+      "flight_s": 151.40131277869622
+     }
+    },
+    {
+     "ratio": 0.35098858998943855,
+     "network_s": 672.4547758781081,
+     "truck_s": 1915.88583708256,
+     "completed_share": 0.9816965546354951,
+     "flown_truck_s": 1912.9077927488704,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.02817892509476158,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 92.59584610030169,
+      "queue_s": 132.39098549569874,
+      "pad_service_s": 150.2624493171833,
+      "flight_s": 151.45252010135377
+     }
+    },
+    {
+     "ratio": 0.32711877363556957,
+     "network_s": 627.3485102860737,
+     "truck_s": 1917.8009641958276,
+     "completed_share": 0.9789958552134842,
+     "flown_truck_s": 1917.9949709005514,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.018127991125041626,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 90.1305927593657,
+      "queue_s": 149.1442085502351,
+      "pad_service_s": 144.84833849957994,
+      "flight_s": 151.2443970258628
+     }
+    },
+    {
+     "ratio": 0.3700435975890946,
+     "network_s": 708.7391816624122,
+     "truck_s": 1915.3088159085662,
+     "completed_share": 0.9835431325096328,
+     "flown_truck_s": 1914.7774877911459,
+     "flyable": 0.9520958083832335,
+     "trucked_share": 0.034572400464573265,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 98.33089233833896,
+      "queue_s": 137.2461368935139,
+      "pad_service_s": 145.10533532052932,
+      "flight_s": 151.9161206941503
+     }
+    },
+    {
+     "ratio": 0.25994034390145576,
+     "network_s": 497.5366385898927,
+     "truck_s": 1914.0410044840073,
+     "completed_share": 0.9820480198242137,
+     "flown_truck_s": 1914.0410044840073,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.08368013202772,
+      "queue_s": 121.77454495329634,
+      "pad_service_s": 143.804706882614,
+      "flight_s": 151.87370662195463
+     }
+    },
+    {
+     "ratio": 0.26616275899399966,
+     "network_s": 509.51476404895305,
+     "truck_s": 1914.3017450225561,
+     "completed_share": 0.986669064240934,
+     "flown_truck_s": 1914.3017450225561,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 93.61412585382106,
+      "queue_s": 118.57269395608887,
+      "pad_service_s": 146.0373364528435,
+      "flight_s": 151.29060778619956
+     }
+    },
+    {
+     "ratio": 0.3052985454146968,
+     "network_s": 584.9330028175718,
+     "truck_s": 1915.9167523048727,
+     "completed_share": 0.9822690926278477,
+     "flown_truck_s": 1915.8485536665812,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.006309953147761266,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.65763215828905,
+      "queue_s": 142.24723457797165,
+      "pad_service_s": 146.64163728006665,
+      "flight_s": 151.34543913820244
+     }
+    },
+    {
+     "ratio": 0.27259968378901406,
+     "network_s": 522.067943132835,
+     "truck_s": 1915.142130161562,
+     "completed_share": 0.9839877922557895,
+     "flown_truck_s": 1915.0382327859697,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.005986032435018995,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.83179396865964,
+      "queue_s": 113.6092802964878,
+      "pad_service_s": 144.64260826875713,
+      "flight_s": 151.44212360920434
+     }
+    },
+    {
+     "ratio": 0.25150309582357244,
+     "network_s": 480.97214269929077,
+     "truck_s": 1912.4392101297497,
+     "completed_share": 0.9847929452348554,
+     "flown_truck_s": 1912.4392101297497,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 79.50641335021616,
+      "queue_s": 106.89444618774137,
+      "pad_service_s": 141.1736800060581,
+      "flight_s": 153.3976031552751
+     }
+    },
+    {
+     "ratio": 0.3139489644199528,
+     "network_s": 600.8148612203639,
+     "truck_s": 1913.7507718414217,
+     "completed_share": 0.9841925231566476,
+     "flown_truck_s": 1913.3385041194722,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.020615496293037643,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.13021017980911,
+      "queue_s": 112.14646425310276,
+      "pad_service_s": 142.04464180046338,
+      "flight_s": 152.141332722528
+     }
+    },
+    {
+     "ratio": 0.30119415944417,
+     "network_s": 578.0798375082272,
+     "truck_s": 1919.3234424935354,
+     "completed_share": 0.9809235140667786,
+     "flown_truck_s": 1919.3234424935354,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 129.73802995045395,
+      "queue_s": 145.308108842275,
+      "pad_service_s": 149.28416223666474,
+      "flight_s": 153.74953647883345
+     }
+    },
+    {
+     "ratio": 0.3615391179803446,
+     "network_s": 694.8233803824156,
+     "truck_s": 1921.870665338826,
+     "completed_share": 0.9839168249717073,
+     "flown_truck_s": 1917.7601053387964,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.02790077866948726,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 100.24117447871083,
+      "queue_s": 137.7550108239257,
+      "pad_service_s": 153.86087373946302,
+      "flight_s": 151.2967391890719
+     }
+    },
+    {
+     "ratio": 0.25435001385640654,
+     "network_s": 486.6551132143352,
+     "truck_s": 1913.3424971506158,
+     "completed_share": 0.9848087157424291,
+     "flown_truck_s": 1913.3424971506158,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 74.31838219169174,
+      "queue_s": 115.77326717738704,
+      "pad_service_s": 145.1426807365319,
+      "flight_s": 151.42078310872452
+     }
+    },
+    {
+     "ratio": 0.2775577051515569,
+     "network_s": 531.3454865517136,
+     "truck_s": 1914.362489128607,
+     "completed_share": 0.9851272114279954,
+     "flown_truck_s": 1914.362489128607,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 100.90298782977162,
+      "queue_s": 129.7332469254974,
+      "pad_service_s": 149.50259833220449,
+      "flight_s": 151.20665346424008
+     }
+    },
+    {
+     "ratio": 0.26777627288621686,
+     "network_s": 512.232348250413,
+     "truck_s": 1912.9244608624022,
+     "completed_share": 0.984268290160426,
+     "flown_truck_s": 1912.9244608624022,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.94042435377341,
+      "queue_s": 130.95314481639727,
+      "pad_service_s": 145.80189468371884,
+      "flight_s": 151.53688439652353
+     }
+    },
+    {
+     "ratio": 0.48585101041784157,
+     "network_s": 929.7785575848948,
+     "truck_s": 1913.7064099564323,
+     "completed_share": 0.9850340168705576,
+     "flown_truck_s": 1914.2159686788282,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.0821652957118692,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 83.56734675895909,
+      "queue_s": 118.5696954563637,
+      "pad_service_s": 159.74782354824524,
+      "flight_s": 152.589736612184
+     }
+    },
+    {
+     "ratio": 0.2788673562723348,
+     "network_s": 534.2837593420094,
+     "truck_s": 1915.930714391351,
+     "completed_share": 0.9849993331817993,
+     "flown_truck_s": 1915.930714391351,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 97.40303012566257,
+      "queue_s": 135.2034337307496,
+      "pad_service_s": 147.958533104087,
+      "flight_s": 153.7187623815102
+     }
+    },
+    {
+     "ratio": 0.4976082143323535,
+     "network_s": 954.0587625202603,
+     "truck_s": 1917.2914088912821,
+     "completed_share": 0.9828500872691892,
+     "flown_truck_s": 1913.1936113217923,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.05223569300336058,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 169.28553063971768,
+      "queue_s": 209.50493162494797,
+      "pad_service_s": 158.36883711190035,
+      "flight_s": 154.95830283359967
+     }
+    },
+    {
+     "ratio": 0.7477167423479449,
+     "network_s": 1443.7961944736887,
+     "truck_s": 1930.817199185686,
+     "completed_share": 0.9612764900244111,
+     "flown_truck_s": 1925.4904073496655,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.038411783394261344,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 140.51500022209066,
+      "queue_s": 187.91769063701565,
+      "pad_service_s": 159.35409573844993,
+      "flight_s": 150.73460118888048
+     }
+    },
+    {
+     "ratio": 0.588914662735373,
+     "network_s": 1140.5843615426425,
+     "truck_s": 1937.0605317648794,
+     "completed_share": 0.6162732096445568,
+     "flown_truck_s": 1933.0724407084408,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.02430124776688861,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 342.9925520151867,
+      "queue_s": 364.1145060017527,
+      "pad_service_s": 165.30096372640023,
+      "flight_s": 150.90953223618905
+     }
+    },
+    {
+     "ratio": 17.36326213321524,
+     "network_s": 33133.022331645974,
+     "truck_s": 1908.1626483311559,
+     "completed_share": 0.44181225530714724,
+     "flown_truck_s": 1898.006941698348,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.13619347729256104,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 31634.029956479557,
+      "queue_s": 4615.181983519553,
+      "pad_service_s": 246.9248723269449,
+      "flight_s": 150.20157653726505
+     }
+    },
+    {
+     "ratio": 6.732782839963171,
+     "network_s": 13021.130647686072,
+     "truck_s": 1933.980278725536,
+     "completed_share": 0.6804080355992924,
+     "flown_truck_s": 1926.1468893137735,
+     "flyable": 0.9221556886227545,
+     "trucked_share": 0.16858759972235016,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 10456.343463715266,
+      "queue_s": 2005.0097432941955,
+      "pad_service_s": 175.83953061615532,
+      "flight_s": 152.05720003874129
+     }
+    },
+    {
+     "ratio": 2.3162787786819004,
+     "network_s": 4481.978312302884,
+     "truck_s": 1934.830500752675,
+     "completed_share": 0.6903155712849226,
+     "flown_truck_s": 1928.4652639122644,
+     "flyable": 0.9281437125748503,
+     "trucked_share": 0.1150585411974178,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 180.92899442689134,
+      "queue_s": 189.1904253265966,
+      "pad_service_s": 165.3989408122151,
+      "flight_s": 150.76956250589407
+     }
+    },
+    {
+     "ratio": 1.0821688050979346,
+     "network_s": 2075.2118771984397,
+     "truck_s": 1917.6409241200981,
+     "completed_share": 0.9366912400887216,
+     "flown_truck_s": 1918.678467873139,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.019260425387567292,
+     "weather_aborts": 13.666666666666666,
+     "forced_landings": 3.3333333333333335,
+     "split_s": {
+      "pod_wait_s": 1413.9380687120708,
+      "queue_s": 280.9079540489256,
+      "pad_service_s": 159.3174096581876,
+      "flight_s": 153.70696866805136
+     }
+    },
+    {
+     "ratio": 9.28042177382411,
+     "network_s": 18214.593317413353,
+     "truck_s": 1962.6854543748839,
+     "completed_share": 0.5190647151920613,
+     "flown_truck_s": 1948.0577187016377,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.27582828128554376,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 269.277544427466,
+      "queue_s": 317.6195963103287,
+      "pad_service_s": 169.35655232313928,
+      "flight_s": 151.21711514174672
+     }
+    },
+    {
+     "ratio": 19.30394723874887,
+     "network_s": 38511.711717605554,
+     "truck_s": 1995.11357941198,
+     "completed_share": 0.33196221340673704,
+     "flown_truck_s": 1968.6898541666667,
+     "flyable": 0.7964071856287425,
+     "trucked_share": 0.9793287795866646,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 3199.4262444444444,
+      "queue_s": 34287.853111111115,
+      "pad_service_s": 445.2488930555556,
+      "flight_s": 122.13107083333334
+     }
+    },
+    {
+     "ratio": 9.160406751519552,
+     "network_s": 17827.914065644054,
+     "truck_s": 1946.1766012482337,
+     "completed_share": 0.6621468163402114,
+     "flown_truck_s": 1906.3324571034955,
+     "flyable": 0.6227544910179641,
+     "trucked_share": 0.7813414609659025,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 13769.209065724943,
+      "queue_s": 3069.852655527809,
+      "pad_service_s": 240.58018316149798,
+      "flight_s": 145.52810534725236
+     }
+    },
+    {
+     "ratio": 6.8898719154794685,
+     "network_s": 13219.840050004408,
+     "truck_s": 1918.7788831308933,
+     "completed_share": 0.7160892661011454,
+     "flown_truck_s": 1881.9123626409653,
+     "flyable": 0.5089820359281437,
+     "trucked_share": 0.7220975426304378,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 6549.817226641025,
+      "queue_s": 1384.9642606184414,
+      "pad_service_s": 205.3777387069356,
+      "flight_s": 147.89980511665422
+     }
+    },
+    {
+     "ratio": 6.186164265869269,
+     "network_s": 11899.107554003034,
+     "truck_s": 1923.433225998593,
+     "completed_share": 0.7266368786919987,
+     "flown_truck_s": 1915.4299874093347,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.0777144283493732,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 9995.909721178958,
+      "queue_s": 2028.4708141072454,
+      "pad_service_s": 247.74151029813245,
+      "flight_s": 151.11713765541057
+     }
+    },
+    {
+     "ratio": 5.558986936636728,
+     "network_s": 10724.619883167092,
+     "truck_s": 1929.18951565586,
+     "completed_share": 0.6305106638915144,
+     "flown_truck_s": 1918.2854817783234,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.16857007155249662,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 6276.432115499721,
+      "queue_s": 1325.2261221173308,
+      "pad_service_s": 233.04062758540883,
+      "flight_s": 150.46371038260486
+     }
+    },
+    {
+     "ratio": 14.950589459631857,
+     "network_s": 29251.990006625972,
+     "truck_s": 1956.5417774333125,
+     "completed_share": 0.47609391040134685,
+     "flown_truck_s": 1930.5411502385502,
+     "flyable": 0.7964071856287425,
+     "trucked_share": 0.47988795546039115,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 27814.964274569375,
+      "queue_s": 3654.251856695657,
+      "pad_service_s": 494.9176711477712,
+      "flight_s": 149.3208325819326
+     }
+    },
+    {
+     "ratio": 15.840794416614651,
+     "network_s": 30548.411703031292,
+     "truck_s": 1928.465528638928,
+     "completed_share": 0.46546447401757457,
+     "flown_truck_s": 1922.7767644217486,
+     "flyable": 0.7365269461077845,
+     "trucked_share": 0.6085492319552025,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 40895.82293607691,
+      "queue_s": 6701.805895904162,
+      "pad_service_s": 239.47080165319548,
+      "flight_s": 148.67689108320724
+     }
+    },
+    {
+     "ratio": 1.1799419379243183,
+     "network_s": 2276.1188540246258,
+     "truck_s": 1928.7177599329245,
+     "completed_share": 0.7367788006894683,
+     "flown_truck_s": 1928.720244988671,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.006964537878332527,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1462.5275740822744,
+      "queue_s": 461.4426835077479,
+      "pad_service_s": 175.22582334232413,
+      "flight_s": 153.54056842731828
+     }
+    },
+    {
+     "ratio": 4.362004414006388,
+     "network_s": 8371.32831934857,
+     "truck_s": 1919.1738226520317,
+     "completed_share": 0.815020688506077,
+     "flown_truck_s": 1917.2622656242704,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.03708580011037063,
+     "weather_aborts": 1.0,
+     "forced_landings": 1.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 6767.186650733857,
+      "queue_s": 1301.5135690841032,
+      "pad_service_s": 206.99746626282862,
+      "flight_s": 153.28890725509478
+     }
+    },
+    {
+     "ratio": 0.28960230120079183,
+     "network_s": 554.8301504273053,
+     "truck_s": 1915.8423623174801,
+     "completed_share": 0.9862165192409905,
+     "flown_truck_s": 1915.8423623174801,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 102.35623414936998,
+      "queue_s": 145.41689816611952,
+      "pad_service_s": 147.92438303256384,
+      "flight_s": 159.13263507925186
+     }
+    },
+    {
+     "ratio": 1.7916927559288836,
+     "network_s": 3437.043320332287,
+     "truck_s": 1918.264055367733,
+     "completed_share": 0.9526924770450549,
+     "flown_truck_s": 1917.4023205213564,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.008052665552453651,
+     "weather_aborts": 4.0,
+     "forced_landings": 1.6666666666666667,
+     "split_s": {
+      "pod_wait_s": 2269.855517736219,
+      "queue_s": 808.2790895201384,
+      "pad_service_s": 186.73741548868932,
+      "flight_s": 154.2354193034051
+     }
+    },
+    {
+     "ratio": 0.8022203481826656,
+     "network_s": 1535.5837139957132,
+     "truck_s": 1914.2392916775134,
+     "completed_share": 0.9711905396153436,
+     "flown_truck_s": 1913.009379900591,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.027324319504844513,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 738.8967800057966,
+      "queue_s": 353.83314698886215,
+      "pad_service_s": 175.33044308066442,
+      "flight_s": 152.23774654203518
+     }
+    },
+    {
+     "ratio": 0.63951375501278,
+     "network_s": 1232.0816603310443,
+     "truck_s": 1926.5950307246774,
+     "completed_share": 0.9867327176664311,
+     "flown_truck_s": 1926.8096832188937,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.029974624831132834,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 310.47553095219195,
+      "queue_s": 363.3233843646023,
+      "pad_service_s": 173.08358037062263,
+      "flight_s": 156.96250491987462
+     }
+    },
+    {
+     "ratio": 1.7754747965074158,
+     "network_s": 3399.4526410942594,
+     "truck_s": 1914.7998722144664,
+     "completed_share": 0.9270731160728785,
+     "flown_truck_s": 1914.7998722144664,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 2469.6828368483984,
+      "queue_s": 604.2726348833241,
+      "pad_service_s": 174.3731668367296,
+      "flight_s": 151.124002525807
+     }
+    },
+    {
+     "ratio": 0.3884522310419601,
+     "network_s": 743.9672729111489,
+     "truck_s": 1915.2138554492165,
+     "completed_share": 0.9827258659522856,
+     "flown_truck_s": 1914.6146654701533,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.015285642025493831,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 142.63538580323836,
+      "queue_s": 208.8236584879004,
+      "pad_service_s": 163.93024672716814,
+      "flight_s": 152.04448013593617
+     }
+    },
+    {
+     "ratio": 0.3425551002465061,
+     "network_s": 657.0357071829216,
+     "truck_s": 1918.0261510477574,
+     "completed_share": 0.9827858624484902,
+     "flown_truck_s": 1918.0238304772854,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.005330124102900172,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 138.5575922816363,
+      "queue_s": 180.7257019161356,
+      "pad_service_s": 158.4181099125365,
+      "flight_s": 152.87568146923755
+     }
+    },
+    {
+     "ratio": 0.2897384641453244,
+     "network_s": 556.3929549129676,
+     "truck_s": 1920.325796493904,
+     "completed_share": 0.9828669434276467,
+     "flown_truck_s": 1919.3666083051157,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.007162691969258815,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 87.11968403461498,
+      "queue_s": 131.26223020386288,
+      "pad_service_s": 148.75927567989368,
+      "flight_s": 151.95905851223503
+     }
+    },
+    {
+     "ratio": 0.338788856597993,
+     "network_s": 649.7508912647195,
+     "truck_s": 1917.8782756729931,
+     "completed_share": 0.9850708718610833,
+     "flown_truck_s": 1916.2938907193086,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.022466819232395064,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 105.68752914708891,
+      "queue_s": 129.35648771901575,
+      "pad_service_s": 146.96518848288804,
+      "flight_s": 152.0821600756242
+     }
+    },
+    {
+     "ratio": 0.4419248210229118,
+     "network_s": 848.016420186445,
+     "truck_s": 1918.9165185285965,
+     "completed_share": 0.9856676370099987,
+     "flown_truck_s": 1920.0606307917517,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.046649802796060236,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 119.34470851988328,
+      "queue_s": 160.84024495986202,
+      "pad_service_s": 182.07758108023577,
+      "flight_s": 152.32540752749279
+     }
+    },
+    {
+     "ratio": 0.323638820218298,
+     "network_s": 622.7148969190099,
+     "truck_s": 1924.0175085047929,
+     "completed_share": 0.9857397470844845,
+     "flown_truck_s": 1921.8726945548676,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.01275295602113436,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 109.30023216953823,
+      "queue_s": 142.65785635379012,
+      "pad_service_s": 153.35074177632706,
+      "flight_s": 151.79368515809082
+     }
+    },
+    {
+     "ratio": 0.2912038367935366,
+     "network_s": 559.5643230067002,
+     "truck_s": 1921.5450858627785,
+     "completed_share": 0.9847298632045604,
+     "flown_truck_s": 1921.5450858627785,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 108.77185332833558,
+      "queue_s": 146.60930963989816,
+      "pad_service_s": 149.91142516965422,
+      "flight_s": 154.27173486881216
+     }
+    },
+    {
+     "ratio": 0.42392454465138246,
+     "network_s": 813.4778064894757,
+     "truck_s": 1918.7998041353264,
+     "completed_share": 0.9827996330728572,
+     "flown_truck_s": 1920.0073661551567,
+     "flyable": 0.9341317365269463,
+     "trucked_share": 0.04483938386694027,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 129.78453943703752,
+      "queue_s": 154.80985878867725,
+      "pad_service_s": 154.5954812096459,
+      "flight_s": 151.82187395098782
+     }
+    },
+    {
+     "ratio": 0.5169048404607861,
+     "network_s": 992.5753186725725,
+     "truck_s": 1920.1943790034709,
+     "completed_share": 0.9843972540575058,
+     "flown_truck_s": 1920.0631639198118,
+     "flyable": 0.8922155688622754,
+     "trucked_share": 0.07146482930094265,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 175.6101931643362,
+      "queue_s": 162.5869892118637,
+      "pad_service_s": 146.99138514540456,
+      "flight_s": 151.77215378144513
+     }
+    },
+    {
+     "ratio": 0.26741313830904906,
+     "network_s": 512.5992038842537,
+     "truck_s": 1916.8785386891832,
+     "completed_share": 0.9832153230822748,
+     "flown_truck_s": 1916.8785386891832,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.05642211343832,
+      "queue_s": 134.83399694161469,
+      "pad_service_s": 145.30501668261968,
+      "flight_s": 151.403768146581
+     }
+    },
+    {
+     "ratio": 0.30439264776959546,
+     "network_s": 583.0156070715831,
+     "truck_s": 1915.3486738236354,
+     "completed_share": 0.9827179806984986,
+     "flown_truck_s": 1914.7592782499876,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.007334002559297198,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 117.27540365726372,
+      "queue_s": 128.2548449426363,
+      "pad_service_s": 148.96659394946084,
+      "flight_s": 151.33551274187838
+     }
+    },
+    {
+     "ratio": 0.31277932078214427,
+     "network_s": 599.3902431303223,
+     "truck_s": 1916.3265188393655,
+     "completed_share": 0.9844293664678555,
+     "flown_truck_s": 1914.9877768217466,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.015232967179764056,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 99.22718473589295,
+      "queue_s": 124.68399952376645,
+      "pad_service_s": 145.49571092227418,
+      "flight_s": 151.43724986965427
+     }
+    },
+    {
+     "ratio": 0.3907925253496174,
+     "network_s": 749.8078772785275,
+     "truck_s": 1918.678417351906,
+     "completed_share": 0.9842919459217868,
+     "flown_truck_s": 1914.484348302684,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.035085278214079196,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 112.29414266145483,
+      "queue_s": 150.67719567593113,
+      "pad_service_s": 154.59859832169175,
+      "flight_s": 151.29946540599053
+     }
+    },
+    {
+     "ratio": 0.3449096492354274,
+     "network_s": 661.9644942664557,
+     "truck_s": 1919.2454001681506,
+     "completed_share": 0.9845609016433441,
+     "flown_truck_s": 1916.9881817864498,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.016518895171869566,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 129.5036334725302,
+      "queue_s": 148.03595504579314,
+      "pad_service_s": 149.63174284570093,
+      "flight_s": 151.51922220146034
+     }
+    },
+    {
+     "ratio": 0.2658396730163359,
+     "network_s": 508.79615585090784,
+     "truck_s": 1913.9586344935387,
+     "completed_share": 0.9815312500035712,
+     "flown_truck_s": 1913.9586344935387,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 89.75384106428184,
+      "queue_s": 121.73215573785944,
+      "pad_service_s": 146.1141166172413,
+      "flight_s": 151.19604243152523
+     }
+    },
+    {
+     "ratio": 0.28637068067876964,
+     "network_s": 548.1678783535202,
+     "truck_s": 1914.19281918883,
+     "completed_share": 0.9830305910134848,
+     "flown_truck_s": 1914.337677570825,
+     "flyable": 0.9760479041916167,
+     "trucked_share": 0.012163268782853816,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 78.75385650419253,
+      "queue_s": 113.5487362335078,
+      "pad_service_s": 142.81985909903054,
+      "flight_s": 151.34067401403257
+     }
+    },
+    {
+     "ratio": 0.25507030369047506,
+     "network_s": 487.9355842101118,
+     "truck_s": 1912.943358516896,
+     "completed_share": 0.9811924697883359,
+     "flown_truck_s": 1912.943358516896,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 85.97570129135123,
+      "queue_s": 107.64808283510224,
+      "pad_service_s": 141.4562772358852,
+      "flight_s": 152.85552284777313
+     }
+    },
+    {
+     "ratio": 0.324953147453148,
+     "network_s": 622.5603965571058,
+     "truck_s": 1915.8550196476688,
+     "completed_share": 0.984974020374353,
+     "flown_truck_s": 1913.3810457030384,
+     "flyable": 0.9640718562874252,
+     "trucked_share": 0.015827124379981027,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 101.23478673264668,
+      "queue_s": 142.7900538823478,
+      "pad_service_s": 145.7797584920503,
+      "flight_s": 151.24290249478682
+     }
+    },
+    {
+     "ratio": 0.27081275868469007,
+     "network_s": 518.3584628996211,
+     "truck_s": 1914.08695116077,
+     "completed_share": 0.9847535189659209,
+     "flown_truck_s": 1914.08695116077,
+     "flyable": 0.9880239520958084,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 96.15257665832064,
+      "queue_s": 125.71091589930857,
+      "pad_service_s": 144.7003153313898,
+      "flight_s": 151.79465501060213
+     }
+    },
+    {
+     "ratio": 0.255388334215438,
+     "network_s": 488.6268987248789,
+     "truck_s": 1913.2855295077663,
+     "completed_share": 0.9862044056627092,
+     "flown_truck_s": 1913.2855295077663,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 80.41345253029012,
+      "queue_s": 112.53935182325426,
+      "pad_service_s": 144.2932629148138,
+      "flight_s": 151.38083145652078
+     }
+    },
+    {
+     "ratio": 0.4333983611707832,
+     "network_s": 831.1830308454222,
+     "truck_s": 1917.813300793766,
+     "completed_share": 0.9878157972717251,
+     "flown_truck_s": 1916.7845251341798,
+     "flyable": 0.940119760479042,
+     "trucked_share": 0.053956346346841606,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 111.44490918547888,
+      "queue_s": 134.61650018225612,
+      "pad_service_s": 161.88125005696494,
+      "flight_s": 151.5079413642081
+     }
+    },
+    {
+     "ratio": 0.2549745843603317,
+     "network_s": 487.6451468988278,
+     "truck_s": 1912.5183324604338,
+     "completed_share": 0.9859602484929165,
+     "flown_truck_s": 1912.5183324604338,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 88.75628195859134,
+      "queue_s": 105.59963321298135,
+      "pad_service_s": 142.0527452637879,
+      "flight_s": 151.23648646346726
+     }
+    },
+    {
+     "ratio": 0.26245875854662776,
+     "network_s": 501.97716364203325,
+     "truck_s": 1912.6074029879353,
+     "completed_share": 0.9851666376969299,
+     "flown_truck_s": 1912.6074029879353,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 94.36688429969547,
+      "queue_s": 113.7409022597834,
+      "pad_service_s": 141.52337884185144,
+      "flight_s": 152.34599824070295
+     }
+    },
+    {
+     "ratio": 0.6611696543106377,
+     "network_s": 1274.3770378084569,
+     "truck_s": 1927.4636282997162,
+     "completed_share": 0.9865575278975136,
+     "flown_truck_s": 1917.5164413513,
+     "flyable": 0.8323353293413174,
+     "trucked_share": 0.12464256660560964,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 158.76279919913128,
+      "queue_s": 182.19626871154557,
+      "pad_service_s": 156.77876958903326,
+      "flight_s": 151.410666274401
+     }
+    },
+    {
+     "ratio": 0.24288167368375344,
+     "network_s": 464.5066099686401,
+     "truck_s": 1912.4786141920322,
+     "completed_share": 0.984268861555628,
+     "flown_truck_s": 1912.4786141920322,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 64.63855595298183,
+      "queue_s": 106.82666821596221,
+      "pad_service_s": 141.7677077040507,
+      "flight_s": 151.27367809564532
+     }
+    },
+    {
+     "ratio": 0.25506196374995005,
+     "network_s": 489.10487363240986,
+     "truck_s": 1917.5984339919335,
+     "completed_share": 0.9836599828284314,
+     "flown_truck_s": 1917.5984339919335,
+     "flyable": 1.0,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 81.74040960821469,
+      "queue_s": 111.12785538769396,
+      "pad_service_s": 144.5169926212899,
+      "flight_s": 151.7196160152113
+     }
+    },
+    {
+     "ratio": 0.30762238268971087,
+     "network_s": 589.0612358398428,
+     "truck_s": 1914.8878001613157,
+     "completed_share": 0.9861570941399879,
+     "flown_truck_s": 1914.9158450716138,
+     "flyable": 0.9820359281437124,
+     "trucked_share": 0.0108086099878554,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 91.84910946680873,
+      "queue_s": 134.16412899553202,
+      "pad_service_s": 145.95581942525635,
+      "flight_s": 152.62274224703052
+     }
+    },
+    {
+     "ratio": 0.2966823556440394,
+     "network_s": 568.5078186080274,
+     "truck_s": 1916.1682892041888,
+     "completed_share": 0.9837157510001416,
+     "flown_truck_s": 1916.1682892041888,
+     "flyable": 0.9940119760479041,
+     "trucked_share": 0.0,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 116.72542701114429,
+      "queue_s": 148.0462344286321,
+      "pad_service_s": 152.03950851258793,
+      "flight_s": 151.6966486556631
+     }
+    },
+    {
+     "ratio": 0.32594844383670024,
+     "network_s": 625.6137934890485,
+     "truck_s": 1919.3868283535037,
+     "completed_share": 0.981732323975137,
+     "flown_truck_s": 1918.8251375084783,
+     "flyable": 0.9700598802395209,
+     "trucked_share": 0.007090355487514871,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 119.74109474526817,
+      "queue_s": 154.25932171288022,
+      "pad_service_s": 161.5947810220556,
+      "flight_s": 153.14121900505006
+     }
+    },
+    {
+     "ratio": 0.48415077906496146,
+     "network_s": 928.5017599808863,
+     "truck_s": 1917.788261030337,
+     "completed_share": 0.979224241875703,
+     "flown_truck_s": 1917.5552535428742,
+     "flyable": 0.9161676646706587,
+     "trucked_share": 0.03148044518615448,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.0,
+     "split_s": {
+      "pod_wait_s": 173.71865938883448,
+      "queue_s": 261.76188506661003,
+      "pad_service_s": 186.34236589648174,
+      "flight_s": 151.8514654043447
+     }
+    },
+    {
+     "ratio": 2.3942883592045803,
+     "network_s": 4582.72505835719,
+     "truck_s": 1913.899778647794,
+     "completed_share": 0.896064584114002,
+     "flown_truck_s": 1914.2839905630092,
+     "flyable": 0.9461077844311377,
+     "trucked_share": 0.022084801717503138,
+     "weather_aborts": 11.0,
+     "forced_landings": 2.0,
+     "split_s": {
+      "pod_wait_s": 3176.0958592718707,
+      "queue_s": 995.6910202234199,
+      "pad_service_s": 199.0934502559446,
+      "flight_s": 151.54436850605725
+     }
+    },
+    {
+     "ratio": 1.5490011720567416,
+     "network_s": 2987.3532472483007,
+     "truck_s": 1928.6223433641092,
+     "completed_share": 0.9753584676369186,
+     "flown_truck_s": 1917.9916791487328,
+     "flyable": 0.6946107784431138,
+     "trucked_share": 0.2670374046275045,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 1067.065281418364,
+      "queue_s": 529.500871129705,
+      "pad_service_s": 262.7127146702462,
+      "flight_s": 150.72944690689692
+     }
+    },
+    {
+     "ratio": 5.336281659822897,
+     "network_s": 10233.081601237876,
+     "truck_s": 1917.6170865355896,
+     "completed_share": 0.7066309041837671,
+     "flown_truck_s": 1918.623977975155,
+     "flyable": 0.9101796407185628,
+     "trucked_share": 0.07949399907643387,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 8454.210324663205,
+      "queue_s": 1788.6428276925237,
+      "pad_service_s": 231.2554753617188,
+      "flight_s": 150.71249909440147
+     }
+    },
+    {
+     "ratio": 26.066301674379414,
+     "network_s": 50547.1929219604,
+     "truck_s": 1939.4485542485363,
+     "completed_share": 0.30764260510043356,
+     "flown_truck_s": 1919.9644629538632,
+     "flyable": 0.9580838323353293,
+     "trucked_share": 0.17891555283796665,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 45879.21832117572,
+      "queue_s": 6748.081042906543,
+      "pad_service_s": 233.48318766038764,
+      "flight_s": 146.3816044226044
+     }
+    },
+    {
+     "ratio": 15.696760648746663,
+     "network_s": 30656.77896883956,
+     "truck_s": 1953.0511327143452,
+     "completed_share": 0.4587236676806646,
+     "flown_truck_s": 1934.93419336366,
+     "flyable": 0.8023952095808383,
+     "trucked_share": 0.5260311365593268,
+     "weather_aborts": 0.0,
+     "forced_landings": 1.0,
+     "split_s": {
+      "pod_wait_s": 21843.190521529144,
+      "queue_s": 4401.672831203096,
+      "pad_service_s": 269.34310853788827,
+      "flight_s": 151.09177790775732
+     }
+    },
+    {
+     "ratio": 4.929376176453082,
+     "network_s": 9497.126484235692,
+     "truck_s": 1926.7153104388553,
+     "completed_share": 0.744438753348233,
+     "flown_truck_s": 1920.9640870398653,
+     "flyable": 0.8802395209580839,
+     "trucked_share": 0.13061682870145516,
+     "weather_aborts": 4.0,
+     "forced_landings": 1.3333333333333333,
+     "split_s": {
+      "pod_wait_s": 7921.683751771091,
+      "queue_s": 1755.72821338778,
+      "pad_service_s": 200.01991623667865,
+      "flight_s": 156.27731701715922
+     }
+    },
+    {
+     "ratio": 1.803041131239376,
+     "network_s": 3460.978591940926,
+     "truck_s": 1919.5072255327625,
+     "completed_share": 0.9270594025880317,
+     "flown_truck_s": 1912.5447215744327,
+     "flyable": 0.9221556886227545,
+     "trucked_share": 0.062355889215794234,
+     "weather_aborts": 0.0,
+     "forced_landings": 0.6666666666666666,
+     "split_s": {
+      "pod_wait_s": 2033.6729253934254,
+      "queue_s": 491.39172858833564,
+      "pad_service_s": 175.34483415521274,
+      "flight_s": 151.9240034652619
+     }
+    }
+   ],
+   "ratio": {
+    "mean": 2.135927452492259,
+    "p10": 0.2600269293579965,
+    "p50": 0.40617252616430105,
+    "p90": 6.3090697407298935,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "flyable": {
+    "mean": 0.9400813757101182,
+    "p10": 0.8574850299401199,
+    "p50": 0.9640718562874252,
+    "p90": 1.0,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "trucked_share": {
+    "mean": 0.0730795840445771,
+    "p10": 0.0,
+    "p50": 0.01869420825630446,
+    "p90": 0.17983558037810823,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "completed_share": {
+    "mean": 0.908685601259055,
+    "p10": 0.6838808327879367,
+    "p50": 0.9822917484476049,
+    "p90": 0.9860232905255476,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "forced_landings_total": 193.0
+  }
+ },
+ "sensitivity": {
+  "wind limits x0.5": {
+   "ratio": {
+    "mean": 8.281140050698648,
+    "p10": 0.6423374340897812,
+    "p50": 3.584677095966634,
+    "p90": 15.971783412431586,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": 5.109702539946882,
+   "completed_share": 0.7246892902333624
+  },
+  "cold derate depth x0.5": {
+   "ratio": {
+    "mean": 0.8044214056400028,
+    "p10": 0.2594434553610781,
+    "p50": 0.40282618440039863,
+    "p90": 1.6567025646590956,
+    "weeks": 156,
+    "weeks_without_value": 0
+   },
+   "change": -2.3670161051117624,
+   "completed_share": 0.9627451035247819
+  },
+  "landing gust k x0.5": {
+   "ratio": {
+    "mean": 3.1617979141135093,
+    "p10": 0.25267956805650926,
+    "p50": 0.5510781305605816,
+    "p90": 6.481902805136544,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": -0.009639596638255643,
+   "completed_share": 0.8754003209436012
+  },
+  "traffic peak delay x0.5": {
+   "ratio": {
+    "mean": 3.1992629483093284,
+    "p10": 0.26255245116031123,
+    "p50": 0.5642967137491384,
+    "p90": 6.677299729041667,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": 0.027825437557563504,
+   "completed_share": 0.8749209115784709
+  },
+  "wind limits x1.5": {
+   "ratio": {
+    "mean": 3.021945679758784,
+    "p10": 0.2579395092676634,
+    "p50": 0.5339231892643913,
+    "p90": 5.955002441512749,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": -0.1494918309929809,
+   "completed_share": 0.8786190490870937
+  },
+  "cold derate depth x1.5": {
+   "ratio": {
+    "mean": 7.118694343660398,
+    "p10": 0.2614646128723644,
+    "p50": 0.8746011728937131,
+    "p90": 16.161737830319055,
+    "weeks": 150,
+    "weeks_without_value": 6
+   },
+   "change": 3.9472568329086335,
+   "completed_share": 0.7603143687031387
+  },
+  "landing gust k x1.5": {
+   "ratio": {
+    "mean": 3.191797535848645,
+    "p10": 0.2608418392267602,
+    "p50": 0.5615562848803514,
+    "p90": 6.953992686895201,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": 0.02036002509687984,
+   "completed_share": 0.8720698568346464
+  },
+  "traffic peak delay x1.5": {
+   "ratio": {
+    "mean": 3.144139731569274,
+    "p10": 0.25751799397585023,
+    "p50": 0.5532631350621988,
+    "p90": 6.551619280903478,
+    "weeks": 154,
+    "weeks_without_value": 2
+   },
+   "change": -0.027297779182490878,
+   "completed_share": 0.8749209115784709
+  }
+ },
+ "named_weeks": {
+  "median wind": 42,
+  "windiest": 53,
+  "coldest": 107
+ }
+}

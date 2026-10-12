@@ -148,6 +148,8 @@ pub struct Metrics {
     closed_delivered: u64,
     closed_diverted: u64,
     closed_failed: u64,
+    /// Shipments requested in the window that went by truck (A83).
+    closed_trucked: u64,
     door_drone: Histogram,
     door_truck: Histogram,
     saving_sum_s: f64,
@@ -200,6 +202,7 @@ impl Metrics {
             closed_delivered: 0,
             closed_diverted: 0,
             closed_failed: 0,
+            closed_trucked: 0,
             door_drone: h(),
             door_truck: h(),
             saving_sum_s: 0.0,
@@ -341,6 +344,28 @@ impl Metrics {
             }
             self.saving_n += 1;
         }
+    }
+
+    pub fn shipment_trucked(&mut self, requested_ms: TimeMs) {
+        if self.in_window(requested_ms) {
+            self.closed_trucked += 1;
+        }
+    }
+
+    /// M10 (weather runs only): flyable hours, orders flown against trucked, weather aborts.
+    #[allow(clippy::cast_precision_loss)]
+    pub fn weather_summary(&self, flyable_hour_fraction: Option<f64>, aborts: u64) -> Value {
+        let flown = self.closed_delivered + self.closed_diverted;
+        let total = flown + self.closed_trucked;
+        let share = |n: u64| (total > 0).then(|| n as f64 / total as f64);
+        json!({
+            "flyable_hour_fraction": flyable_hour_fraction,
+            "orders_flown": flown,
+            "orders_trucked": self.closed_trucked,
+            "flown_share": share(flown),
+            "trucked_share": share(self.closed_trucked),
+            "weather_aborts": aborts,
+        })
     }
 
     pub fn finish(&mut self) {

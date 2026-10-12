@@ -12,7 +12,7 @@ use drone_sim::network::Network;
 use drone_sim::output::Outputs;
 use drone_sim::scenario::Scenario;
 
-const USAGE: &str = "usage: sim run <scenario.toml> --seed N --out <dir> [--replication R]\n       sim dump <events.bin>\n       sim flight-model --lane-m L --payload-kg P [--config <scenario.toml>]\n       sim battery --config <scenario.toml> --payload-kg P --from <pad> --to <pad>";
+const USAGE: &str = "usage: sim run <scenario.toml> --seed N --out <dir> [--replication R] [--no-event-log]\n       sim dump <events.bin>\n       sim flight-model --lane-m L --payload-kg P [--config <scenario.toml>]\n       sim battery --config <scenario.toml> --payload-kg P --from <pad> --to <pad>";
 const J_PER_WH: f64 = 3600.0;
 /// `sim battery` rounds the sized battery up to a whole multiple of this.
 const BATTERY_STEP_WH: f64 = 10.0;
@@ -30,6 +30,8 @@ struct Args {
     seed: Option<u64>,
     out: PathBuf,
     replication: u32,
+    /// Skip `events.bin` (sweeps read only metrics and deliveries).
+    event_log: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -38,8 +40,12 @@ fn parse_args() -> Result<Args, String> {
         return Err(USAGE.into());
     }
     let config = it.next().ok_or(USAGE)?;
-    let (mut seed, mut out, mut replication) = (None, None, 0);
+    let (mut seed, mut out, mut replication, mut event_log) = (None, None, 0, true);
     while let Some(flag) = it.next() {
+        if flag == "--no-event-log" {
+            event_log = false;
+            continue;
+        }
         let value = it
             .next()
             .ok_or_else(|| format!("{flag} needs a value\n{USAGE}"))?;
@@ -65,6 +71,7 @@ fn parse_args() -> Result<Args, String> {
         seed,
         out: out.ok_or(USAGE)?,
         replication,
+        event_log,
     })
 }
 
@@ -352,7 +359,7 @@ fn main() -> ExitCode {
         );
         return ExitCode::from(2);
     }
-    let outputs = match Outputs::to_dir(&args.out, scenario.cfg.source_hash) {
+    let outputs = match Outputs::to_dir_with(&args.out, scenario.cfg.source_hash, args.event_log) {
         Ok(o) => o,
         Err(e) => {
             eprintln!("cannot create outputs in {}: {e}", args.out.display());
@@ -364,7 +371,7 @@ fn main() -> ExitCode {
     let summary = match world.run() {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("run failed while writing outputs: {e}");
+            eprintln!("run failed: {e}");
             return ExitCode::FAILURE;
         }
     };

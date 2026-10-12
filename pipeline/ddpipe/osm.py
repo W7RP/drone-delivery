@@ -22,7 +22,7 @@ DRIVABLE = {
 }
 EXCLUDED_SERVICE = {"parking_aisle", "driveway", "drive-through", "emergency_access"}
 NO_ACCESS = {"no", "private"}
-ROAD_TAGS = ("highway", "oneway", "maxspeed", "junction", "service")
+ROAD_TAGS = ("highway", "oneway", "maxspeed", "junction", "service", "bridge", "tunnel")
 
 
 @dataclass
@@ -75,7 +75,8 @@ def read_cached(pbf_path: Path, pbf_sha256: str, cache_dir: Path, area: dict,
     """`read`, memoised on disk by the extract's sha256, the area and the site keys. The cache
     only saves the 50 s pass over the extract; deleting it changes no output."""
     key = hashlib.sha256(repr((pbf_sha256, sorted(area.items()), site_keys,
-                               sorted(DRIVABLE), sorted(EXCLUDED_SERVICE))).encode()).hexdigest()
+                               sorted(DRIVABLE), sorted(EXCLUDED_SERVICE), ROAD_TAGS)).encode()
+                         ).hexdigest()
     path = cache_dir / f"osm_{key[:16]}.pickle"
     if path.exists():
         with open(path, "rb") as f:

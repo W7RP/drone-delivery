@@ -1,0 +1,15 @@
+{
+ "pipeline_git": "8369eb7dd2d7",
+ "sources": {
+  "iem_asos_agc": {
+   "bytes": 1405320,
+   "file": "iem_asos_agc_2023_2025.csv",
+   "license": "Public domain (NWS/FAA ASOS observations, archived by the Iowa Environmental Mesonet)",
+   "pipeline_git": "27aedeede0e9-dirty",
+   "retrieved_utc": "2026-10-08",
+   "sha256": "924c82cdb2106b2dae1d159b229495f09935df2daf8687360f9bc94c871d329e",
+   "url": "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=AGC&data=sknt&data=drct&data=gust&data=tmpf&data=vsby&data=p01i&data=wxcodes&year1=2022&month1=12&day1=31&year2=2026&month2=1&day2=1&tz=Etc%2FUTC&format=onlycomma&latlon=no&elev=no&missing=M&trace=T&direct=no&report_type=3",
+   "use": "hourly weather series"
+  }
+ }
+}

@@ -80,7 +80,7 @@ impl World {
         self.timer(delay_ms, timer, EntityKind::Pad, p, d, generation);
     }
 
-    fn pad_status(&mut self, p: PadId) {
+    pub(crate) fn pad_status(&mut self, p: PadId) {
         let s = self.pad(p);
         let msg = Msg::PadStatus {
             pad: p,
@@ -184,7 +184,11 @@ impl World {
                 Msg::LandingHold {
                     pad,
                     drone,
-                    reason: HoldReason::InOccupied,
+                    reason: if self.landing_blocked() {
+                        HoldReason::Weather
+                    } else {
+                        HoldReason::InOccupied
+                    },
                     queue_pos: u16::try_from(pos).unwrap_or(u16::MAX),
                 }
             }
@@ -317,7 +321,12 @@ impl World {
             let i = self.visit_index(p, d);
             self.visits[i] = v;
         }
-        if self.pad(p).landing_queue.is_empty()
+        let blocked = self.landing_blocked();
+        if blocked && let Some(w) = self.weather.as_mut() {
+            w.aborts += 1;
+        }
+        if !blocked
+            && self.pad(p).landing_queue.is_empty()
             && let Some(spot) = self.spot_for(p, d, pod != NO_POD)
         {
             self.grant(p, d, spot, tcode::v(1));
@@ -430,6 +439,15 @@ impl World {
             }
             (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
                 if mission == MissionKind::Pickup && dest == p && self.hop_to_pickup(p, d) => {}
+            (VisitState::Ready, Msg::DepartRequest { mission, dest, .. })
+                if mission == MissionKind::Park
+                    && dest == p
+                    && self.cfg.policy.yield_on_request
+                    && self.visit(p, d).spot == Spot::In
+                    && self.pad(p).parked >= self.pad(p).parking_capacity =>
+            {
+                self.hop_to_free_out(p, d);
+            }
             (VisitState::Ready, Msg::DepartRequest { mission, .. }) => {
                 self.visit_mut(p, d).depart_mission = mission;
                 if !self.pad(p).depart_queue.contains(&d) {
@@ -611,6 +629,20 @@ impl World {
         self.visit_to(p, d, tcode::v(43), VisitState::Hopping);
         self.send_hop(p, d);
         true
+    }
+
+    /// V44 (A74): an idle drone on IN makes room by hopping to a free OUT spot, because the
+    /// parking area has no room. With no free OUT spot the request waits: the PC answers as to a
+    /// duplicate, and the drone's watchdog asks again.
+    fn hop_to_free_out(&mut self, p: PadId, d: DroneId) {
+        let Some(k) = self.out_for(p, d, true, true) else {
+            self.pc_duplicate(p, d);
+            return;
+        };
+        self.out_mut(p, k).reserved = d;
+        self.visit_mut(p, d).hop_out = u8::try_from(k).expect("at most 3 OUT spots");
+        self.visit_to(p, d, tcode::v(44), VisitState::Hopping);
+        self.send_hop(p, d);
     }
 
     /// V24 to V26 (or V13-style fallback from the hop timeout): the drone has hopped from IN, or
@@ -955,8 +987,13 @@ impl World {
         self.try_placement(p);
     }
 
+    /// Weather over a limit (A79): no landing is cleared this hour.
+    fn landing_blocked(&self) -> bool {
+        self.weather.is_some_and(|w| !w.landing_ok)
+    }
+
     fn run_landing_queue(&mut self, p: PadId) {
-        while self.pad(p).mode == PadMode::Online {
+        while self.pad(p).mode == PadMode::Online && !self.landing_blocked() {
             let Some(&d) = self.pad(p).landing_queue.front() else {
                 break;
             };
@@ -1111,6 +1148,45 @@ impl World {
             payload_kg,
             out_index: u8::try_from(k).expect("at most 3 OUT spots"),
         });
+    }
+
+    /// TRUCK_FALLBACK (A83, P10): shipments requested at or before `cutoff` leave the backlog
+    /// for a truck.
+    pub(crate) fn pc_truck_backlog(&mut self, p: PadId, cutoff: TimeMs) -> Vec<Shipment> {
+        let mut taken = Vec::new();
+        self.pad_mut(p).backlog.retain(|ship| {
+            let go = ship.requested <= cutoff;
+            if go {
+                taken.push(*ship);
+            }
+            !go
+        });
+        for _ in &taken {
+            self.log_transition(tcode::p(10), p, NO_DRONE, NO_STATE, NO_STATE);
+        }
+        taken
+    }
+
+    /// TRUCK_FALLBACK (A83, P11): the shipment in `pod`, waiting on an OUT spot no drone is on,
+    /// reserved for or assigned to, is unpacked into a truck; the pod goes back to inventory
+    /// empty. False if the pod is not waiting on such a spot.
+    pub(crate) fn pc_truck_out_pod(&mut self, p: PadId, pod: PodId) -> bool {
+        let free = (0..self.n_out(p)).find(|&k| {
+            let o = self.out(p, k);
+            o.pod == pod
+                && !o.placing
+                && o.drone == NO_DRONE
+                && o.reserved == NO_DRONE
+                && o.pickup_drone == NO_DRONE
+        });
+        let Some(k) = free else { return false };
+        self.out_mut(p, k).pod = NO_POD;
+        self.pad_mut(p).inventory.push(pod);
+        let n = self.pad(p).empty_pods + 1;
+        self.set_empty_pods(p, n);
+        self.pod_mass_kg[pod as usize] = crate::world::narrow_f32(self.cfg.pod_empty_mass_kg);
+        self.log_transition(tcode::p(11), p, NO_DRONE, NO_STATE, NO_STATE);
+        true
     }
 
     pub(crate) fn pc_pod_remove_done(&mut self, p: PadId, pod: PodId) {

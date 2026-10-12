@@ -10,10 +10,10 @@ import tomllib
 import numpy as np
 
 from . import (constraints, energy, fetch, lanes, osm, outputs, pads, plot, sanity, scenario,
-               truck, variants)
+               truck, variants, weather)
 from .geo import Enu
 from .params import load, q
-from .paths import CACHE, PIPELINE, RAW
+from .paths import CACHE, PIPELINE, RAW, WEATHER_DIR
 from .population import Population
 from .provenance import pipeline_revision
 from .terrain import Terrain
@@ -30,7 +30,9 @@ def restrict(pad_list, lane_list, tm, keep: list[int]):
             [dataclasses.replace(l, a=index[l.a], b=index[l.b]) for l in lane_list
              if l.a in index and l.b in index],
             dataclasses.replace(tm, free_flow_s=tm.free_flow_s[sub], road_m=tm.road_m[sub],
-                                snap_m=tm.snap_m[keep], snap_node=tm.snap_node[keep]))
+                                snap_m=tm.snap_m[keep], snap_node=tm.snap_node[keep],
+                                class_frac=tm.class_frac[:, keep][:, :, keep],
+                                structure_frac=tm.structure_frac[sub]))
 
 
 def build(manifest: dict) -> None:
@@ -50,6 +52,10 @@ def build(manifest: dict) -> None:
     graph = truck.build_graph(extract.roads, params)
     tm_all = truck.build(pad_list, graph, enu, params)
     revision = pipeline_revision()
+    weather.build(params, sources["sources"], manifest, RAW, WEATHER_DIR, revision)
+    # The network files list only the sources they are built from.
+    network_manifest = {"files": {s["name"]: manifest["files"][s["name"]]
+                                  for s in sources["sources"] if s.get("group") != "weather"}}
     retrieved = manifest["files"]["osm_pennsylvania"]["retrieved_utc"]
     hub = next(i for i, p in enumerate(pad_list) if p.is_hub)
     for n, variant in enumerate(variants.load(params)):
@@ -76,7 +82,7 @@ def build(manifest: dict) -> None:
                           "drone_overrides": variant.drone,
                           "pads_left_out": [{"name": d, "reason": "no lane to the hub"} for d in dropped]}
         outputs.write_derived(variant.derived_dir, v_pads, sites_cfg, v_lanes, v_tm, doc,
-                              manifest, revision)
+                              network_manifest, revision)
         sanity.check(params, extract.water, variant.derived_dir)
         if n == 0:
             # Every selected pad, so the pads a variant leaves out still show.

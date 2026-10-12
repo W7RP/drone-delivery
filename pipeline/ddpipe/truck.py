@@ -2,7 +2,11 @@
 way comes from `maxspeed`, else a per-class default (params.yaml). One-way rules follow OSM:
 `oneway=yes|true|1`, `oneway=-1|reverse`, roundabouts and motorways are one-way unless
 `oneway=no`. Each pad snaps to the nearest drivable node of the largest strongly connected
-component, and the snap leg is a straight connector at a fixed speed in both directions."""
+component, and the snap leg is a straight connector at a fixed speed in both directions.
+
+For traffic (spec 9.2 version_minor 2) each route's length is also split by road class
+(motorway and trunk, primary and secondary, the rest, snap legs included) and by how much of
+it is on a bridge or in a tunnel."""
 
 import logging
 import re
@@ -29,6 +33,13 @@ MIN_EDGE_S = 1e-3
 FORWARD = {"yes", "true", "1"}
 BACKWARD = {"-1", "reverse"}
 SPEED_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(mph|km/h|kmh|kph)?\s*$")
+# Road classes of the traffic model, in the order of truck_matrix.bin's class arrays.
+CLASS_MOTORWAY, CLASS_PRIMARY, CLASS_OTHER = 0, 1, 2
+N_CLASSES = 3
+CLASS_OF = {"motorway": CLASS_MOTORWAY, "motorway_link": CLASS_MOTORWAY, "trunk": CLASS_MOTORWAY,
+            "trunk_link": CLASS_MOTORWAY, "primary": CLASS_PRIMARY, "primary_link": CLASS_PRIMARY,
+            "secondary": CLASS_PRIMARY, "secondary_link": CLASS_PRIMARY}
+NOT_A_STRUCTURE = {None, "no"}
 
 
 def parse_maxspeed(text: str | None) -> float | None:
@@ -60,6 +71,15 @@ def direction(tags: dict) -> tuple[bool, bool]:
     return True, not implied
 
 
+def road_class(tags: dict) -> int:
+    return CLASS_OF.get(tags.get("highway"), CLASS_OTHER)
+
+
+def on_structure(tags: dict) -> bool:
+    """A bridge or a tunnel (any `bridge`/`tunnel` value but "no")."""
+    return tags.get("bridge") not in NOT_A_STRUCTURE or tags.get("tunnel") not in NOT_A_STRUCTURE
+
+
 @dataclass
 class RoadGraph:
     node_ids: np.ndarray
@@ -67,6 +87,9 @@ class RoadGraph:
     lat_deg: np.ndarray
     time_s: csr_matrix
     length_m: csr_matrix
+    # Per edge, in the order of length_m.data: road class and bridge/tunnel flag.
+    edge_class: np.ndarray
+    edge_structure: np.ndarray
     snappable: np.ndarray
     max_speed_mps: float
     tagged_ways: int
@@ -82,7 +105,7 @@ def build_graph(roads: list[RoadWay], params: dict) -> RoadGraph:
     node_ids, first, inverse = np.unique(all_ids, return_index=True, return_inverse=True)
     lon, lat = all_lon[first], all_lat[first]
     snappable = np.zeros(len(node_ids), dtype=bool)
-    us, vs, ts, ls = [], [], [], []
+    us, vs, ts, ls, cs, bs = [], [], [], [], [], []
     tagged = defaulted = 0
     max_speed = 0.0
     offset = 0
@@ -101,30 +124,40 @@ def build_graph(roads: list[RoadWay], params: dict) -> RoadGraph:
             snappable[idx] = True
         seg = great_circle_m(r.lat_deg[:-1], r.lon_deg[:-1], r.lat_deg[1:], r.lon_deg[1:])
         t = np.maximum(seg / speed, MIN_EDGE_S)
+        c = np.full(len(seg), road_class(r.tags), dtype=np.int8)
+        b = np.full(len(seg), on_structure(r.tags))
         fwd, bwd = direction(r.tags)
         if fwd:
             us.append(idx[:-1]); vs.append(idx[1:]); ts.append(t); ls.append(seg)
+            cs.append(c); bs.append(b)
         if bwd:
             us.append(idx[1:]); vs.append(idx[:-1]); ts.append(t); ls.append(seg)
-    u, v, t, length = map(np.concatenate, (us, vs, ts, ls))
+            cs.append(c); bs.append(b)
+    u, v, t, length, cls_e, struct_e = map(np.concatenate, (us, vs, ts, ls, cs, bs))
     # Parallel edges (two ways over the same node pair): keep the fastest.
     order = np.lexsort((t, v, u))
     u, v, t, length = u[order], v[order], t[order], length[order]
+    cls_e, struct_e = cls_e[order], struct_e[order]
     keep = np.ones(len(u), dtype=bool)
     keep[1:] = (u[1:] != u[:-1]) | (v[1:] != v[:-1])
     u, v, t, length = u[keep], v[keep], t[keep], length[keep]
+    cls_e, struct_e = cls_e[keep], struct_e[keep]
     n = len(node_ids)
     time_s = csr_matrix((t, (u, v)), shape=(n, n))
     length_m = csr_matrix((length, (u, v)), shape=(n, n))
+    # Edges are unique and sorted by (u, v), so csr keeps their order; the per-edge arrays
+    # rely on it.
+    if not np.array_equal(length_m.indices, v) or not np.array_equal(length_m.data, length):
+        raise RuntimeError("road graph edges were reordered")
     log.info("roads: %d nodes, %d directed edges; maxspeed used on %d ways, class default on %d",
              n, len(u), tagged, defaulted)
-    return RoadGraph(node_ids, lon, lat, time_s, length_m, snappable, max_speed, tagged, defaulted)
+    return RoadGraph(node_ids, lon, lat, time_s, length_m, cls_e, struct_e, snappable, max_speed,
+                     tagged, defaulted)
 
 
-def _edge_length(g: RoadGraph, a: int, b: int) -> float:
+def _edge(g: RoadGraph, a: int, b: int) -> int:
     lo, hi = g.length_m.indptr[a], g.length_m.indptr[a + 1]
-    k = lo + np.searchsorted(g.length_m.indices[lo:hi], b)
-    return float(g.length_m.data[k])
+    return int(lo + np.searchsorted(g.length_m.indices[lo:hi], b))
 
 
 @dataclass
@@ -134,6 +167,10 @@ class TruckMatrix:
     snap_m: np.ndarray
     snap_node: np.ndarray
     max_speed_mps: float
+    # [class][from][to]: share of road_m in each road class; [from][to]: share on a bridge or
+    # in a tunnel. Diagonals 0.
+    class_frac: np.ndarray
+    structure_frac: np.ndarray
 
 
 def build(pads: list[Pad], g: RoadGraph, enu: Enu, params: dict) -> TruckMatrix:
@@ -152,22 +189,34 @@ def build(pads: list[Pad], g: RoadGraph, enu: Enu, params: dict) -> TruckMatrix:
     n = len(pads)
     free_flow = np.zeros((n, n))
     road = np.zeros((n, n))
+    class_frac = np.zeros((N_CLASSES, n, n))
+    structure_frac = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
             if i == j:
                 continue
             node, length = snap_node[j], 0.0
+            by_class = np.zeros(N_CLASSES)
+            by_class[CLASS_OTHER] = snap_m[i] + snap_m[j]
+            structure = 0.0
             while node != snap_node[i]:
                 prev = pred[i, node]
                 if prev < 0:
                     raise RuntimeError(f"no road path {pads[i].name} -> {pads[j].name}")
-                length += _edge_length(g, prev, node)
+                k = _edge(g, prev, node)
+                seg = float(g.length_m.data[k])
+                length += seg
+                by_class[g.edge_class[k]] += seg
+                structure += seg * g.edge_structure[k]
                 node = prev
             free_flow[i, j] = (snap_m[i] + snap_m[j]) / snap_speed + dist_s[i, snap_node[j]]
             road[i, j] = snap_m[i] + length + snap_m[j]
+            class_frac[:, i, j] = by_class / road[i, j]
+            structure_frac[i, j] = structure / road[i, j]
     for p, d in zip(pads, snap_m):
         log.info("truck snap %-32s %5.0f m", p.name, d)
-    return TruckMatrix(free_flow, road, snap_m, snap_node, max(g.max_speed_mps, snap_speed))
+    return TruckMatrix(free_flow, road, snap_m, snap_node, max(g.max_speed_mps, snap_speed),
+                       class_frac, structure_frac)
 
 
 def detour_ratios(pads: list[Pad], tm: TruckMatrix, pairs) -> np.ndarray:

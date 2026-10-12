@@ -115,7 +115,8 @@ def write_derived(derived: Path, pads, sites_cfg: dict, lane_list, tm, report_do
     files = {
         PADS_FILE: catalog,
         LANES_FILE: binfmt.write_lanes(binfmt.lane_graph(len(pads), lane_list), source_hash),
-        TRUCK_FILE: binfmt.write_truck(tm.free_flow_s, tm.road_m, source_hash),
+        TRUCK_FILE: binfmt.write_truck(tm.free_flow_s, tm.road_m, tm.class_frac,
+                                       tm.structure_frac, source_hash),
         REPORT_FILE: (json.dumps(report_doc, indent=1, sort_keys=True) + "\n").encode(),
         MANIFEST_FILE: (json.dumps({"pipeline_git": revision, "sources": manifest["files"]},
                                    indent=1, sort_keys=True) + "\n").encode(),

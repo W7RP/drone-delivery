@@ -1,0 +1,53 @@
+{
+ "assumptions": [
+  "The station is not at the lanes: one series stands for every pad and lane (spec A76).",
+  "Wind and gust are at the 10 m anemometer; the sim scales them to cruise height."
+ ],
+ "hours": 26304,
+ "pipeline_git": "8369eb7dd2d7",
+ "source": "iem_asos_agc",
+ "span_utc": [
+  "2023-01-01T00:00",
+  "2026-01-01T00:00"
+ ],
+ "stations_tried": [
+  {
+   "counts": {
+    "carried_hours": 577,
+    "hours_without_report": 374,
+    "invalid_values": 2,
+    "missing_hours": 198,
+    "reports": 25981,
+    "reports_not_nearest": 27,
+    "reports_outside_span": 24,
+    "variable_wind_hours": 1949
+   },
+   "missing_fraction": 0.00753,
+   "source": "iem_asos_agc"
+  }
+ ],
+ "summary": {
+  "gust_10m_mps": {
+   "max": 28.29,
+   "p90": 10.29
+  },
+  "hours_by_flag": {
+   "freezing": 12,
+   "rain": 1659,
+   "snow": 603,
+   "thunder": 65
+  },
+  "hours_precip_above_0": 2044,
+  "hours_visibility_below_1600_m": 389,
+  "temp_c": {
+   "max": 35.56,
+   "min": -20.56,
+   "p50": 13.33
+  },
+  "wind_10m_mps": {
+   "max": 14.4,
+   "p50": 3.09,
+   "p90": 5.66
+  }
+ }
+}
