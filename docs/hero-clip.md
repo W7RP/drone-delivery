@@ -280,7 +280,9 @@ Results:
 
 The clip is `video/hero_clip.mp4` (git-ignored): 82.3 s, 1280×720, 30 fps, H.264, no audio,
 6.0 MB. It is cut from run `clip_6`. Stills from it: `docs/media/hero_transition.png`,
-`docs/media/hero_overview.png`, `docs/media/hero_landing.png`.
+`docs/media/hero_overview.png`, `docs/media/hero_landing.png`. `docs/media/hero_track.png` maps
+the run's ground-truth track over the corridor world, with the height along the lane against the
+terrain and buildings (`pipeline/run.sh hero map "$PWD/px4/runs/hero/clip_6"`).
 
 ## 7. Terrain against flat
 

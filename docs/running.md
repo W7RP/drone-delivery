@@ -168,6 +168,7 @@ pipeline/run.sh hero world                # the corridor world alone, into px4/s
 px4/tools/run_batch.sh hero_check heroterrain_1 heroterrain_2 heroflat_1 heroflat_2
 pipeline/run.sh hero terrain-check        # the flat-versus-terrain table from that batch
 px4/py.sh tests/test_hero_hud.py <run>    # the HUD against the run's logs and the demo's CSV
+pipeline/run.sh hero map "$PWD/<run>"     # docs/media/hero_track.png: the run's track and height profile
 ```
 
 `scripts/hero_clip.sh` is offline: it reads the pipeline cache, not the network. It flies the
